@@ -1,7 +1,8 @@
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Star, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { VegBadge } from '@/components/ui/veg-badge';
+import { Badge } from '@/components/ui/badge';
 import { Product } from '@/types/database';
 import { useCart } from '@/hooks/useCart';
 import { cn } from '@/lib/utils';
@@ -48,6 +49,21 @@ export function ProductCard({ product, variant = 'horizontal' }: ProductCardProp
               <span className="text-white text-sm font-medium">Unavailable</span>
             </div>
           )}
+          {/* Badges */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {product.is_bestseller && (
+              <Badge className="bg-warning text-warning-foreground text-[10px] px-1.5">
+                <Star size={10} className="mr-0.5 fill-current" />
+                Bestseller
+              </Badge>
+            )}
+            {product.is_recommended && (
+              <Badge className="bg-success text-white text-[10px] px-1.5">
+                <Award size={10} className="mr-0.5" />
+                Recommended
+              </Badge>
+            )}
+          </div>
         </div>
         <CardContent className="p-3">
           <div className="flex items-start gap-2">
@@ -105,7 +121,20 @@ export function ProductCard({ product, variant = 'horizontal' }: ProductCardProp
         <div className="flex items-start gap-2">
           <VegBadge isVeg={product.is_veg} size="sm" className="mt-0.5" />
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium">{product.name}</h4>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="font-medium">{product.name}</h4>
+              {product.is_bestseller && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-warning/20 text-warning-foreground">
+                  <Star size={10} className="mr-0.5 fill-warning text-warning" />
+                  Bestseller
+                </Badge>
+              )}
+              {product.is_recommended && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-success/20 text-success">
+                  Recommended
+                </Badge>
+              )}
+            </div>
             {product.description && (
               <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                 {product.description}

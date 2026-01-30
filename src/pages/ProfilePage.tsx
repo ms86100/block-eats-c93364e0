@@ -9,7 +9,7 @@ import {
   Phone,
   Store,
   Package,
-  Settings,
+  Heart,
   LogOut,
   ChevronRight,
   Shield,
@@ -26,6 +26,7 @@ export default function ProfilePage() {
 
   const menuItems = [
     { icon: Package, label: 'My Orders', to: '/orders' },
+    { icon: Heart, label: 'Favorites', to: '/favorites' },
     ...(isSeller
       ? [{ icon: Store, label: 'Seller Dashboard', to: '/seller' }]
       : [{ icon: Store, label: 'Become a Seller', to: '/become-seller' }]),
@@ -94,7 +95,7 @@ export default function ProfilePage() {
         </Button>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          Greenfield Market v1.0.0
+          Greenfield Market v2.0.0 • Phase 2
         </p>
       </div>
     </AppLayout>

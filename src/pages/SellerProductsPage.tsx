@@ -5,7 +5,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -22,10 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { VegBadge } from '@/components/ui/veg-badge';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product, CATEGORIES, ProductCategory, SellerProfile } from '@/types/database';
-import { ArrowLeft, Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Loader2, Star, Award } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function SellerProductsPage() {
@@ -43,6 +44,8 @@ export default function SellerProductsPage() {
     category: '' as ProductCategory | '',
     is_veg: true,
     is_available: true,
+    is_bestseller: false,
+    is_recommended: false,
   });
 
   useEffect(() => {
@@ -72,6 +75,7 @@ export default function SellerProductsPage() {
         .from('products')
         .select('*')
         .eq('seller_id', profile.id)
+        .order('is_bestseller', { ascending: false })
         .order('created_at', { ascending: false });
 
       setProducts(productData || []);
@@ -90,6 +94,8 @@ export default function SellerProductsPage() {
       category: '',
       is_veg: true,
       is_available: true,
+      is_bestseller: false,
+      is_recommended: false,
     });
     setEditingProduct(null);
   };
@@ -103,6 +109,8 @@ export default function SellerProductsPage() {
       category: product.category,
       is_veg: product.is_veg,
       is_available: product.is_available,
+      is_bestseller: product.is_bestseller,
+      is_recommended: product.is_recommended,
     });
     setIsDialogOpen(true);
   };
@@ -131,6 +139,8 @@ export default function SellerProductsPage() {
         category: formData.category as ProductCategory,
         is_veg: formData.is_veg,
         is_available: formData.is_available,
+        is_bestseller: formData.is_bestseller,
+        is_recommended: formData.is_recommended,
       };
 
       if (editingProduct) {
@@ -307,6 +317,32 @@ export default function SellerProductsPage() {
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Star size={16} className="text-warning" />
+                    <span className="text-sm font-medium">Mark as Bestseller</span>
+                  </div>
+                  <Switch
+                    checked={formData.is_bestseller}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, is_bestseller: checked })
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Award size={16} className="text-success" />
+                    <span className="text-sm font-medium">Recommended</span>
+                  </div>
+                  <Switch
+                    checked={formData.is_recommended}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, is_recommended: checked })
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <span className="text-sm font-medium">Available for order</span>
                   <Switch
                     checked={formData.is_available}
@@ -331,7 +367,7 @@ export default function SellerProductsPage() {
           </Dialog>
         </div>
 
-        <h1 className="text-xl font-bold mb-4">Your Products</h1>
+        <h1 className="text-xl font-bold mb-4">Your Products ({products.length})</h1>
 
         {products.length > 0 ? (
           <div className="space-y-3">
@@ -355,10 +391,23 @@ export default function SellerProductsPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2 flex-wrap">
                       <VegBadge isVeg={product.is_veg} size="sm" />
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-medium truncate">{product.name}</h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-medium truncate">{product.name}</h3>
+                          {product.is_bestseller && (
+                            <Badge className="bg-warning/20 text-warning-foreground text-[10px] px-1">
+                              <Star size={10} className="mr-0.5 fill-warning text-warning" />
+                              Bestseller
+                            </Badge>
+                          )}
+                          {product.is_recommended && (
+                            <Badge className="bg-success/20 text-success text-[10px] px-1">
+                              Recommended
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm font-semibold text-primary">
                           ₹{product.price}
                         </p>

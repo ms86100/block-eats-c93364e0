@@ -46,6 +46,74 @@ export type Database = {
           },
         ]
       }
+      favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          seller_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          seller_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          seller_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      featured_items: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          link_url: string | null
+          reference_id: string
+          title: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          link_url?: string | null
+          reference_id: string
+          title?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          link_url?: string | null
+          reference_id?: string
+          title?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -146,6 +214,8 @@ export type Database = {
           id: string
           image_url: string | null
           is_available: boolean | null
+          is_bestseller: boolean | null
+          is_recommended: boolean | null
           is_veg: boolean | null
           name: string
           price: number
@@ -159,6 +229,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean | null
+          is_bestseller?: boolean | null
+          is_recommended?: boolean | null
           is_veg?: boolean | null
           name: string
           price: number
@@ -172,6 +244,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean | null
+          is_bestseller?: boolean | null
+          is_recommended?: boolean | null
           is_veg?: boolean | null
           name?: string
           price?: number
@@ -235,7 +309,9 @@ export type Database = {
           buyer_id: string | null
           comment: string | null
           created_at: string | null
+          hidden_reason: string | null
           id: string
+          is_hidden: boolean | null
           order_id: string
           rating: number
           seller_id: string
@@ -244,7 +320,9 @@ export type Database = {
           buyer_id?: string | null
           comment?: string | null
           created_at?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean | null
           order_id: string
           rating: number
           seller_id: string
@@ -253,7 +331,9 @@ export type Database = {
           buyer_id?: string | null
           comment?: string | null
           created_at?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean | null
           order_id?: string
           rating?: number
           seller_id?: string
@@ -287,6 +367,9 @@ export type Database = {
           description: string | null
           id: string
           is_available: boolean | null
+          is_featured: boolean | null
+          operating_days: string[] | null
+          profile_image_url: string | null
           rating: number | null
           total_reviews: number | null
           updated_at: string | null
@@ -306,6 +389,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_available?: boolean | null
+          is_featured?: boolean | null
+          operating_days?: string[] | null
+          profile_image_url?: string | null
           rating?: number | null
           total_reviews?: number | null
           updated_at?: string | null
@@ -325,6 +411,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_available?: boolean | null
+          is_featured?: boolean | null
+          operating_days?: string[] | null
+          profile_image_url?: string | null
           rating?: number | null
           total_reviews?: number | null
           updated_at?: string | null
@@ -378,6 +467,8 @@ export type Database = {
         | "ready"
         | "completed"
         | "cancelled"
+        | "picked_up"
+        | "delivered"
       product_category:
         | "home_food"
         | "bakery"
@@ -520,6 +611,8 @@ export const Constants = {
         "ready",
         "completed",
         "cancelled",
+        "picked_up",
+        "delivered",
       ],
       product_category: ["home_food", "bakery", "snacks", "groceries", "other"],
       user_role: ["buyer", "seller", "admin"],

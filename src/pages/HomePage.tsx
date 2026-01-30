@@ -8,35 +8,59 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { SellerProfile } from '@/types/database';
-import { Search, ChevronRight, Store, Clock } from 'lucide-react';
+import { SellerProfile, Favorite } from '@/types/database';
+import { Search, ChevronRight, Store, Clock, Heart, Award } from 'lucide-react';
 import heroBanner from '@/assets/hero-banner.jpg';
 
 export default function HomePage() {
-  const { profile, isApproved, isSeller } = useAuth();
-  const [sellers, setSellers] = useState<SellerProfile[]>([]);
+  const { user, profile, isApproved, isSeller } = useAuth();
+  const [featuredSellers, setFeaturedSellers] = useState<SellerProfile[]>([]);
+  const [popularSellers, setPopularSellers] = useState<SellerProfile[]>([]);
+  const [favorites, setFavorites] = useState<SellerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchSellers();
-  }, []);
+    fetchData();
+  }, [user]);
 
-  const fetchSellers = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch featured sellers
+      const { data: featured } = await supabase
         .from('seller_profiles')
-        .select(`
-          *,
-          profile:profiles(name, block)
-        `)
+        .select(`*, profile:profiles(name, block)`)
+        .eq('verification_status', 'approved')
+        .eq('is_featured', true)
+        .limit(5);
+
+      setFeaturedSellers((featured as any) || []);
+
+      // Fetch popular sellers
+      const { data: popular } = await supabase
+        .from('seller_profiles')
+        .select(`*, profile:profiles(name, block)`)
         .eq('verification_status', 'approved')
         .order('rating', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
-      setSellers((data as any) || []);
+      setPopularSellers((popular as any) || []);
+
+      // Fetch user favorites
+      if (user) {
+        const { data: favData } = await supabase
+          .from('favorites')
+          .select(`seller:seller_profiles(*, profile:profiles(name, block))`)
+          .eq('user_id', user.id)
+          .limit(5);
+
+        const favSellers = favData
+          ?.map((f: any) => f.seller)
+          .filter((s: any) => s && s.verification_status === 'approved') || [];
+        
+        setFavorites(favSellers);
+      }
     } catch (error) {
-      console.error('Error fetching sellers:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -107,6 +131,61 @@ export default function HomePage() {
           <CategoryGrid variant="scroll" />
         </div>
 
+        {/* Favorites Section */}
+        {favorites.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between px-4 mb-3">
+              <div className="flex items-center gap-2">
+                <Heart className="text-primary" size={18} />
+                <h3 className="font-semibold">Your Favorites</h3>
+              </div>
+              <Link to="/favorites" className="text-sm text-primary font-medium">
+                See all
+              </Link>
+            </div>
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
+              {favorites.map((seller) => (
+                <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-48">
+                  <div className="bg-card rounded-xl overflow-hidden shadow-sm">
+                    <div className="h-24 relative">
+                      {seller.cover_image_url ? (
+                        <img src={seller.cover_image_url} alt={seller.business_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                          <span className="text-2xl">🍴</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-2">
+                      <p className="font-medium text-sm truncate">{seller.business_name}</p>
+                      {seller.rating > 0 && (
+                        <p className="text-xs text-muted-foreground">⭐ {seller.rating.toFixed(1)}</p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Featured Sellers */}
+        {featuredSellers.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between px-4 mb-3">
+              <div className="flex items-center gap-2">
+                <Award className="text-warning" size={18} />
+                <h3 className="font-semibold">Featured Sellers</h3>
+              </div>
+            </div>
+            <div className="px-4 space-y-3">
+              {featuredSellers.map((seller) => (
+                <SellerCard key={seller.id} seller={seller as any} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Become a Seller CTA */}
         {!isSeller && (
           <div className="mx-4 mt-6">
@@ -131,7 +210,7 @@ export default function HomePage() {
         <div className="mt-6">
           <div className="flex items-center justify-between px-4 mb-3">
             <h3 className="font-semibold">Popular Sellers</h3>
-            <Link to="/sellers" className="text-sm text-primary font-medium">
+            <Link to="/search" className="text-sm text-primary font-medium">
               See all
             </Link>
           </div>
@@ -143,8 +222,8 @@ export default function HomePage() {
                   <Skeleton key={i} className="h-48 w-full rounded-xl" />
                 ))}
               </>
-            ) : sellers.length > 0 ? (
-              sellers.map((seller) => (
+            ) : popularSellers.length > 0 ? (
+              popularSellers.map((seller) => (
                 <SellerCard key={seller.id} seller={seller as any} />
               ))
             ) : (

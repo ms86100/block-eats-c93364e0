@@ -4,13 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProductCard } from '@/components/product/ProductCard';
 import { RatingStars } from '@/components/ui/rating-stars';
-import { VegBadge } from '@/components/ui/veg-badge';
+import { ReviewList } from '@/components/review/ReviewList';
+import { FavoriteButton } from '@/components/favorite/FavoriteButton';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCart } from '@/hooks/useCart';
-import { SellerProfile, Product, CATEGORIES } from '@/types/database';
-import { ArrowLeft, Clock, MapPin, Phone, ShoppingCart } from 'lucide-react';
+import { SellerProfile, Product, CATEGORIES, DAYS_OF_WEEK } from '@/types/database';
+import { ArrowLeft, Clock, MapPin, Phone, ShoppingCart, Star, Calendar } from 'lucide-react';
 
 export default function SellerDetailPage() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export default function SellerDetailPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState('menu');
 
   useEffect(() => {
     if (id) {
@@ -42,6 +44,8 @@ export default function SellerDetailPage() {
           .select('*')
           .eq('seller_id', id)
           .eq('is_available', true)
+          .order('is_bestseller', { ascending: false })
+          .order('is_recommended', { ascending: false })
           .order('category'),
       ]);
 
@@ -99,11 +103,12 @@ export default function SellerDetailPage() {
   }
 
   const profile = (seller as any).profile;
+  const operatingDays = seller.operating_days || DAYS_OF_WEEK;
 
   return (
     <AppLayout showHeader={false} showNav={cartCount === 0}>
       {/* Cover Image */}
-      <div className="relative h-48">
+      <div className="relative h-56">
         {seller.cover_image_url ? (
           <img
             src={seller.cover_image_url}
@@ -113,23 +118,38 @@ export default function SellerDetailPage() {
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <Link
-          to="/"
-          className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md"
-        >
-          <ArrowLeft size={20} />
-        </Link>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        
+        <div className="absolute top-4 left-4 right-4 flex justify-between">
+          <Link
+            to="/"
+            className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+          <FavoriteButton sellerId={seller.id} size="md" />
+        </div>
+
+        {/* Seller Avatar */}
+        {seller.profile_image_url && (
+          <div className="absolute bottom-4 left-4 w-16 h-16 rounded-full border-3 border-white overflow-hidden shadow-lg">
+            <img
+              src={seller.profile_image_url}
+              alt={seller.business_name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
       </div>
 
       {/* Seller Info */}
-      <div className="px-4 -mt-12 relative z-10">
+      <div className="px-4 -mt-8 relative z-10">
         <div className="bg-card rounded-xl shadow-elevated p-4">
           <div className="flex items-start justify-between">
-            <div>
+            <div className={seller.profile_image_url ? 'ml-16' : ''}>
               <h1 className="text-xl font-bold">{seller.business_name}</h1>
               {seller.description && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                   {seller.description}
                 </p>
               )}
@@ -143,7 +163,7 @@ export default function SellerDetailPage() {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-3 mt-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap gap-3 mt-4 text-sm text-muted-foreground">
             {profile && (
               <span className="flex items-center gap-1">
                 <MapPin size={14} />
@@ -156,6 +176,25 @@ export default function SellerDetailPage() {
                 {seller.availability_start.slice(0, 5)} - {seller.availability_end.slice(0, 5)}
               </span>
             )}
+          </div>
+
+          {/* Operating Days */}
+          <div className="flex items-center gap-2 mt-3">
+            <Calendar size={14} className="text-muted-foreground" />
+            <div className="flex gap-1">
+              {DAYS_OF_WEEK.map((day) => (
+                <span
+                  key={day}
+                  className={`text-[10px] px-1.5 py-0.5 rounded ${
+                    operatingDays.includes(day)
+                      ? 'bg-success/20 text-success'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {day}
+                </span>
+              ))}
+            </div>
           </div>
 
           {seller.categories.length > 0 && (
@@ -176,42 +215,55 @@ export default function SellerDetailPage() {
         </div>
       </div>
 
-      {/* Menu */}
-      <div className="px-4 mt-6">
-        <h2 className="text-lg font-semibold mb-3">Menu</h2>
-        
-        {categories.length > 2 && (
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-4 -mx-4 px-4">
-            {categories.map((cat) => {
-              const categoryInfo = CATEGORIES.find((c) => c.value === cat);
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                    activeCategory === cat
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {cat === 'all' ? 'All' : categoryInfo?.label || cat}
-                </button>
-              );
-            })}
-          </div>
-        )}
+      {/* Tabs */}
+      <div className="px-4 mt-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full">
+            <TabsTrigger value="menu" className="flex-1">Menu</TabsTrigger>
+            <TabsTrigger value="reviews" className="flex-1">
+              Reviews ({seller.total_reviews})
+            </TabsTrigger>
+          </TabsList>
 
-        {filteredProducts.length > 0 ? (
-          <div className="space-y-0">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No products available</p>
-          </div>
-        )}
+          <TabsContent value="menu" className="mt-4">
+            {categories.length > 2 && (
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-4 -mx-4 px-4">
+                {categories.map((cat) => {
+                  const categoryInfo = CATEGORIES.find((c) => c.value === cat);
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                        activeCategory === cat
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {cat === 'all' ? 'All' : categoryInfo?.label || cat}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {filteredProducts.length > 0 ? (
+              <div className="space-y-0">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No products available</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="reviews" className="mt-4">
+            <ReviewList sellerId={seller.id} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Cart Footer */}

@@ -4,9 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ReviewForm } from '@/components/review/ReviewForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order, OrderItem, ORDER_STATUS_LABELS, OrderStatus } from '@/types/database';
-import { ArrowLeft, Phone, MapPin, MessageCircle, Check } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Check, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -15,6 +16,7 @@ export default function OrderDetailPage() {
   const navigate = useNavigate();
   const { user, isSeller } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
+  const [hasReview, setHasReview] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -44,6 +46,15 @@ export default function OrderDetailPage() {
 
       if (error) throw error;
       setOrder(data as any);
+
+      // Check if review exists
+      const { data: reviewData } = await supabase
+        .from('reviews')
+        .select('id')
+        .eq('order_id', id)
+        .single();
+      
+      setHasReview(!!reviewData);
     } catch (error) {
       console.error('Error fetching order:', error);
     } finally {
@@ -104,14 +115,28 @@ export default function OrderDetailPage() {
   const items = (order as any).items || [];
   const statusInfo = ORDER_STATUS_LABELS[order.status];
   const isSellerView = isSeller && seller?.user_id === user?.id;
+  const isBuyerView = order.buyer_id === user?.id;
 
-  const statusOrder: OrderStatus[] = ['placed', 'accepted', 'preparing', 'ready', 'completed'];
+  const statusOrder: OrderStatus[] = ['placed', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered', 'completed'];
   const currentStatusIndex = statusOrder.indexOf(order.status);
-  const nextStatus = statusOrder[currentStatusIndex + 1];
+  const displayStatuses = ['placed', 'accepted', 'preparing', 'ready'];
+  
+  // Determine next status for seller
+  const getNextStatus = (): OrderStatus | null => {
+    if (order.status === 'cancelled' || order.status === 'completed') return null;
+    const nextIndex = currentStatusIndex + 1;
+    if (nextIndex < statusOrder.length) {
+      return statusOrder[nextIndex];
+    }
+    return null;
+  };
+
+  const nextStatus = getNextStatus();
+  const canReview = isBuyerView && order.status === 'completed' && !hasReview;
 
   return (
-    <AppLayout showHeader={false} showNav={!isSellerView || order.status === 'completed'}>
-      <div className="p-4">
+    <AppLayout showHeader={false} showNav={!isSellerView || order.status === 'completed' || order.status === 'cancelled'}>
+      <div className="p-4 pb-24">
         <Link to="/orders" className="flex items-center gap-2 text-muted-foreground mb-4">
           <ArrowLeft size={20} />
           <span>Back to Orders</span>
@@ -136,9 +161,10 @@ export default function OrderDetailPage() {
           {/* Status Timeline */}
           {order.status !== 'cancelled' && (
             <div className="flex items-center justify-between mt-4">
-              {statusOrder.slice(0, -1).map((status, index) => {
-                const isCompleted = index <= currentStatusIndex;
-                const isCurrent = index === currentStatusIndex;
+              {displayStatuses.map((status, index) => {
+                const statusIndex = statusOrder.indexOf(status as OrderStatus);
+                const isCompleted = statusIndex <= currentStatusIndex;
+                const isCurrent = statusIndex === currentStatusIndex;
                 return (
                   <div key={status} className="flex flex-col items-center flex-1">
                     <div
@@ -151,7 +177,7 @@ export default function OrderDetailPage() {
                       {isCompleted ? <Check size={16} /> : index + 1}
                     </div>
                     <span className="text-[10px] text-center mt-1 text-muted-foreground">
-                      {ORDER_STATUS_LABELS[status].label}
+                      {ORDER_STATUS_LABELS[status as OrderStatus].label}
                     </span>
                   </div>
                 );
@@ -159,6 +185,27 @@ export default function OrderDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Review CTA for completed orders */}
+        {canReview && (
+          <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Star className="text-warning" size={24} />
+                <div>
+                  <p className="font-semibold">Rate your experience</p>
+                  <p className="text-sm text-muted-foreground">Help others by sharing your feedback</p>
+                </div>
+              </div>
+              <ReviewForm
+                orderId={order.id}
+                sellerId={order.seller_id}
+                sellerName={seller?.business_name || 'Seller'}
+                onSuccess={() => setHasReview(true)}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Seller/Buyer Info */}
         <div className="bg-card rounded-xl p-4 shadow-sm mb-4">

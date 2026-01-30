@@ -3,24 +3,29 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { SellerProfile, Order, ORDER_STATUS_LABELS } from '@/types/database';
-import { Package, Plus, Settings, DollarSign, Clock, ChevronRight } from 'lucide-react';
+import { Package, Plus, Settings, DollarSign, Clock, ChevronRight, TrendingUp, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, startOfDay, startOfWeek, isAfter, parseISO } from 'date-fns';
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [orderFilter, setOrderFilter] = useState<'all' | 'today' | 'pending' | 'completed'>('all');
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
     totalEarnings: 0,
+    todayEarnings: 0,
+    weekEarnings: 0,
+    todayOrders: 0,
   });
 
   useEffect(() => {
@@ -47,7 +52,7 @@ export default function SellerDashboardPage() {
 
       setSellerProfile(profile as SellerProfile);
 
-      // Fetch orders and stats
+      // Fetch all orders
       const { data: orders } = await supabase
         .from('orders')
         .select(`
@@ -56,28 +61,37 @@ export default function SellerDashboardPage() {
           items:order_items(*)
         `)
         .eq('seller_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
 
-      setRecentOrders((orders as any) || []);
+      const orderList = (orders as any) || [];
+      setAllOrders(orderList);
 
       // Calculate stats
-      const { data: allOrders } = await supabase
-        .from('orders')
-        .select('status, total_amount')
-        .eq('seller_id', profile.id);
+      const today = startOfDay(new Date());
+      const weekStart = startOfWeek(new Date());
 
-      if (allOrders) {
-        const totalOrders = allOrders.length;
-        const pendingOrders = allOrders.filter(
-          (o) => o.status !== 'completed' && o.status !== 'cancelled'
-        ).length;
-        const totalEarnings = allOrders
-          .filter((o) => o.status === 'completed')
-          .reduce((sum, o) => sum + Number(o.total_amount), 0);
+      const completedOrders = orderList.filter((o: Order) => o.status === 'completed');
+      const todayOrders = orderList.filter((o: Order) => 
+        isAfter(parseISO(o.created_at), today)
+      );
+      const todayCompletedOrders = completedOrders.filter((o: Order) =>
+        isAfter(parseISO(o.created_at), today)
+      );
+      const weekCompletedOrders = completedOrders.filter((o: Order) =>
+        isAfter(parseISO(o.created_at), weekStart)
+      );
+      const pendingOrders = orderList.filter(
+        (o: Order) => !['completed', 'cancelled'].includes(o.status)
+      );
 
-        setStats({ totalOrders, pendingOrders, totalEarnings });
-      }
+      setStats({
+        totalOrders: orderList.length,
+        pendingOrders: pendingOrders.length,
+        totalEarnings: completedOrders.reduce((sum: number, o: Order) => sum + Number(o.total_amount), 0),
+        todayEarnings: todayCompletedOrders.reduce((sum: number, o: Order) => sum + Number(o.total_amount), 0),
+        weekEarnings: weekCompletedOrders.reduce((sum: number, o: Order) => sum + Number(o.total_amount), 0),
+        todayOrders: todayOrders.length,
+      });
     } catch (error) {
       console.error('Error fetching seller data:', error);
     } finally {
@@ -109,6 +123,23 @@ export default function SellerDashboardPage() {
       toast.error('Failed to update availability');
     }
   };
+
+  const getFilteredOrders = () => {
+    const today = startOfDay(new Date());
+    
+    switch (orderFilter) {
+      case 'today':
+        return allOrders.filter((o) => isAfter(parseISO(o.created_at), today));
+      case 'pending':
+        return allOrders.filter((o) => !['completed', 'cancelled'].includes(o.status));
+      case 'completed':
+        return allOrders.filter((o) => o.status === 'completed');
+      default:
+        return allOrders;
+    }
+  };
+
+  const filteredOrders = getFilteredOrders();
 
   if (isLoading) {
     return (
@@ -161,7 +192,7 @@ export default function SellerDashboardPage() {
               <div>
                 <h3 className="font-semibold">{sellerProfile.business_name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {sellerProfile.is_available ? 'Open for orders' : 'Currently closed'}
+                  {sellerProfile.is_available ? '🟢 Open for orders' : '🔴 Currently closed'}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -176,6 +207,28 @@ export default function SellerDashboardPage() {
             </div>
           </div>
         )}
+
+        {/* Earnings Summary */}
+        <div className="bg-gradient-to-r from-success/10 to-success/5 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="text-success" size={20} />
+            <h3 className="font-semibold">Earnings Summary</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white/50 rounded-lg p-3 text-center">
+              <p className="text-xs text-muted-foreground">Today</p>
+              <p className="text-lg font-bold text-success">₹{stats.todayEarnings}</p>
+            </div>
+            <div className="bg-white/50 rounded-lg p-3 text-center">
+              <p className="text-xs text-muted-foreground">This Week</p>
+              <p className="text-lg font-bold text-success">₹{stats.weekEarnings}</p>
+            </div>
+            <div className="bg-white/50 rounded-lg p-3 text-center">
+              <p className="text-xs text-muted-foreground">All Time</p>
+              <p className="text-lg font-bold text-success">₹{stats.totalEarnings}</p>
+            </div>
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
@@ -195,9 +248,9 @@ export default function SellerDashboardPage() {
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <DollarSign className="mx-auto text-success mb-1" size={20} />
-              <p className="text-xl font-bold">₹{stats.totalEarnings}</p>
-              <p className="text-[10px] text-muted-foreground">Earnings</p>
+              <Calendar className="mx-auto text-info mb-1" size={20} />
+              <p className="text-xl font-bold">{stats.todayOrders}</p>
+              <p className="text-[10px] text-muted-foreground">Today</p>
             </CardContent>
           </Card>
         </div>
@@ -205,7 +258,7 @@ export default function SellerDashboardPage() {
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
           <Link to="/seller/products">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <Plus className="text-primary" size={20} />
@@ -218,7 +271,7 @@ export default function SellerDashboardPage() {
             </Card>
           </Link>
           <Link to="/seller/settings">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
                   <Settings className="text-secondary-foreground" size={20} />
@@ -232,18 +285,37 @@ export default function SellerDashboardPage() {
           </Link>
         </div>
 
-        {/* Recent Orders */}
+        {/* Orders with Filters */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold">Recent Orders</h3>
-            <Link to="/orders" className="text-sm text-primary">
-              View all
-            </Link>
+            <h3 className="font-semibold">Orders</h3>
           </div>
 
-          {recentOrders.length > 0 ? (
+          {/* Order Filters */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-4">
+            {[
+              { value: 'all', label: 'All' },
+              { value: 'today', label: 'Today' },
+              { value: 'pending', label: 'Pending' },
+              { value: 'completed', label: 'Completed' },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setOrderFilter(value as any)}
+                className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                  orderFilter === value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {filteredOrders.length > 0 ? (
             <div className="space-y-2">
-              {recentOrders.map((order) => {
+              {filteredOrders.slice(0, 10).map((order) => {
                 const buyer = (order as any).buyer;
                 const items = (order as any).items || [];
                 const statusInfo = ORDER_STATUS_LABELS[order.status];
@@ -276,11 +348,18 @@ export default function SellerDashboardPage() {
                   </Link>
                 );
               })}
+              {filteredOrders.length > 10 && (
+                <Link to="/orders" className="block text-center text-sm text-primary py-2">
+                  View all {filteredOrders.length} orders
+                </Link>
+              )}
             </div>
           ) : (
             <div className="text-center py-8 bg-muted rounded-xl">
               <Package className="mx-auto text-muted-foreground mb-2" size={32} />
-              <p className="text-sm text-muted-foreground">No orders yet</p>
+              <p className="text-sm text-muted-foreground">
+                No {orderFilter !== 'all' ? orderFilter : ''} orders
+              </p>
             </div>
           )}
         </div>

@@ -1,30 +1,39 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SellerCard } from '@/components/seller/SellerCard';
-import { CategoryGrid } from '@/components/category/CategoryGrid';
+import { SearchFilters, FilterState, defaultFilters } from '@/components/search/SearchFilters';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SellerProfile, ProductCategory, CATEGORIES } from '@/types/database';
+import { SellerProfile, CATEGORIES } from '@/types/database';
 import { ArrowLeft, Search as SearchIcon, X } from 'lucide-react';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | undefined>();
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
-    if (query.length >= 2 || selectedCategory) {
+    if (query.length >= 2 || hasActiveFilters()) {
       searchSellers();
-    } else if (query.length === 0 && !selectedCategory) {
+    } else if (query.length === 0 && !hasActiveFilters()) {
       setSellers([]);
       setHasSearched(false);
     }
-  }, [query, selectedCategory]);
+  }, [query, filters]);
+
+  const hasActiveFilters = () => {
+    return (
+      filters.minRating > 0 ||
+      filters.isVeg !== null ||
+      filters.categories.length > 0 ||
+      filters.block !== null ||
+      filters.sortBy !== null
+    );
+  };
 
   const searchSellers = async () => {
     setIsLoading(true);
@@ -39,20 +48,47 @@ export default function SearchPage() {
         `)
         .eq('verification_status', 'approved');
 
+      // Text search
       if (query.length >= 2) {
         queryBuilder = queryBuilder.ilike('business_name', `%${query}%`);
       }
 
-      if (selectedCategory) {
-        queryBuilder = queryBuilder.contains('categories', [selectedCategory]);
+      // Category filter
+      if (filters.categories.length > 0) {
+        queryBuilder = queryBuilder.overlaps('categories', filters.categories);
       }
 
-      const { data, error } = await queryBuilder
-        .order('rating', { ascending: false })
-        .limit(20);
+      // Rating filter
+      if (filters.minRating > 0) {
+        queryBuilder = queryBuilder.gte('rating', filters.minRating);
+      }
+
+      // Sorting
+      switch (filters.sortBy) {
+        case 'rating':
+          queryBuilder = queryBuilder.order('rating', { ascending: false });
+          break;
+        case 'newest':
+          queryBuilder = queryBuilder.order('created_at', { ascending: false });
+          break;
+        default:
+          queryBuilder = queryBuilder.order('rating', { ascending: false });
+      }
+
+      const { data, error } = await queryBuilder.limit(30);
 
       if (error) throw error;
-      setSellers((data as any) || []);
+
+      let results = (data as any) || [];
+
+      // Client-side filtering for block (join table)
+      if (filters.block) {
+        results = results.filter(
+          (s: any) => s.profile?.block === filters.block
+        );
+      }
+
+      setSellers(results);
     } catch (error) {
       console.error('Error searching:', error);
     } finally {
@@ -62,10 +98,31 @@ export default function SearchPage() {
 
   const clearFilters = () => {
     setQuery('');
-    setSelectedCategory(undefined);
+    setFilters(defaultFilters);
     setSellers([]);
     setHasSearched(false);
   };
+
+  const activeFilterLabels = [];
+  if (query) activeFilterLabels.push(`"${query}"`);
+  if (filters.minRating > 0) activeFilterLabels.push(`${filters.minRating}+ rating`);
+  if (filters.isVeg === true) activeFilterLabels.push('Veg only');
+  if (filters.isVeg === false) activeFilterLabels.push('Non-veg');
+  if (filters.categories.length > 0) {
+    activeFilterLabels.push(
+      ...filters.categories.map((c) => CATEGORIES.find((cat) => cat.value === c)?.label || c)
+    );
+  }
+  if (filters.block) activeFilterLabels.push(`Block ${filters.block}`);
+  if (filters.sortBy) {
+    const sortLabels: Record<string, string> = {
+      rating: 'Top Rated',
+      newest: 'Newest',
+      price_low: 'Price: Low to High',
+      price_high: 'Price: High to Low',
+    };
+    activeFilterLabels.push(sortLabels[filters.sortBy]);
+  }
 
   return (
     <AppLayout showHeader={false}>
@@ -95,37 +152,27 @@ export default function SearchPage() {
               </button>
             )}
           </div>
-        </div>
-
-        {/* Category Filter */}
-        <div className="mb-6">
-          <h3 className="text-sm font-medium mb-3 text-muted-foreground">
-            Filter by category
-          </h3>
-          <CategoryGrid
-            selectedCategory={selectedCategory}
-            onSelect={setSelectedCategory}
-            variant="grid"
+          <SearchFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            showPriceFilter={false}
           />
         </div>
 
         {/* Active Filters */}
-        {(query || selectedCategory) && (
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-sm text-muted-foreground">Filters:</span>
-            {query && (
-              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                "{query}"
+        {activeFilterLabels.length > 0 && (
+          <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide">
+            {activeFilterLabels.map((label, i) => (
+              <span
+                key={i}
+                className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary whitespace-nowrap"
+              >
+                {label}
               </span>
-            )}
-            {selectedCategory && (
-              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                {CATEGORIES.find((c) => c.value === selectedCategory)?.label}
-              </span>
-            )}
+            ))}
             <button
               onClick={clearFilters}
-              className="text-xs text-muted-foreground underline"
+              className="text-xs text-muted-foreground underline whitespace-nowrap"
             >
               Clear all
             </button>
@@ -142,6 +189,9 @@ export default function SearchPage() {
         ) : hasSearched ? (
           sellers.length > 0 ? (
             <div className="space-y-3">
+              <p className="text-sm text-muted-foreground mb-2">
+                {sellers.length} seller{sellers.length !== 1 ? 's' : ''} found
+              </p>
               {sellers.map((seller) => (
                 <SellerCard key={seller.id} seller={seller as any} />
               ))}
@@ -150,14 +200,14 @@ export default function SearchPage() {
             <div className="text-center py-12">
               <p className="text-muted-foreground">No sellers found</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Try a different search term or category
+                Try a different search term or adjust filters
               </p>
             </div>
           )
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
-              Search for sellers or select a category
+              Search for sellers or use filters to discover
             </p>
           </div>
         )}
