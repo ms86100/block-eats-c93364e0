@@ -213,3 +213,37 @@
     padding-top: env(safe-area-inset-top);
   }
 }
+
+/* Accessibility: Large Font Mode */
+html.large-font {
+  font-size: 18px;
+}
+
+html.large-font .text-xs {
+  font-size: 0.875rem;
+}
+
+html.large-font .text-sm {
+  font-size: 1rem;
+}
+
+html.large-font .text-base {
+  font-size: 1.125rem;
+}
+
+html.large-font .text-lg {
+  font-size: 1.25rem;
+}
+
+html.large-font .text-xl {
+  font-size: 1.5rem;
+}
+
+html.large-font .text-2xl {
+  font-size: 1.75rem;
+}
+
+html.large-font button,
+html.large-font a {
+  min-height: 48px;
+}

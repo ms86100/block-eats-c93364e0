@@ -374,10 +374,12 @@ export default function SellerProductsPage() {
             {products.map((product) => (
               <div
                 key={product.id}
-                className="bg-card rounded-xl p-4 shadow-sm"
+                className={`bg-card rounded-xl p-4 shadow-sm transition-opacity ${
+                  !product.is_available ? 'opacity-60' : ''
+                }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 relative">
                     {product.image_url ? (
                       <img
                         src={product.image_url}
@@ -387,6 +389,11 @@ export default function SellerProductsPage() {
                     ) : (
                       <div className="w-full h-full bg-muted flex items-center justify-center">
                         <span className="text-xl">🍽️</span>
+                      </div>
+                    )}
+                    {!product.is_available && (
+                      <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+                        <span className="text-[10px] font-medium text-destructive">Out of Stock</span>
                       </div>
                     )}
                   </div>
@@ -432,10 +439,15 @@ export default function SellerProductsPage() {
                       </Button>
                     </div>
                   </div>
-                  <Switch
-                    checked={product.is_available}
-                    onCheckedChange={() => toggleAvailability(product)}
-                  />
+                  <div className="flex flex-col items-center gap-1">
+                    <Switch
+                      checked={product.is_available}
+                      onCheckedChange={() => toggleAvailability(product)}
+                    />
+                    <span className="text-[10px] text-muted-foreground">
+                      {product.is_available ? 'In Stock' : 'Out'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}

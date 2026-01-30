@@ -9,9 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { SellerProfile, CATEGORIES, ProductCategory, DAYS_OF_WEEK } from '@/types/database';
-import { ArrowLeft, Loader2, Camera } from 'lucide-react';
+import { ArrowLeft, Loader2, Camera, PauseCircle, PlayCircle, Clock, Smartphone, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function SellerSettingsPage() {
@@ -27,6 +28,9 @@ export default function SellerSettingsPage() {
     availability_end: '21:00',
     operating_days: DAYS_OF_WEEK as string[],
     accepts_cod: true,
+    accepts_upi: false,
+    upi_id: '',
+    is_available: true,
   });
 
   useEffect(() => {
@@ -46,15 +50,19 @@ export default function SellerSettingsPage() {
         .single();
 
       if (data) {
-        setSellerProfile(data as SellerProfile);
+        const profile = data as any;
+        setSellerProfile(profile);
         setFormData({
-          business_name: data.business_name,
-          description: data.description || '',
-          categories: data.categories || [],
-          availability_start: data.availability_start || '09:00',
-          availability_end: data.availability_end || '21:00',
-          operating_days: data.operating_days || DAYS_OF_WEEK,
-          accepts_cod: data.accepts_cod,
+          business_name: profile.business_name,
+          description: profile.description || '',
+          categories: profile.categories || [],
+          availability_start: profile.availability_start?.slice(0, 5) || '09:00',
+          availability_end: profile.availability_end?.slice(0, 5) || '21:00',
+          operating_days: profile.operating_days || DAYS_OF_WEEK,
+          accepts_cod: profile.accepts_cod ?? true,
+          accepts_upi: profile.accepts_upi ?? false,
+          upi_id: profile.upi_id || '',
+          is_available: profile.is_available ?? true,
         });
       }
     } catch (error) {
@@ -92,6 +100,26 @@ export default function SellerSettingsPage() {
     }
   };
 
+  const togglePauseShop = async () => {
+    if (!sellerProfile) return;
+
+    const newAvailability = !formData.is_available;
+    setFormData({ ...formData, is_available: newAvailability });
+
+    try {
+      const { error } = await supabase
+        .from('seller_profiles')
+        .update({ is_available: newAvailability })
+        .eq('id', sellerProfile.id);
+
+      if (error) throw error;
+      toast.success(newAvailability ? 'Store is now open!' : 'Store paused temporarily');
+    } catch (error) {
+      setFormData({ ...formData, is_available: !newAvailability });
+      toast.error('Failed to update store status');
+    }
+  };
+
   const handleSave = async () => {
     if (!sellerProfile) return;
 
@@ -102,6 +130,11 @@ export default function SellerSettingsPage() {
 
     if (formData.categories.length === 0) {
       toast.error('Please select at least one category');
+      return;
+    }
+
+    if (formData.accepts_upi && !formData.upi_id.trim()) {
+      toast.error('Please enter your UPI ID');
       return;
     }
 
@@ -117,6 +150,9 @@ export default function SellerSettingsPage() {
           availability_end: formData.availability_end,
           operating_days: formData.operating_days,
           accepts_cod: formData.accepts_cod,
+          accepts_upi: formData.accepts_upi,
+          upi_id: formData.accepts_upi ? formData.upi_id.trim() : null,
+          is_available: formData.is_available,
         })
         .eq('id', sellerProfile.id);
 
@@ -166,6 +202,38 @@ export default function SellerSettingsPage() {
         </div>
 
         <div className="space-y-5">
+          {/* Quick Pause/Resume Shop */}
+          <Card className={formData.is_available ? 'border-success/30 bg-success/5' : 'border-warning/30 bg-warning/5'}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {formData.is_available ? (
+                    <PlayCircle className="text-success" size={28} />
+                  ) : (
+                    <PauseCircle className="text-warning" size={28} />
+                  )}
+                  <div>
+                    <p className="font-semibold">
+                      {formData.is_available ? 'Store is Open' : 'Store is Paused'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.is_available
+                        ? 'Customers can place orders'
+                        : 'Temporarily not accepting orders'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant={formData.is_available ? 'outline' : 'default'}
+                  size="sm"
+                  onClick={togglePauseShop}
+                >
+                  {formData.is_available ? 'Pause Shop' : 'Resume Shop'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Cover & Profile Images */}
           <div className="bg-card rounded-xl p-4 shadow-sm">
             <h3 className="font-semibold mb-3">Store Images</h3>
@@ -254,7 +322,10 @@ export default function SellerSettingsPage() {
           </div>
 
           <div className="space-y-3">
-            <Label>Operating Days</Label>
+            <div className="flex items-center gap-2">
+              <Clock size={16} className="text-muted-foreground" />
+              <Label>Operating Days</Label>
+            </div>
             <div className="flex flex-wrap gap-2">
               {DAYS_OF_WEEK.map((day) => (
                 <label
@@ -276,6 +347,9 @@ export default function SellerSettingsPage() {
                 </label>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Store will auto-close on non-operating days
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -308,21 +382,62 @@ export default function SellerSettingsPage() {
                 />
               </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Store will auto-open/close based on schedule
+            </p>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div>
-              <p className="font-medium">Accept Cash on Delivery</p>
-              <p className="text-xs text-muted-foreground">
-                Allow customers to pay in cash
-              </p>
+          {/* Payment Methods */}
+          <div className="space-y-3">
+            <Label>Payment Methods</Label>
+            
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+              <div className="flex items-center gap-3">
+                <Banknote className="text-success" size={20} />
+                <div>
+                  <p className="font-medium text-sm">Cash on Delivery</p>
+                  <p className="text-xs text-muted-foreground">Accept cash payments</p>
+                </div>
+              </div>
+              <Switch
+                checked={formData.accepts_cod}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, accepts_cod: checked })
+                }
+              />
             </div>
-            <Switch
-              checked={formData.accepts_cod}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, accepts_cod: checked })
-              }
-            />
+
+            <div className="p-4 bg-muted rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Smartphone className="text-info" size={20} />
+                  <div>
+                    <p className="font-medium text-sm">UPI Payments</p>
+                    <p className="text-xs text-muted-foreground">GPay, PhonePe, Paytm</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={formData.accepts_upi}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, accepts_upi: checked })
+                  }
+                />
+              </div>
+              
+              {formData.accepts_upi && (
+                <div className="space-y-2 pt-2 border-t">
+                  <Label htmlFor="upi_id" className="text-xs">Your UPI ID</Label>
+                  <Input
+                    id="upi_id"
+                    placeholder="yourname@upi"
+                    value={formData.upi_id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, upi_id: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

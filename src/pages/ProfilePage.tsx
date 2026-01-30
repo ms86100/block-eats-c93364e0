@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   User,
@@ -15,12 +17,25 @@ import {
   Shield,
   HelpCircle,
   Bell,
-  Settings,
+  Type,
+  FileText,
 } from 'lucide-react';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { profile, isSeller, isAdmin, signOut } = useAuth();
+  const [largeFont, setLargeFont] = useState(() => {
+    return localStorage.getItem('greenfield_large_font') === 'true';
+  });
+
+  useEffect(() => {
+    if (largeFont) {
+      document.documentElement.classList.add('large-font');
+    } else {
+      document.documentElement.classList.remove('large-font');
+    }
+    localStorage.setItem('greenfield_large_font', String(largeFont));
+  }, [largeFont]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -35,6 +50,7 @@ export default function ProfilePage() {
       : [{ icon: Store, label: 'Become a Seller', to: '/become-seller' }]),
     { icon: Bell, label: 'Notifications', to: '/notifications' },
     { icon: HelpCircle, label: 'Help & Guide', to: '/help' },
+    { icon: FileText, label: 'Community Rules', to: '/community-rules' },
     ...(isAdmin ? [{ icon: Shield, label: 'Admin Panel', to: '/admin' }] : []),
   ];
 
@@ -69,6 +85,24 @@ export default function ProfilePage() {
                 <span>Verified Greenfield Resident</span>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Accessibility Settings */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <Type size={20} className="text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-medium">Larger Text</p>
+                  <p className="text-xs text-muted-foreground">Easier to read</p>
+                </div>
+              </div>
+              <Switch checked={largeFont} onCheckedChange={setLargeFont} />
+            </div>
           </CardContent>
         </Card>
 
