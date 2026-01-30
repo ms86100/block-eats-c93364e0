@@ -91,7 +91,8 @@ export default function HomePage() {
     return <OnboardingWalkthrough onComplete={completeOnboarding} />;
   }
 
-  if (!isApproved) {
+  // Only show verification pending if we have profile data (not during initial load)
+  if (!isApproved && profile) {
     return (
       <AppLayout showCart={false}>
         <div className="px-4 py-8">
@@ -106,12 +107,23 @@ export default function HomePage() {
             <div className="bg-muted rounded-lg p-4 text-left">
               <h3 className="font-semibold mb-2">Your Details</h3>
               <p className="text-sm text-muted-foreground">
-                Name: {profile?.name}<br />
-                Block: {profile?.block}<br />
-                Flat: {profile?.flat_number}
+                Name: {profile.name}<br />
+                Block: {profile.block}<br />
+                Flat: {profile.flat_number}
               </p>
             </div>
           </div>
+        </div>
+      </AppLayout>
+    );
+  }
+  
+  // Show loading while profile is being fetched
+  if (!profile) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-pulse text-primary text-xl font-bold">Loading...</div>
         </div>
       </AppLayout>
     );
