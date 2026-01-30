@@ -4,6 +4,8 @@ export type UserRole = 'buyer' | 'seller' | 'admin';
 export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 export type OrderStatus = 'placed' | 'accepted' | 'preparing' | 'ready' | 'picked_up' | 'delivered' | 'completed' | 'cancelled';
 export type ProductCategory = 'home_food' | 'bakery' | 'snacks' | 'groceries' | 'other';
+export type PaymentMethod = 'cod' | 'upi';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
 export interface Profile {
   id: string;
@@ -30,6 +32,8 @@ export interface SellerProfile {
   availability_end: string | null;
   operating_days: string[];
   accepts_cod: boolean;
+  accepts_upi: boolean;
+  upi_id: string | null;
   verification_status: VerificationStatus;
   rating: number;
   total_reviews: number;
@@ -66,6 +70,7 @@ export interface Order {
   status: OrderStatus;
   total_amount: number;
   payment_type: string;
+  payment_status: PaymentStatus;
   delivery_address: string | null;
   notes: string | null;
   created_at: string;
@@ -74,6 +79,7 @@ export interface Order {
   seller?: SellerProfile;
   buyer?: Profile;
   items?: OrderItem[];
+  payment?: PaymentRecord;
 }
 
 export interface OrderItem {
@@ -133,6 +139,33 @@ export interface FeaturedItem {
   updated_at: string;
 }
 
+export interface PaymentRecord {
+  id: string;
+  order_id: string;
+  buyer_id: string;
+  seller_id: string;
+  amount: number;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  transaction_reference: string | null;
+  platform_fee: number;
+  net_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  order_id: string;
+  sender_id: string;
+  receiver_id: string;
+  message_text: string;
+  read_status: boolean;
+  created_at: string;
+  // Joined data
+  sender?: Profile;
+}
+
 // Category display info
 export const CATEGORIES: { value: ProductCategory; label: string; icon: string; color: string }[] = [
   { value: 'home_food', label: 'Home Food', icon: '🍲', color: 'bg-orange-100' },
@@ -151,6 +184,13 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, { label: string; color: st
   delivered: { label: 'Delivered', color: 'bg-emerald-100 text-emerald-800' },
   completed: { label: 'Completed', color: 'bg-gray-100 text-gray-800' },
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800' },
+};
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, { label: string; color: string }> = {
+  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
+  paid: { label: 'Paid', color: 'bg-green-100 text-green-800' },
+  failed: { label: 'Failed', color: 'bg-red-100 text-red-800' },
+  refunded: { label: 'Refunded', color: 'bg-purple-100 text-purple-800' },
 };
 
 export const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

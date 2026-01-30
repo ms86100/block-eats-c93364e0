@@ -46,6 +46,44 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          message_text: string
+          order_id: string
+          read_status: boolean | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message_text: string
+          order_id: string
+          read_status?: boolean | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message_text?: string
+          order_id?: string
+          read_status?: boolean | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string | null
@@ -166,6 +204,7 @@ export type Database = {
           delivery_address: string | null
           id: string
           notes: string | null
+          payment_status: string | null
           payment_type: string | null
           seller_id: string | null
           status: Database["public"]["Enums"]["order_status"] | null
@@ -178,6 +217,7 @@ export type Database = {
           delivery_address?: string | null
           id?: string
           notes?: string | null
+          payment_status?: string | null
           payment_type?: string | null
           seller_id?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
@@ -190,6 +230,7 @@ export type Database = {
           delivery_address?: string | null
           id?: string
           notes?: string | null
+          payment_status?: string | null
           payment_type?: string | null
           seller_id?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
@@ -199,6 +240,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "orders_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_records: {
+        Row: {
+          amount: number
+          buyer_id: string
+          created_at: string | null
+          id: string
+          net_amount: number | null
+          order_id: string
+          payment_method: string
+          payment_status: string
+          platform_fee: number | null
+          seller_id: string | null
+          transaction_reference: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          created_at?: string | null
+          id?: string
+          net_amount?: number | null
+          order_id: string
+          payment_method?: string
+          payment_status?: string
+          platform_fee?: number | null
+          seller_id?: string | null
+          transaction_reference?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          created_at?: string | null
+          id?: string
+          net_amount?: number | null
+          order_id?: string
+          payment_method?: string
+          payment_status?: string
+          platform_fee?: number | null
+          seller_id?: string | null
+          transaction_reference?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_records_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "seller_profiles"
@@ -358,6 +459,7 @@ export type Database = {
       seller_profiles: {
         Row: {
           accepts_cod: boolean | null
+          accepts_upi: boolean | null
           availability_end: string | null
           availability_start: string | null
           business_name: string
@@ -373,6 +475,7 @@ export type Database = {
           rating: number | null
           total_reviews: number | null
           updated_at: string | null
+          upi_id: string | null
           user_id: string
           verification_status:
             | Database["public"]["Enums"]["verification_status"]
@@ -380,6 +483,7 @@ export type Database = {
         }
         Insert: {
           accepts_cod?: boolean | null
+          accepts_upi?: boolean | null
           availability_end?: string | null
           availability_start?: string | null
           business_name: string
@@ -395,6 +499,7 @@ export type Database = {
           rating?: number | null
           total_reviews?: number | null
           updated_at?: string | null
+          upi_id?: string | null
           user_id: string
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
@@ -402,6 +507,7 @@ export type Database = {
         }
         Update: {
           accepts_cod?: boolean | null
+          accepts_upi?: boolean | null
           availability_end?: string | null
           availability_start?: string | null
           business_name?: string
@@ -417,6 +523,7 @@ export type Database = {
           rating?: number | null
           total_reviews?: number | null
           updated_at?: string | null
+          upi_id?: string | null
           user_id?: string
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]

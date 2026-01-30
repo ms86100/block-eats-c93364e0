@@ -5,9 +5,12 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { Textarea } from '@/components/ui/textarea';
+import { PaymentMethodSelector } from '@/components/payment/PaymentMethodSelector';
+import { UpiPaymentSheet } from '@/components/payment/UpiPaymentSheet';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { PaymentMethod } from '@/types/database';
 import { toast } from 'sonner';
 
 export default function CartPage() {
@@ -15,49 +18,88 @@ export default function CartPage() {
   const { user, profile } = useAuth();
   const { items, totalAmount, updateQuantity, removeItem, clearCart, currentSellerId } = useCart();
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [showUpiSheet, setShowUpiSheet] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
   const seller = items[0]?.product?.seller;
+  const acceptsCod = seller?.accepts_cod ?? true;
+  const acceptsUpi = !!(seller as any)?.accepts_upi && !!(seller as any)?.upi_id;
+
+  const createOrder = async (paymentStatus: 'pending' | 'paid', transactionRef?: string) => {
+    if (!user || !profile || !currentSellerId) return null;
+
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        buyer_id: user.id,
+        seller_id: currentSellerId,
+        total_amount: totalAmount,
+        payment_type: paymentMethod,
+        payment_status: paymentStatus,
+        delivery_address: `Block ${profile.block}, Flat ${profile.flat_number}`,
+        notes: notes || null,
+      })
+      .select()
+      .single();
+
+    if (orderError) throw orderError;
+
+    // Create order items
+    const orderItems = items.map((item) => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      product_name: item.product?.name || 'Unknown',
+      quantity: item.quantity,
+      unit_price: item.product?.price || 0,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+
+    if (itemsError) throw itemsError;
+
+    // Create payment record
+    const { error: paymentError } = await supabase
+      .from('payment_records')
+      .insert({
+        order_id: order.id,
+        buyer_id: user.id,
+        seller_id: currentSellerId,
+        amount: totalAmount,
+        payment_method: paymentMethod,
+        payment_status: paymentStatus,
+        transaction_reference: transactionRef || null,
+        platform_fee: 0,
+        net_amount: totalAmount,
+      });
+
+    if (paymentError) throw paymentError;
+
+    return order;
+  };
 
   const handlePlaceOrder = async () => {
     if (!user || !profile || !currentSellerId) return;
 
+    if (paymentMethod === 'upi') {
+      if (!acceptsUpi) {
+        toast.error('UPI payment not available for this seller');
+        return;
+      }
+      setShowUpiSheet(true);
+      return;
+    }
+
+    // COD flow
     setIsPlacingOrder(true);
     try {
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          buyer_id: user.id,
-          seller_id: currentSellerId,
-          total_amount: totalAmount,
-          payment_type: 'cod',
-          delivery_address: `Block ${profile.block}, Flat ${profile.flat_number}`,
-          notes: notes || null,
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Create order items
-      const orderItems = items.map((item) => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        product_name: item.product?.name || 'Unknown',
-        quantity: item.quantity,
-        unit_price: item.product?.price || 0,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // Clear cart
+      const order = await createOrder('pending');
+      if (!order) throw new Error('Failed to create order');
+      
       await clearCart();
-
       toast.success('Order placed successfully!');
       navigate(`/orders/${order.id}`);
     } catch (error: any) {
@@ -66,6 +108,30 @@ export default function CartPage() {
     } finally {
       setIsPlacingOrder(false);
     }
+  };
+
+  const handleUpiSuccess = async (transactionRef: string) => {
+    setShowUpiSheet(false);
+    setIsPlacingOrder(true);
+    
+    try {
+      const order = await createOrder('paid', transactionRef);
+      if (!order) throw new Error('Failed to create order');
+      
+      await clearCart();
+      toast.success('Payment successful! Order placed.');
+      navigate(`/orders/${order.id}`);
+    } catch (error: any) {
+      console.error('Error placing order:', error);
+      toast.error(error.message || 'Failed to place order');
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
+  const handleUpiFailed = () => {
+    setShowUpiSheet(false);
+    toast.error('Payment failed. Please try again.');
   };
 
   if (items.length === 0) {
@@ -95,7 +161,7 @@ export default function CartPage() {
 
   return (
     <AppLayout showHeader={false} showNav={false}>
-      <div className="p-4">
+      <div className="p-4 pb-32">
         <div className="flex items-center justify-between mb-6">
           <Link to="/" className="flex items-center gap-2 text-muted-foreground">
             <ArrowLeft size={20} />
@@ -206,6 +272,17 @@ export default function CartPage() {
           />
         </div>
 
+        {/* Payment Method */}
+        <div className="mt-6">
+          <h3 className="font-semibold mb-3">Payment Method</h3>
+          <PaymentMethodSelector
+            acceptsCod={acceptsCod}
+            acceptsUpi={acceptsUpi}
+            selectedMethod={paymentMethod}
+            onSelect={setPaymentMethod}
+          />
+        </div>
+
         {/* Bill Details */}
         <div className="mt-6 bg-muted rounded-lg p-4">
           <h3 className="font-semibold mb-3">Bill Details</h3>
@@ -234,17 +311,6 @@ export default function CartPage() {
             Shriram Greenfield
           </p>
         </div>
-
-        {/* Payment Method */}
-        <div className="mt-4 bg-card rounded-lg p-4 shadow-sm">
-          <h3 className="font-semibold mb-2">Payment Method</h3>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-success/20 flex items-center justify-center">
-              💵
-            </div>
-            <span className="text-sm">Cash on Delivery</span>
-          </div>
-        </div>
       </div>
 
       {/* Place Order Footer */}
@@ -258,6 +324,17 @@ export default function CartPage() {
           {isPlacingOrder ? 'Placing Order...' : `Place Order • ₹${totalAmount.toFixed(0)}`}
         </Button>
       </div>
+
+      {/* UPI Payment Sheet */}
+      <UpiPaymentSheet
+        isOpen={showUpiSheet}
+        onClose={() => setShowUpiSheet(false)}
+        amount={totalAmount}
+        sellerUpiId={(seller as any)?.upi_id || null}
+        sellerName={seller?.business_name || 'Seller'}
+        onPaymentSuccess={handleUpiSuccess}
+        onPaymentFailed={handleUpiFailed}
+      />
     </AppLayout>
   );
 }

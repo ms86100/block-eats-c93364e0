@@ -6,10 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { SellerProfile, Order, ORDER_STATUS_LABELS } from '@/types/database';
-import { Package, Plus, Settings, DollarSign, Clock, ChevronRight, TrendingUp, Calendar } from 'lucide-react';
+import { Package, Plus, Settings, DollarSign, Clock, ChevronRight, TrendingUp, Calendar, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfDay, startOfWeek, isAfter, parseISO } from 'date-fns';
 
@@ -209,26 +208,31 @@ export default function SellerDashboardPage() {
         )}
 
         {/* Earnings Summary */}
-        <div className="bg-gradient-to-r from-success/10 to-success/5 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="text-success" size={20} />
-            <h3 className="font-semibold">Earnings Summary</h3>
+        <Link to="/seller/earnings">
+          <div className="bg-gradient-to-r from-success/10 to-success/5 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="text-success" size={20} />
+                <h3 className="font-semibold">Earnings Summary</h3>
+              </div>
+              <ChevronRight className="text-muted-foreground" size={18} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground">Today</p>
+                <p className="text-lg font-bold text-success">₹{stats.todayEarnings}</p>
+              </div>
+              <div className="bg-white/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground">This Week</p>
+                <p className="text-lg font-bold text-success">₹{stats.weekEarnings}</p>
+              </div>
+              <div className="bg-white/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground">All Time</p>
+                <p className="text-lg font-bold text-success">₹{stats.totalEarnings}</p>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white/50 rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground">Today</p>
-              <p className="text-lg font-bold text-success">₹{stats.todayEarnings}</p>
-            </div>
-            <div className="bg-white/50 rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground">This Week</p>
-              <p className="text-lg font-bold text-success">₹{stats.weekEarnings}</p>
-            </div>
-            <div className="bg-white/50 rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground">All Time</p>
-              <p className="text-lg font-bold text-success">₹{stats.totalEarnings}</p>
-            </div>
-          </div>
-        </div>
+        </Link>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
@@ -278,7 +282,7 @@ export default function SellerDashboardPage() {
                 </div>
                 <div>
                   <p className="font-medium text-sm">Store Settings</p>
-                  <p className="text-xs text-muted-foreground">Edit profile</p>
+                  <p className="text-xs text-muted-foreground">Payment & hours</p>
                 </div>
               </CardContent>
             </Card>

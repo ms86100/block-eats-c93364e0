@@ -1,28 +1,31 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ReviewForm } from '@/components/review/ReviewForm';
+import { OrderChat } from '@/components/chat/OrderChat';
 import { useAuth } from '@/contexts/AuthContext';
-import { Order, OrderItem, ORDER_STATUS_LABELS, OrderStatus } from '@/types/database';
-import { ArrowLeft, Phone, MapPin, Check, Star } from 'lucide-react';
+import { Order, OrderItem, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, OrderStatus, PaymentStatus } from '@/types/database';
+import { ArrowLeft, Phone, MapPin, Check, Star, MessageCircle, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function OrderDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { user, isSeller } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [hasReview, setHasReview] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     if (id) {
       fetchOrder();
+      fetchUnreadCount();
     }
   }, [id]);
 
@@ -60,6 +63,19 @@ export default function OrderDetailPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchUnreadCount = async () => {
+    if (!user || !id) return;
+    
+    const { count } = await supabase
+      .from('chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('order_id', id)
+      .eq('receiver_id', user.id)
+      .eq('read_status', false);
+    
+    setUnreadMessages(count || 0);
   };
 
   const updateOrderStatus = async (newStatus: OrderStatus) => {
@@ -114,6 +130,7 @@ export default function OrderDetailPage() {
   const buyer = (order as any).buyer;
   const items = (order as any).items || [];
   const statusInfo = ORDER_STATUS_LABELS[order.status];
+  const paymentStatusInfo = PAYMENT_STATUS_LABELS[(order.payment_status as PaymentStatus) || 'pending'];
   const isSellerView = isSeller && seller?.user_id === user?.id;
   const isBuyerView = order.buyer_id === user?.id;
 
@@ -133,14 +150,39 @@ export default function OrderDetailPage() {
 
   const nextStatus = getNextStatus();
   const canReview = isBuyerView && order.status === 'completed' && !hasReview;
+  const canChat = !['completed', 'cancelled'].includes(order.status);
+  
+  // Get chat recipient info
+  const chatRecipientId = isSellerView ? order.buyer_id : seller?.user_id;
+  const chatRecipientName = isSellerView ? buyer?.name : seller?.business_name;
 
   return (
     <AppLayout showHeader={false} showNav={!isSellerView || order.status === 'completed' || order.status === 'cancelled'}>
       <div className="p-4 pb-24">
-        <Link to="/orders" className="flex items-center gap-2 text-muted-foreground mb-4">
-          <ArrowLeft size={20} />
-          <span>Back to Orders</span>
-        </Link>
+        <div className="flex items-center justify-between mb-4">
+          <Link to="/orders" className="flex items-center gap-2 text-muted-foreground">
+            <ArrowLeft size={20} />
+            <span>Back to Orders</span>
+          </Link>
+          
+          {/* Chat Button */}
+          {canChat && chatRecipientId && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsChatOpen(true)}
+              className="relative"
+            >
+              <MessageCircle size={16} className="mr-2" />
+              Chat
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                  {unreadMessages}
+                </span>
+              )}
+            </Button>
+          )}
+        </div>
 
         {/* Order Status */}
         <div className="bg-card rounded-xl p-4 shadow-sm mb-4">
@@ -184,6 +226,24 @@ export default function OrderDetailPage() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Payment Status */}
+        <div className="bg-card rounded-xl p-4 shadow-sm mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CreditCard size={20} className="text-muted-foreground" />
+              <div>
+                <p className="font-semibold text-sm">Payment</p>
+                <p className="text-xs text-muted-foreground">
+                  {order.payment_type === 'cod' ? 'Cash on Delivery' : 'UPI Payment'}
+                </p>
+              </div>
+            </div>
+            <span className={`text-xs px-2 py-1 rounded-full ${paymentStatusInfo.color}`}>
+              {paymentStatusInfo.label}
+            </span>
+          </div>
         </div>
 
         {/* Review CTA for completed orders */}
@@ -261,14 +321,6 @@ export default function OrderDetailPage() {
             <p className="text-sm text-muted-foreground">{order.notes}</p>
           </div>
         )}
-
-        {/* Payment Info */}
-        <div className="bg-card rounded-xl p-4 shadow-sm mb-4">
-          <h3 className="font-semibold mb-2">Payment</h3>
-          <p className="text-sm">
-            {order.payment_type === 'cod' ? 'Cash on Delivery' : order.payment_type}
-          </p>
-        </div>
       </div>
 
       {/* Seller Actions */}
@@ -296,6 +348,21 @@ export default function OrderDetailPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Chat Component */}
+      {chatRecipientId && (
+        <OrderChat
+          orderId={order.id}
+          otherUserId={chatRecipientId}
+          otherUserName={chatRecipientName || 'User'}
+          isOpen={isChatOpen}
+          onClose={() => {
+            setIsChatOpen(false);
+            fetchUnreadCount();
+          }}
+          disabled={!canChat}
+        />
       )}
     </AppLayout>
   );

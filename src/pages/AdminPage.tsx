@@ -7,14 +7,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Profile, SellerProfile, Review, VerificationStatus } from '@/types/database';
-import { Check, X, Users, Store, Package, Star, MessageSquare, Award, Eye, EyeOff } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Profile, SellerProfile, Review, PaymentRecord, ChatMessage, VerificationStatus, PAYMENT_STATUS_LABELS, PaymentStatus } from '@/types/database';
+import { Check, X, Users, Store, Package, Star, MessageSquare, Award, Eye, EyeOff, CreditCard, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -23,10 +31,14 @@ export default function AdminPage() {
   const [pendingSellers, setPendingSellers] = useState<SellerProfile[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [allSellers, setAllSellers] = useState<SellerProfile[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState({ users: 0, sellers: 0, orders: 0, reviews: 0 });
+  const [stats, setStats] = useState({ users: 0, sellers: 0, orders: 0, reviews: 0, revenue: 0 });
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [hideReason, setHideReason] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchData();
@@ -34,16 +46,18 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     try {
-      const [usersRes, sellersRes, reviewsRes, allSellersRes, statsRes] = await Promise.all([
+      const [usersRes, sellersRes, reviewsRes, allSellersRes, paymentsRes, statsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('verification_status', 'pending'),
         supabase.from('seller_profiles').select('*, profile:profiles(name, block, flat_number)').eq('verification_status', 'pending'),
         supabase.from('reviews').select('*, buyer:profiles!reviews_buyer_id_fkey(name), seller:seller_profiles(business_name)').order('created_at', { ascending: false }).limit(50),
         supabase.from('seller_profiles').select('*, profile:profiles(name, block)').eq('verification_status', 'approved'),
+        supabase.from('payment_records').select('*, seller:seller_profiles(business_name), order:orders(buyer:profiles!orders_buyer_id_fkey(name))').order('created_at', { ascending: false }).limit(100),
         Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('seller_profiles').select('id', { count: 'exact', head: true }).eq('verification_status', 'approved'),
           supabase.from('orders').select('id', { count: 'exact', head: true }),
           supabase.from('reviews').select('id', { count: 'exact', head: true }),
+          supabase.from('payment_records').select('amount').eq('payment_status', 'paid'),
         ]),
       ]);
 
@@ -51,17 +65,33 @@ export default function AdminPage() {
       setPendingSellers((sellersRes.data as any) || []);
       setReviews((reviewsRes.data as any) || []);
       setAllSellers((allSellersRes.data as any) || []);
+      setPayments((paymentsRes.data as any) || []);
+      
+      const totalRevenue = (statsRes[4].data || []).reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+      
       setStats({
         users: statsRes[0].count || 0,
         sellers: statsRes[1].count || 0,
         orders: statsRes[2].count || 0,
         reviews: statsRes[3].count || 0,
+        revenue: totalRevenue,
       });
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchChatForOrder = async (orderId: string) => {
+    const { data } = await supabase
+      .from('chat_messages')
+      .select('*, sender:profiles!chat_messages_sender_id_fkey(name)')
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: true });
+    
+    setChatMessages(data || []);
+    setSelectedChat(orderId);
   };
 
   const updateUserStatus = async (id: string, status: VerificationStatus) => {
@@ -109,6 +139,10 @@ export default function AdminPage() {
     }
   };
 
+  const filteredPayments = paymentFilter === 'all' 
+    ? payments 
+    : payments.filter(p => p.payment_status === paymentFilter || p.payment_method === paymentFilter);
+
   if (isLoading) {
     return (
       <AppLayout headerTitle="Admin Panel" showLocation={false}>
@@ -123,19 +157,21 @@ export default function AdminPage() {
     <AppLayout headerTitle="Admin Panel" showLocation={false}>
       <div className="p-4 space-y-4">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-2">
-          <Card><CardContent className="p-2 text-center"><Users className="mx-auto text-primary" size={16} /><p className="text-lg font-bold">{stats.users}</p><p className="text-[9px] text-muted-foreground">Users</p></CardContent></Card>
-          <Card><CardContent className="p-2 text-center"><Store className="mx-auto text-success" size={16} /><p className="text-lg font-bold">{stats.sellers}</p><p className="text-[9px] text-muted-foreground">Sellers</p></CardContent></Card>
-          <Card><CardContent className="p-2 text-center"><Package className="mx-auto text-warning" size={16} /><p className="text-lg font-bold">{stats.orders}</p><p className="text-[9px] text-muted-foreground">Orders</p></CardContent></Card>
-          <Card><CardContent className="p-2 text-center"><Star className="mx-auto text-info" size={16} /><p className="text-lg font-bold">{stats.reviews}</p><p className="text-[9px] text-muted-foreground">Reviews</p></CardContent></Card>
+        <div className="grid grid-cols-5 gap-2">
+          <Card><CardContent className="p-2 text-center"><Users className="mx-auto text-primary" size={14} /><p className="text-sm font-bold">{stats.users}</p><p className="text-[8px] text-muted-foreground">Users</p></CardContent></Card>
+          <Card><CardContent className="p-2 text-center"><Store className="mx-auto text-success" size={14} /><p className="text-sm font-bold">{stats.sellers}</p><p className="text-[8px] text-muted-foreground">Sellers</p></CardContent></Card>
+          <Card><CardContent className="p-2 text-center"><Package className="mx-auto text-warning" size={14} /><p className="text-sm font-bold">{stats.orders}</p><p className="text-[8px] text-muted-foreground">Orders</p></CardContent></Card>
+          <Card><CardContent className="p-2 text-center"><Star className="mx-auto text-info" size={14} /><p className="text-sm font-bold">{stats.reviews}</p><p className="text-[8px] text-muted-foreground">Reviews</p></CardContent></Card>
+          <Card><CardContent className="p-2 text-center"><DollarSign className="mx-auto text-success" size={14} /><p className="text-sm font-bold">₹{stats.revenue}</p><p className="text-[8px] text-muted-foreground">Revenue</p></CardContent></Card>
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="users" className="text-xs">Users</TabsTrigger>
-            <TabsTrigger value="sellers" className="text-xs">Sellers</TabsTrigger>
-            <TabsTrigger value="featured" className="text-xs">Featured</TabsTrigger>
-            <TabsTrigger value="reviews" className="text-xs">Reviews</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-5">
+            <TabsTrigger value="users" className="text-[10px]">Users</TabsTrigger>
+            <TabsTrigger value="sellers" className="text-[10px]">Sellers</TabsTrigger>
+            <TabsTrigger value="payments" className="text-[10px]">Payments</TabsTrigger>
+            <TabsTrigger value="reviews" className="text-[10px]">Reviews</TabsTrigger>
+            <TabsTrigger value="featured" className="text-[10px]">Featured</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-2 mt-4">
@@ -164,20 +200,46 @@ export default function AdminPage() {
             )) : <p className="text-center text-muted-foreground py-8 text-sm">No pending sellers</p>}
           </TabsContent>
 
-          <TabsContent value="featured" className="space-y-2 mt-4">
-            <h3 className="text-sm font-semibold text-muted-foreground">Manage Featured Sellers</h3>
-            {allSellers.map((seller) => (
-              <Card key={seller.id}><CardContent className="p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {seller.is_featured && <Award size={14} className="text-warning" />}
-                  <div>
-                    <p className="font-medium text-sm">{seller.business_name}</p>
-                    <p className="text-xs text-muted-foreground">⭐ {seller.rating.toFixed(1)} • {seller.total_reviews} reviews</p>
+          <TabsContent value="payments" className="space-y-2 mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-muted-foreground">Payment Records</h3>
+              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                <SelectTrigger className="w-28 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="cod">COD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {filteredPayments.length > 0 ? filteredPayments.map((payment) => {
+              const statusInfo = PAYMENT_STATUS_LABELS[payment.payment_status as PaymentStatus];
+              return (
+                <Card key={payment.id}><CardContent className="p-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium text-sm">{(payment as any).seller?.business_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(payment as any).order?.buyer?.name} • {format(new Date(payment.created_at), 'MMM d, h:mm a')}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Order #{payment.order_id.slice(0, 8)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">₹{payment.amount}</p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusInfo.color}`}>
+                        {statusInfo.label}
+                      </span>
+                      <p className="text-[10px] text-muted-foreground mt-1">{payment.payment_method.toUpperCase()}</p>
+                    </div>
                   </div>
-                </div>
-                <Switch checked={seller.is_featured} onCheckedChange={() => toggleSellerFeatured(seller)} />
-              </CardContent></Card>
-            ))}
+                </CardContent></Card>
+              );
+            }) : <p className="text-center text-muted-foreground py-8 text-sm">No payments found</p>}
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-2 mt-4">
@@ -216,6 +278,22 @@ export default function AdminPage() {
               </CardContent></Card>
             ))}
           </TabsContent>
+
+          <TabsContent value="featured" className="space-y-2 mt-4">
+            <h3 className="text-sm font-semibold text-muted-foreground">Manage Featured Sellers</h3>
+            {allSellers.map((seller) => (
+              <Card key={seller.id}><CardContent className="p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {seller.is_featured && <Award size={14} className="text-warning" />}
+                  <div>
+                    <p className="font-medium text-sm">{seller.business_name}</p>
+                    <p className="text-xs text-muted-foreground">⭐ {seller.rating.toFixed(1)} • {seller.total_reviews} reviews</p>
+                  </div>
+                </div>
+                <Switch checked={seller.is_featured} onCheckedChange={() => toggleSellerFeatured(seller)} />
+              </CardContent></Card>
+            ))}
+          </TabsContent>
         </Tabs>
 
         {/* Hide Review Dialog */}
@@ -238,6 +316,30 @@ export default function AdminPage() {
                 <Button className="flex-1" onClick={() => selectedReview && toggleReviewHidden(selectedReview, true)}>Hide Review</Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Chat View Dialog */}
+        <Dialog open={!!selectedChat} onOpenChange={() => setSelectedChat(null)}>
+          <DialogContent className="max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Chat History</DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-3">
+                {chatMessages.map((msg) => (
+                  <div key={msg.id} className="bg-muted rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-medium text-sm">{msg.sender?.name}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {format(new Date(msg.created_at), 'h:mm a')}
+                      </p>
+                    </div>
+                    <p className="text-sm">{msg.message_text}</p>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       </div>
