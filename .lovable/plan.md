@@ -1,262 +1,224 @@
 
-# Production-Ready Mobile App Deployment Plan
+# Multi-Seller Support & Enhanced Search Implementation
 
-## Current State Assessment
+## Analysis Summary
 
-Your app already has a strong foundation for mobile deployment:
+### Issue 1: Single Seller Limitation
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Capacitor Core | ✅ Ready | v8.0.2 installed and configured |
-| iOS/Android Support | ✅ Ready | Both platforms configured |
-| Push Notifications | ✅ Ready | Full implementation with token storage |
-| Status Bar | ✅ Ready | Configured with brand colors |
-| Splash Screen | ✅ Ready | Plugin configured |
-| Safe Area Handling | ✅ Ready | CSS utilities in place |
-| Privacy Policy | ✅ Ready | Full legal page at /privacy-policy |
-| Terms & Conditions | ✅ Ready | Full legal page at /terms |
-| Store Metadata | ✅ Ready | STORE_METADATA.md with full listing details |
-| App Icons | ⚠️ Partial | 192x192 and 512x512 exist, need more sizes |
-
----
-
-## Remaining Implementation Tasks
-
-### Phase 1: App Store Compliance Requirements
-
-#### 1.1 Account Deletion Feature (REQUIRED by Apple & Google)
-Both app stores require apps to provide a way for users to delete their account and data.
-
-**Changes needed:**
-- Add "Delete Account" button in ProfilePage
-- Create confirmation dialog explaining data deletion
-- Implement account deletion logic (delete from auth + cascade delete user data)
-- Send confirmation email before deletion
-
-#### 1.2 App Tracking Transparency (iOS 14.5+)
-If your app uses any analytics or tracking, Apple requires showing a permission prompt.
-
-**Changes needed:**
-- Install `@capacitor/app-tracking-transparency` if using analytics
-- Show ATT prompt on first launch
-
-#### 1.3 Deep Linking Support
-Required for features like password reset emails and push notification routing.
-
-**Changes needed:**
-- Configure URL schemes in `capacitor.config.ts`
-- Add Associated Domains for iOS (apple-app-site-association file)
-- Add Android App Links (assetlinks.json file)
-
----
-
-### Phase 2: Native Platform Enhancements
-
-#### 2.1 Keyboard Avoidance
-Ensure input fields are visible when keyboard appears.
-
-**Changes needed:**
-- Install `@capacitor/keyboard`
-- Add resize behavior for Android
-- Handle scroll-into-view for focused inputs
-
-#### 2.2 Native App Rating Prompt
-Encourage users to rate the app after positive experiences.
-
-**Changes needed:**
-- Install `capacitor-rate-app` plugin
-- Trigger rating prompt after successful order completion
-
-#### 2.3 Enhanced Haptic Feedback
-Add tactile feedback for better UX on key actions.
-
-**Changes needed:**
-- Install `@capacitor/haptics`
-- Add haptic feedback on button taps, order confirmations
-
-#### 2.4 App Updates Handler
-Notify users when a new version is available.
-
-**Changes needed:**
-- Create version check on app startup
-- Show update prompt for mandatory/optional updates
-
----
-
-### Phase 3: Asset Preparation
-
-#### 3.1 iOS App Icons (Required Sizes)
-```text
-AppIcon-20@2x.png       (40x40)
-AppIcon-20@3x.png       (60x60)
-AppIcon-29@2x.png       (58x58)
-AppIcon-29@3x.png       (87x87)
-AppIcon-40@2x.png       (80x80)
-AppIcon-40@3x.png       (120x120)
-AppIcon-60@2x.png       (120x120)
-AppIcon-60@3x.png       (180x180)
-AppIcon-76.png          (76x76)
-AppIcon-76@2x.png       (152x152)
-AppIcon-83.5@2x.png     (167x167)
-AppIcon-1024.png        (1024x1024)
+**Root Cause**: The database has a `UNIQUE (user_id)` constraint on the `seller_profiles` table:
+```sql
+UNIQUE (user_id)
 ```
 
-#### 3.2 Android Adaptive Icons
-```text
-mipmap-hdpi/ic_launcher.png       (72x72)
-mipmap-mdpi/ic_launcher.png       (48x48)
-mipmap-xhdpi/ic_launcher.png      (96x96)
-mipmap-xxhdpi/ic_launcher.png     (144x144)
-mipmap-xxxhdpi/ic_launcher.png    (192x192)
-+ ic_launcher_foreground.xml
-+ ic_launcher_background.xml
-```
+This means **one user can only have one seller profile**. This was an intentional design choice to keep things simple - one person = one business identity.
 
-#### 3.3 Splash Screens
-- **iOS**: LaunchScreen.storyboard (already configured)
-- **Android**: splash.png in multiple densities (ldpi to xxxhdpi)
+**Current Business Logic**: 
+- A user creates ONE seller profile with a `primary_group` (e.g., "Food")
+- They can add multiple categories within that group via the `categories` array
+- To offer different services (e.g., both Food AND Classes), they must use the same profile
 
-#### 3.4 Play Store Feature Graphic
-- Size: 1024x500px (required for Google Play Store listing)
+**Problem**: Users cannot have separate business identities for different service types (e.g., "Amma's Kitchen" for food AND "Math Tutor Pro" for tutoring).
 
 ---
 
-### Phase 4: Production Configuration
+### Issue 2: Search Not Working Dynamically
 
-#### 4.1 Update capacitor.config.ts for Production
-Remove the development server block before building:
+**Current Behavior**:
+- Search only searches `business_name` on `seller_profiles`
+- Does not search products/services by name or description
+- Minimum 2 characters required to trigger search
 
+**Missing Functionality**:
+- No product name search
+- No product description search
+- No seller description search
+- No fuzzy matching or keyword relevance
+
+---
+
+## Proposed Solutions
+
+### Solution for Issue 1: Multi-Seller Support
+
+**Option A: Allow Multiple Seller Profiles (Recommended)**
+- Remove the `UNIQUE (user_id)` constraint from `seller_profiles`
+- Add a composite unique constraint: `UNIQUE (user_id, primary_group)`
+- This allows one user to have multiple businesses in different categories
+- Each business has its own name, description, rating, products
+
+**Database Changes**:
+```sql
+-- Remove existing unique constraint
+ALTER TABLE seller_profiles DROP CONSTRAINT seller_profiles_user_id_key;
+
+-- Add new composite constraint (one business per category group per user)
+ALTER TABLE seller_profiles ADD CONSTRAINT seller_profiles_user_group_key 
+  UNIQUE (user_id, primary_group);
+```
+
+**Code Changes**:
+- Update `BecomeSellerPage` to check for existing profile in the same `primary_group` only
+- Update `AuthContext` to fetch all seller profiles for a user
+- Update seller dashboard to show a selector for which business to manage
+
+---
+
+### Solution for Issue 2: Enhanced Dynamic Search
+
+**Current Search** (limited):
 ```typescript
-const config: CapacitorConfig = {
-  appId: 'app.lovable.b3f6efce9b8e4071b39db038b9b1adf4',
-  appName: 'Greenfield Community',
-  webDir: 'dist',
-  // Remove server block for production
-  plugins: {
-    SplashScreen: {...},
-    StatusBar: {...},
-    PushNotifications: {...},
-  },
-};
+queryBuilder = queryBuilder.ilike('business_name', `%${query}%`);
 ```
 
-#### 4.2 iOS Code Signing
-- Apple Developer Account ($99/year)
-- App ID registration
-- Provisioning profiles (Development + Distribution)
-- Push notification certificates (APNs)
+**Enhanced Search** (proposed):
+1. Search across multiple tables: `seller_profiles`, `products`
+2. Search multiple fields: `business_name`, `description`, `product name`, `product description`
+3. Return sellers who match OR have matching products
+4. Rank results by relevance
 
-#### 4.3 Android Signing
-- Generate upload keystore
-- Create signed APK/AAB
-- Enable Play App Signing
+**Implementation Approach**:
+```sql
+-- Create a search function or use OR conditions
+SELECT DISTINCT sp.*
+FROM seller_profiles sp
+LEFT JOIN products p ON p.seller_id = sp.id
+WHERE 
+  sp.verification_status = 'approved' AND (
+    sp.business_name ILIKE '%keyword%' OR
+    sp.description ILIKE '%keyword%' OR
+    p.name ILIKE '%keyword%' OR
+    p.description ILIKE '%keyword%'
+  )
+```
 
 ---
 
-### Phase 5: Testing Checklist
+## Implementation Plan
 
-#### 5.1 Functional Testing
-| Test | Description |
+### Phase 1: Database Migration for Multi-Seller
+
+| Step | Description |
 |------|-------------|
-| Authentication | Sign up, login, logout, password reset |
-| Profile | View, edit profile, upload avatar |
-| Categories | Browse all 12+ categories |
-| Seller Flow | Register as seller, add products |
-| Ordering | Add to cart, checkout, payment selection |
-| Booking | Time slot selection for services |
-| Rentals | Date range selection |
-| Chat | Buyer-seller messaging |
-| Push Notifications | Receive order updates |
-| Offline Mode | Banner displays, actions queued |
+| 1 | Drop `seller_profiles_user_id_key` unique constraint |
+| 2 | Add new composite constraint `UNIQUE (user_id, primary_group)` |
+| 3 | Update foreign key reference handling (if needed) |
 
-#### 5.2 Device Testing
-- iPhone SE (smallest screen)
-- iPhone 15 Pro Max (largest screen, Dynamic Island)
-- iPad (tablet layout)
-- Android phone (various screen densities)
-- Android tablet
+### Phase 2: Update BecomeSellerPage
 
-#### 5.3 Edge Cases
-- Network interruption during checkout
-- Low storage space
-- Background/foreground transitions
-- Push notification with app closed
-- Deep link handling
+| Change | Description |
+|--------|-------------|
+| 1 | Check for existing profile in same `primary_group` only |
+| 2 | If found, redirect to that seller's settings |
+| 3 | If not found in selected group, allow new registration |
+| 4 | Show list of existing businesses for reference |
 
----
+### Phase 3: Update AuthContext & Navigation
 
-### Phase 6: App Store Submission
+| Change | Description |
+|--------|-------------|
+| 1 | Fetch all seller profiles for user (not just one) |
+| 2 | Add `sellerProfiles` array to context |
+| 3 | Add `currentSellerId` state for active business |
+| 4 | Add seller switcher component in dashboard |
 
-#### 6.1 Apple App Store (iOS)
-1. Create app in App Store Connect
-2. Fill in metadata (use STORE_METADATA.md)
-3. Upload screenshots (6 device sizes)
-4. Upload build from Xcode
-5. Submit for review (~24-48 hours)
+### Phase 4: Enhanced Search Implementation
 
-**Review Notes (include with submission):**
-> This app is for verified residents of Shriram Greenfield community only. Demo account provided: demo@greenfield.app / DemoReview2026!
-
-#### 6.2 Google Play Store (Android)
-1. Create app in Google Play Console
-2. Fill in store listing (use STORE_METADATA.md)
-3. Upload screenshots (phone + tablet)
-4. Upload feature graphic (1024x500)
-5. Upload AAB from Android Studio
-6. Submit for review (~2-7 days for new apps)
+| Change | Description |
+|--------|-------------|
+| 1 | Create database function `search_marketplace(keyword)` |
+| 2 | Search across `seller_profiles` and `products` tables |
+| 3 | Return sellers with matching products included |
+| 4 | Add relevance scoring (exact match > partial match) |
+| 5 | Update `SearchPage` to use new search function |
+| 6 | Make search trigger on keystroke (debounced) |
 
 ---
 
-## Implementation Summary
+## Files to Modify
 
-### Code Changes Required
-
-| File | Change |
-|------|--------|
-| `src/pages/ProfilePage.tsx` | Add account deletion feature |
-| `src/components/profile/DeleteAccountDialog.tsx` | New component for deletion flow |
-| `capacitor.config.ts` | Add keyboard, haptics, deep linking config |
-| `package.json` | Add @capacitor/keyboard, @capacitor/haptics |
-| `src/lib/capacitor.ts` | Initialize keyboard and haptics plugins |
-| `src/hooks/useAppRating.ts` | New hook for in-app rating prompts |
-| `public/.well-known/apple-app-site-association` | iOS deep linking |
-| `public/.well-known/assetlinks.json` | Android deep linking |
-
-### Native Project Setup (Local Machine Required)
-
-1. Export project to GitHub
-2. Clone repository locally
-3. Run `npm install`
-4. Run `npm run build`
-5. Run `npx cap add ios` and `npx cap add android`
-6. Run `npx cap sync`
-7. Open in Xcode: `npx cap open ios`
-8. Open in Android Studio: `npx cap open android`
-9. Configure code signing
-10. Build and archive for submission
+| File | Changes |
+|------|---------|
+| New migration | Drop unique constraint, add composite constraint |
+| New migration | Create `search_marketplace` function |
+| `src/contexts/AuthContext.tsx` | Support multiple seller profiles |
+| `src/pages/BecomeSellerPage.tsx` | Check per-group instead of globally |
+| `src/pages/SearchPage.tsx` | Use enhanced search with products |
+| `src/components/seller/SellerSwitcher.tsx` | New component for multi-business users |
+| `src/pages/SellerDashboardPage.tsx` | Add seller switcher |
 
 ---
 
-## Timeline Estimate
+## Technical Details
 
-| Phase | Duration |
-|-------|----------|
-| Phase 1: Compliance Features | 2-3 hours |
-| Phase 2: Native Enhancements | 2-3 hours |
-| Phase 3: Asset Preparation | 1-2 hours |
-| Phase 4: Production Config | 1 hour |
-| Phase 5: Testing | 4-6 hours |
-| Phase 6: Store Submission | 2-4 hours |
-| App Review (Apple) | 24-48 hours |
-| App Review (Google) | 2-7 days |
+### Multi-Seller Data Model
 
-**Total Development Time:** ~15-20 hours
-**Total Time to Store:** ~1-2 weeks (including review)
+```text
+Before:
+  User A → 1 Seller Profile (Amma's Kitchen, categories: [home_food, bakery])
+
+After:
+  User A → Seller Profile 1 (Amma's Kitchen, primary_group: food, categories: [home_food, bakery])
+        → Seller Profile 2 (Math Tutor Pro, primary_group: classes, categories: [tuition])
+```
+
+### Search Algorithm
+
+```text
+User types: "biryani"
+
+1. Search seller_profiles.business_name ILIKE '%biryani%'
+2. Search seller_profiles.description ILIKE '%biryani%'
+3. Search products.name ILIKE '%biryani%'
+4. Search products.description ILIKE '%biryani%'
+
+Return: Sellers who match directly OR have matching products
+Display: Show matching products under each seller card
+```
+
+### Search Function (PostgreSQL)
+
+```sql
+CREATE OR REPLACE FUNCTION search_marketplace(search_term text)
+RETURNS TABLE (
+  seller_id uuid,
+  business_name text,
+  matching_products jsonb
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT DISTINCT 
+    sp.id,
+    sp.business_name,
+    (
+      SELECT jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'price', p.price))
+      FROM products p
+      WHERE p.seller_id = sp.id 
+        AND p.is_available = true
+        AND (p.name ILIKE '%' || search_term || '%' 
+             OR p.description ILIKE '%' || search_term || '%')
+    )
+  FROM seller_profiles sp
+  LEFT JOIN products p ON p.seller_id = sp.id
+  WHERE sp.verification_status = 'approved'
+    AND (
+      sp.business_name ILIKE '%' || search_term || '%'
+      OR sp.description ILIKE '%' || search_term || '%'
+      OR p.name ILIKE '%' || search_term || '%'
+      OR p.description ILIKE '%' || search_term || '%'
+    )
+  GROUP BY sp.id, sp.business_name;
+END;
+$$ LANGUAGE plpgsql STABLE;
+```
 
 ---
 
-## Documentation Reference
+## Expected Outcomes
 
-For detailed step-by-step instructions on building and publishing with Capacitor:
+After implementation:
 
-https://docs.lovable.dev/tips-tricks/native-mobile-apps
+1. **Multi-Seller**: Users can run multiple businesses (e.g., food shop + tutoring service) with separate profiles, names, and ratings
+2. **Enhanced Search**: Searching "biryani" finds sellers who make biryani, even if their shop name is "Amma's Kitchen"
+3. **Dynamic Results**: Search updates as user types (debounced)
+4. **Product Discovery**: Users find products directly, not just seller names
+5. **Better UX**: Seller dashboard shows business switcher for multi-business users
