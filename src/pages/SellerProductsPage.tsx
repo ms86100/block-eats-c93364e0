@@ -114,11 +114,13 @@ export default function SellerProductsPage() {
   };
 
   const resetForm = () => {
+    // Auto-select category if there's only one allowed
+    const defaultCategory = allowedCategories.length === 1 ? allowedCategories[0].category as ProductCategory : '';
     setFormData({
       name: '',
       description: '',
       price: '',
-      category: '',
+      category: defaultCategory,
       is_veg: true,
       is_available: true,
       is_bestseller: false,
@@ -336,27 +338,37 @@ export default function SellerProductsPage() {
                       }
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category *</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, category: value as ProductCategory })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {/* Show only categories from seller's approved primary group */}
-                        {allowedCategories.map((config) => (
-                          <SelectItem key={config.category} value={config.category}>
-                            {config.icon} {config.displayName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Only show category dropdown if seller has multiple categories */}
+                  {allowedCategories.length > 1 ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category *</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, category: value as ProductCategory })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allowedCategories.map((config) => (
+                            <SelectItem key={config.category} value={config.category}>
+                              {config.icon} {config.displayName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : allowedCategories.length === 1 ? (
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <div className="flex items-center gap-2 p-2 bg-muted rounded-md text-sm">
+                        <span>{allowedCategories[0].icon}</span>
+                        <span>{allowedCategories[0].displayName}</span>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* Veg/Non-Veg Toggle - Only show for food categories */}
