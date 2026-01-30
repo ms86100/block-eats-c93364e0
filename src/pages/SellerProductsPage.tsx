@@ -149,7 +149,7 @@ export default function SellerProductsPage() {
         name: formData.name.trim(),
         description: formData.description.trim() || null,
         price,
-        category: formData.category as ProductCategory,
+        category: formData.category,
         is_veg: formData.is_veg,
         is_available: formData.is_available,
         is_bestseller: formData.is_bestseller,
@@ -161,13 +161,13 @@ export default function SellerProductsPage() {
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
-          .update(productData)
+          .update(productData as any)
           .eq('id', editingProduct.id);
 
         if (error) throw error;
         toast.success('Product updated');
       } else {
-        const { error } = await supabase.from('products').insert(productData);
+        const { error } = await supabase.from('products').insert(productData as any);
 
         if (error) throw error;
         toast.success('Product added');

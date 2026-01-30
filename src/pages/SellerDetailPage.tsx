@@ -75,7 +75,7 @@ export default function SellerDetailPage() {
       if (productsRes.error) throw productsRes.error;
 
       setSeller(sellerRes.data as any);
-      setProducts(productsRes.data || []);
+      setProducts((productsRes.data || []) as Product[]);
     } catch (error) {
       console.error('Error fetching seller:', error);
     } finally {

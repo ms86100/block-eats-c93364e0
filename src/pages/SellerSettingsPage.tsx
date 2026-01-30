@@ -167,7 +167,7 @@ export default function SellerSettingsPage() {
         .update({
           business_name: formData.business_name.trim(),
           description: formData.description.trim() || null,
-          categories: formData.categories,
+          categories: formData.categories as any,
           availability_start: formData.availability_start,
           availability_end: formData.availability_end,
           operating_days: formData.operating_days,
@@ -177,7 +177,7 @@ export default function SellerSettingsPage() {
           is_available: formData.is_available,
           cover_image_url: formData.cover_image_url,
           profile_image_url: formData.profile_image_url,
-        })
+        } as any)
         .eq('id', sellerProfile.id);
 
       if (error) throw error;

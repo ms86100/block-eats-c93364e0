@@ -481,7 +481,7 @@ export type Database = {
       products: {
         Row: {
           available_slots: Json | null
-          category: Database["public"]["Enums"]["product_category"]
+          category: Database["public"]["Enums"]["service_category"]
           condition: string | null
           created_at: string | null
           deposit_amount: number | null
@@ -507,7 +507,7 @@ export type Database = {
         }
         Insert: {
           available_slots?: Json | null
-          category: Database["public"]["Enums"]["product_category"]
+          category: Database["public"]["Enums"]["service_category"]
           condition?: string | null
           created_at?: string | null
           deposit_amount?: number | null
@@ -533,7 +533,7 @@ export type Database = {
         }
         Update: {
           available_slots?: Json | null
-          category?: Database["public"]["Enums"]["product_category"]
+          category?: Database["public"]["Enums"]["service_category"]
           condition?: string | null
           created_at?: string | null
           deposit_amount?: number | null
@@ -724,7 +724,7 @@ export type Database = {
           availability_end: string | null
           availability_start: string | null
           business_name: string
-          categories: Database["public"]["Enums"]["product_category"][]
+          categories: Database["public"]["Enums"]["service_category"][]
           cover_image_url: string | null
           created_at: string | null
           description: string | null
@@ -749,7 +749,7 @@ export type Database = {
           availability_end?: string | null
           availability_start?: string | null
           business_name: string
-          categories?: Database["public"]["Enums"]["product_category"][]
+          categories?: Database["public"]["Enums"]["service_category"][]
           cover_image_url?: string | null
           created_at?: string | null
           description?: string | null
@@ -774,7 +774,7 @@ export type Database = {
           availability_end?: string | null
           availability_start?: string | null
           business_name?: string
-          categories?: Database["public"]["Enums"]["product_category"][]
+          categories?: Database["public"]["Enums"]["service_category"][]
           cover_image_url?: string | null
           created_at?: string | null
           description?: string | null

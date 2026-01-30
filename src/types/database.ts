@@ -1,9 +1,11 @@
 // Database types for the Greenfield Marketplace
+import { ServiceCategory } from './categories';
 
 export type UserRole = 'buyer' | 'seller' | 'admin';
 export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 export type OrderStatus = 'placed' | 'accepted' | 'preparing' | 'ready' | 'picked_up' | 'delivered' | 'completed' | 'cancelled' | 'enquired' | 'quoted' | 'scheduled' | 'in_progress' | 'returned';
-export type ProductCategory = 'home_food' | 'bakery' | 'snacks' | 'groceries' | 'other';
+// ProductCategory is now an alias to ServiceCategory for backward compatibility
+export type ProductCategory = ServiceCategory;
 export type PaymentMethod = 'cod' | 'upi';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 export type OrderType = 'purchase' | 'booking' | 'rental' | 'enquiry';
@@ -193,13 +195,30 @@ export interface ChatMessage {
   sender?: Profile;
 }
 
-// Category display info
+// Category display info (extended to include all service categories for backward compatibility)
 export const CATEGORIES: { value: ProductCategory; label: string; icon: string; color: string }[] = [
+  // Food & Groceries
   { value: 'home_food', label: 'Home Food', icon: '🍲', color: 'bg-orange-100' },
   { value: 'bakery', label: 'Bakery', icon: '🥐', color: 'bg-amber-100' },
   { value: 'snacks', label: 'Snacks', icon: '🍿', color: 'bg-yellow-100' },
   { value: 'groceries', label: 'Groceries', icon: '🥬', color: 'bg-green-100' },
-  { value: 'other', label: 'Other', icon: '📦', color: 'bg-blue-100' },
+  { value: 'beverages', label: 'Beverages', icon: '🥤', color: 'bg-cyan-100' },
+  // Classes
+  { value: 'tuition', label: 'Tuition', icon: '📚', color: 'bg-indigo-100' },
+  { value: 'yoga', label: 'Yoga', icon: '🧘', color: 'bg-purple-100' },
+  { value: 'dance', label: 'Dance', icon: '💃', color: 'bg-pink-100' },
+  { value: 'music', label: 'Music', icon: '🎵', color: 'bg-violet-100' },
+  // Services
+  { value: 'electrician', label: 'Electrician', icon: '⚡', color: 'bg-yellow-100' },
+  { value: 'plumber', label: 'Plumber', icon: '🔧', color: 'bg-blue-100' },
+  { value: 'carpenter', label: 'Carpenter', icon: '🪚', color: 'bg-amber-100' },
+  // Rentals
+  { value: 'equipment_rental', label: 'Equipment Rental', icon: '🔧', color: 'bg-teal-100' },
+  { value: 'vehicle_rental', label: 'Vehicle Rental', icon: '🚗', color: 'bg-slate-100' },
+  // Buy & Sell
+  { value: 'furniture', label: 'Furniture', icon: '🛋️', color: 'bg-amber-100' },
+  { value: 'electronics', label: 'Electronics', icon: '📱', color: 'bg-blue-100' },
+  { value: 'books', label: 'Books', icon: '📖', color: 'bg-emerald-100' },
 ];
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, { label: string; color: string }> = {
