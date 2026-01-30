@@ -1,24 +1,60 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { SellerCard } from '@/components/seller/SellerCard';
 import { SearchFilters, FilterState, defaultFilters } from '@/components/search/SearchFilters';
+import { FilterPresets } from '@/components/search/FilterPresets';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SellerProfile, CATEGORIES } from '@/types/database';
 import { ArrowLeft, Search as SearchIcon, X } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 
+// Persist last filters in localStorage
+const FILTER_STORAGE_KEY = 'greenfield_search_filters';
+
+const loadSavedFilters = (): FilterState => {
+  try {
+    const saved = localStorage.getItem(FILTER_STORAGE_KEY);
+    if (saved) {
+      return { ...defaultFilters, ...JSON.parse(saved) };
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return defaultFilters;
+};
+
+const saveFilters = (filters: FilterState) => {
+  localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters));
+};
+
 export default function SearchPage() {
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [filters, setFilters] = useState<FilterState>(loadSavedFilters);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Apply URL params on mount
+  useEffect(() => {
+    const sort = searchParams.get('sort');
+    const filter = searchParams.get('filter');
+    
+    if (sort === 'rating') {
+      handlePresetSelect('top_rated', { minRating: 4, sortBy: 'rating' });
+    } else if (filter === 'open') {
+      // For "open now", we'll just search all and show available ones first
+      searchSellers();
+    }
+  }, []);
+
   useEffect(() => {
     if (query.length >= 2 || hasActiveFilters()) {
       searchSellers();
+      saveFilters(filters);
     } else if (query.length === 0 && !hasActiveFilters()) {
       setSellers([]);
       setHasSearched(false);
@@ -31,7 +67,9 @@ export default function SearchPage() {
       filters.isVeg !== null ||
       filters.categories.length > 0 ||
       filters.block !== null ||
-      filters.sortBy !== null
+      filters.sortBy !== null ||
+      filters.priceRange[0] > 0 ||
+      filters.priceRange[1] < 1000
     );
   };
 
@@ -99,8 +137,24 @@ export default function SearchPage() {
   const clearFilters = () => {
     setQuery('');
     setFilters(defaultFilters);
+    setActivePreset(null);
     setSellers([]);
     setHasSearched(false);
+    localStorage.removeItem(FILTER_STORAGE_KEY);
+  };
+
+  const handleFiltersChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    setActivePreset(null);
+  };
+
+  const handlePresetSelect = (presetId: string | null, presetFilters: Partial<FilterState>) => {
+    setActivePreset(presetId);
+    if (presetId) {
+      setFilters({ ...defaultFilters, ...presetFilters });
+    } else {
+      setFilters(defaultFilters);
+    }
   };
 
   const activeFilterLabels = [];
@@ -154,8 +208,16 @@ export default function SearchPage() {
           </div>
           <SearchFilters
             filters={filters}
-            onFiltersChange={setFilters}
+            onFiltersChange={handleFiltersChange}
             showPriceFilter={false}
+          />
+        </div>
+
+        {/* Filter Presets */}
+        <div className="mb-4">
+          <FilterPresets
+            activePreset={activePreset}
+            onPresetSelect={handlePresetSelect}
           />
         </div>
 

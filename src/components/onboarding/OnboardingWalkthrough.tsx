@@ -1,0 +1,124 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { ChevronRight, ShoppingBag, Users, MapPin, Shield, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface OnboardingWalkthroughProps {
+  onComplete: () => void;
+}
+
+const slides = [
+  {
+    icon: Users,
+    title: 'Community Marketplace',
+    description: 'Buy homemade food and local goods exclusively from your Greenfield neighbors. Everything is made fresh and delivered within the community.',
+    color: 'bg-primary/10 text-primary',
+  },
+  {
+    icon: ShoppingBag,
+    title: 'Easy Ordering',
+    description: 'Browse sellers, add items to cart, and place orders with just a few taps. Pay via UPI or Cash on Delivery.',
+    color: 'bg-success/10 text-success',
+  },
+  {
+    icon: MapPin,
+    title: 'Pickup or Delivery',
+    description: 'Pick up from the seller\'s home or get it delivered to your doorstep. Track your order in real-time.',
+    color: 'bg-info/10 text-info',
+  },
+  {
+    icon: Shield,
+    title: 'Trusted & Verified',
+    description: 'All sellers are verified Greenfield residents. Rate and review after each order to help the community.',
+    color: 'bg-warning/10 text-warning',
+  },
+];
+
+export function OnboardingWalkthrough({ onComplete }: OnboardingWalkthroughProps) {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const handleNext = () => {
+    if (currentSlide < slides.length - 1) {
+      setCurrentSlide(currentSlide + 1);
+    } else {
+      onComplete();
+    }
+  };
+
+  const handleSkip = () => {
+    onComplete();
+  };
+
+  const slide = slides[currentSlide];
+  const Icon = slide.icon;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      {/* Skip button */}
+      <div className="flex justify-end p-4">
+        <Button variant="ghost" size="sm" onClick={handleSkip}>
+          Skip
+          <X size={16} className="ml-1" />
+        </Button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-8">
+        <div className={cn('w-24 h-24 rounded-3xl flex items-center justify-center mb-8', slide.color)}>
+          <Icon size={48} />
+        </div>
+        <h1 className="text-2xl font-bold text-center mb-4">{slide.title}</h1>
+        <p className="text-center text-muted-foreground max-w-xs">{slide.description}</p>
+      </div>
+
+      {/* Navigation */}
+      <div className="p-6 space-y-4">
+        {/* Dots */}
+        <div className="flex justify-center gap-2">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={cn(
+                'w-2 h-2 rounded-full transition-all',
+                index === currentSlide ? 'w-6 bg-primary' : 'bg-muted'
+              )}
+            />
+          ))}
+        </div>
+
+        {/* Button */}
+        <Button className="w-full" size="lg" onClick={handleNext}>
+          {currentSlide === slides.length - 1 ? 'Get Started' : 'Next'}
+          <ChevronRight size={18} className="ml-1" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Hook to manage onboarding state
+export function useOnboarding() {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [hasChecked, setHasChecked] = useState(false);
+
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+    setHasChecked(true);
+  }, []);
+
+  const completeOnboarding = () => {
+    localStorage.setItem('hasSeenOnboarding', 'true');
+    setShowOnboarding(false);
+  };
+
+  const resetOnboarding = () => {
+    localStorage.removeItem('hasSeenOnboarding');
+    setShowOnboarding(true);
+  };
+
+  return { showOnboarding, hasChecked, completeOnboarding, resetOnboarding };
+}

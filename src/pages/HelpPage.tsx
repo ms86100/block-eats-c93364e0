@@ -1,0 +1,148 @@
+import { Link } from 'react-router-dom';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { 
+  ArrowLeft, 
+  ShoppingBag, 
+  Store, 
+  CreditCard, 
+  MessageCircle, 
+  Shield, 
+  HelpCircle,
+  ChevronRight,
+  BookOpen,
+  RefreshCw
+} from 'lucide-react';
+import { useOnboarding } from '@/components/onboarding/OnboardingWalkthrough';
+
+const HELP_SECTIONS = [
+  {
+    icon: ShoppingBag,
+    title: 'How to Order',
+    items: [
+      'Browse sellers on the Home screen',
+      'Tap on a seller to see their menu',
+      'Add items to your cart',
+      'Choose payment method (UPI or Cash)',
+      'Place your order and track status',
+    ],
+  },
+  {
+    icon: Store,
+    title: 'Becoming a Seller',
+    items: [
+      'Go to Profile → Become a Seller',
+      'Fill in your business details',
+      'Wait for admin approval',
+      'Add your products and set prices',
+      'Start receiving orders!',
+    ],
+  },
+  {
+    icon: CreditCard,
+    title: 'Payments',
+    items: [
+      'UPI: Pay instantly via GPay, PhonePe, Paytm',
+      'Cash on Delivery: Pay when you receive',
+      'All transactions are within the community',
+      'No extra charges or hidden fees',
+    ],
+  },
+  {
+    icon: MessageCircle,
+    title: 'Chat & Communication',
+    items: [
+      'Chat with seller after placing an order',
+      'Discuss special requests or timing',
+      'Get notified of order updates',
+      'Chat disabled after order completion',
+    ],
+  },
+];
+
+export default function HelpPage() {
+  const { resetOnboarding } = useOnboarding();
+
+  return (
+    <AppLayout showHeader={false} showNav={false}>
+      <div className="p-4 pb-8">
+        <Link to="/profile" className="flex items-center gap-2 text-muted-foreground mb-6">
+          <ArrowLeft size={20} />
+          <span>Back to Profile</span>
+        </Link>
+
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+            <HelpCircle className="text-primary" size={32} />
+          </div>
+          <h1 className="text-2xl font-bold">Help & Guide</h1>
+          <p className="text-muted-foreground mt-1">
+            Learn how to use Greenfield Market
+          </p>
+        </div>
+
+        {/* Replay Onboarding */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <button
+              onClick={resetOnboarding}
+              className="w-full flex items-center gap-4"
+            >
+              <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center">
+                <RefreshCw className="text-info" size={20} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-medium">Replay Introduction</p>
+                <p className="text-xs text-muted-foreground">
+                  View the app walkthrough again
+                </p>
+              </div>
+              <ChevronRight size={18} className="text-muted-foreground" />
+            </button>
+          </CardContent>
+        </Card>
+
+        {/* Help Sections */}
+        <div className="space-y-4">
+          {HELP_SECTIONS.map(({ icon: Icon, title, items }) => (
+            <Card key={title}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Icon className="text-primary" size={20} />
+                  <h3 className="font-semibold">{title}</h3>
+                </div>
+                <ul className="space-y-2">
+                  {items.map((item, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="text-primary">•</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Community Rules Link */}
+        <Link to="/community-rules">
+          <Card className="mt-6">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+                <Shield className="text-warning" size={20} />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">Community Guidelines</p>
+                <p className="text-xs text-muted-foreground">
+                  Code of conduct for buyers and sellers
+                </p>
+              </div>
+              <ChevronRight size={18} className="text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+    </AppLayout>
+  );
+}

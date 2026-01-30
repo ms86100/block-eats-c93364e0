@@ -13,6 +13,9 @@ import {
   LogOut,
   ChevronRight,
   Shield,
+  HelpCircle,
+  Bell,
+  Settings,
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -30,6 +33,8 @@ export default function ProfilePage() {
     ...(isSeller
       ? [{ icon: Store, label: 'Seller Dashboard', to: '/seller' }]
       : [{ icon: Store, label: 'Become a Seller', to: '/become-seller' }]),
+    { icon: Bell, label: 'Notifications', to: '/notifications' },
+    { icon: HelpCircle, label: 'Help & Guide', to: '/help' },
     ...(isAdmin ? [{ icon: Shield, label: 'Admin Panel', to: '/admin' }] : []),
   ];
 
@@ -95,7 +100,7 @@ export default function ProfilePage() {
         </Button>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          Greenfield Market v2.0.0 • Phase 2
+          Greenfield Market v3.5 • Phase 3.5
         </p>
       </div>
     </AppLayout>
