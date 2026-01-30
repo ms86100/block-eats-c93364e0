@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export default function SellerSettingsPage() {
-  const { user } = useAuth();
+  const { user, currentSellerId, sellerProfiles } = useAuth();
   const { groupedConfigs } = useCategoryConfigs();
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
   const [primaryGroup, setPrimaryGroup] = useState<ParentGroup | null>(null);
@@ -42,25 +42,27 @@ export default function SellerSettingsPage() {
   });
 
   useEffect(() => {
-    if (user) {
+    if (currentSellerId) {
       fetchProfile();
+    } else if (sellerProfiles.length > 0) {
+      // Fallback: use first seller profile if currentSellerId not set
+      fetchProfileById(sellerProfiles[0].id);
+    } else {
+      setIsLoading(false);
     }
-  }, [user]);
+  }, [currentSellerId, sellerProfiles]);
 
-  const fetchProfile = async () => {
-    if (!user) return;
-
+  const fetchProfileById = async (sellerId: string) => {
     try {
       const { data } = await supabase
         .from('seller_profiles')
         .select('*')
-        .eq('user_id', user.id)
-        .single();
+        .eq('id', sellerId)
+        .maybeSingle();
 
       if (data) {
         const profile = data as any;
         setSellerProfile(profile);
-        // Derive primary group from existing data or stored value
         const storedGroup = profile.primary_group as ParentGroup | null;
         setPrimaryGroup(storedGroup);
         setFormData({
@@ -83,6 +85,11 @@ export default function SellerSettingsPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchProfile = async () => {
+    if (!currentSellerId) return;
+    await fetchProfileById(currentSellerId);
   };
 
   const handleCategoryChange = (category: ProductCategory, checked: boolean) => {
