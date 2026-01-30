@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ReorderButton } from '@/components/order/ReorderButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order, ORDER_STATUS_LABELS } from '@/types/database';
 import { Package, ChevronRight } from 'lucide-react';
@@ -73,10 +74,11 @@ export default function OrdersPage() {
     const seller = (order as any).seller;
     const buyer = (order as any).buyer;
     const items = (order as any).items || [];
+    const canReorder = type === 'buyer' && (order.status === 'completed' || order.status === 'delivered');
 
     return (
-      <Link to={`/orders/${order.id}`}>
-        <div className="bg-card rounded-xl p-4 shadow-sm mb-3">
+      <div className="bg-card rounded-xl p-4 shadow-sm mb-3">
+        <Link to={`/orders/${order.id}`}>
           <div className="flex items-start gap-3">
             <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0">
               {seller?.cover_image_url ? (
@@ -116,8 +118,18 @@ export default function OrdersPage() {
             </div>
             <ChevronRight size={20} className="text-muted-foreground shrink-0" />
           </div>
-        </div>
-      </Link>
+        </Link>
+        {canReorder && (
+          <div className="mt-3 pt-3 border-t flex justify-end">
+            <ReorderButton
+              orderItems={items}
+              sellerId={order.seller_id}
+              variant="outline"
+              size="sm"
+            />
+          </div>
+        )}
+      </div>
     );
   };
 

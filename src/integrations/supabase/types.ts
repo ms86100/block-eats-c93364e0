@@ -405,6 +405,45 @@ export type Database = {
         }
         Relationships: []
       }
+      reports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string | null
+          id: string
+          report_type: string
+          reported_seller_id: string | null
+          reported_user_id: string | null
+          reporter_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          report_type: string
+          reported_seller_id?: string | null
+          reported_user_id?: string | null
+          reporter_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          report_type?: string
+          reported_seller_id?: string | null
+          reported_user_id?: string | null
+          reporter_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           buyer_id: string | null
@@ -548,6 +587,36 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      warnings: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          id: string
+          issued_by: string
+          reason: string
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          id?: string
+          issued_by: string
+          reason: string
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          id?: string
+          issued_by?: string
+          reason?: string
+          severity?: string
           user_id?: string
         }
         Relationships: []

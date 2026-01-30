@@ -22,9 +22,36 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Profile, SellerProfile, Review, PaymentRecord, ChatMessage, VerificationStatus, PAYMENT_STATUS_LABELS, PaymentStatus } from '@/types/database';
-import { Check, X, Users, Store, Package, Star, MessageSquare, Award, Eye, EyeOff, CreditCard, DollarSign } from 'lucide-react';
+import { Check, X, Users, Store, Package, Star, MessageSquare, Award, Eye, EyeOff, CreditCard, DollarSign, Flag, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { Textarea } from '@/components/ui/textarea';
+
+interface Report {
+  id: string;
+  reporter_id: string;
+  reported_user_id: string | null;
+  reported_seller_id: string | null;
+  report_type: string;
+  description: string | null;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+  reporter?: { name: string };
+  reported_user?: { name: string } | null;
+  reported_seller?: { business_name: string } | null;
+}
+
+interface Warning {
+  id: string;
+  user_id: string;
+  issued_by: string;
+  reason: string;
+  severity: string;
+  acknowledged_at: string | null;
+  created_at: string;
+  user?: { name: string };
+}
 
 export default function AdminPage() {
   const [pendingUsers, setPendingUsers] = useState<Profile[]>([]);
@@ -32,12 +59,19 @@ export default function AdminPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [allSellers, setAllSellers] = useState<SellerProfile[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [warnings, setWarnings] = useState<Warning[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState({ users: 0, sellers: 0, orders: 0, reviews: 0, revenue: 0 });
+  const [stats, setStats] = useState({ users: 0, sellers: 0, orders: 0, reviews: 0, revenue: 0, pendingReports: 0 });
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedUserForWarning, setSelectedUserForWarning] = useState<string | null>(null);
+  const [warningReason, setWarningReason] = useState('');
+  const [warningSeverity, setWarningSeverity] = useState<'warning' | 'final_warning'>('warning');
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [hideReason, setHideReason] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
 
   useEffect(() => {
@@ -46,18 +80,21 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     try {
-      const [usersRes, sellersRes, reviewsRes, allSellersRes, paymentsRes, statsRes] = await Promise.all([
+      const [usersRes, sellersRes, reviewsRes, allSellersRes, paymentsRes, reportsRes, warningsRes, statsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('verification_status', 'pending'),
         supabase.from('seller_profiles').select('*, profile:profiles(name, block, flat_number)').eq('verification_status', 'pending'),
         supabase.from('reviews').select('*, buyer:profiles!reviews_buyer_id_fkey(name), seller:seller_profiles(business_name)').order('created_at', { ascending: false }).limit(50),
         supabase.from('seller_profiles').select('*, profile:profiles(name, block)').eq('verification_status', 'approved'),
         supabase.from('payment_records').select('*, seller:seller_profiles(business_name), order:orders(buyer:profiles!orders_buyer_id_fkey(name))').order('created_at', { ascending: false }).limit(100),
+        supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('warnings').select('*').order('created_at', { ascending: false }).limit(50),
         Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('seller_profiles').select('id', { count: 'exact', head: true }).eq('verification_status', 'approved'),
           supabase.from('orders').select('id', { count: 'exact', head: true }),
           supabase.from('reviews').select('id', { count: 'exact', head: true }),
           supabase.from('payment_records').select('amount').eq('payment_status', 'paid'),
+          supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         ]),
       ]);
 
@@ -66,6 +103,8 @@ export default function AdminPage() {
       setReviews((reviewsRes.data as any) || []);
       setAllSellers((allSellersRes.data as any) || []);
       setPayments((paymentsRes.data as any) || []);
+      setReports((reportsRes.data as any) || []);
+      setWarnings((warningsRes.data as any) || []);
       
       const totalRevenue = (statsRes[4].data || []).reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       
@@ -75,6 +114,7 @@ export default function AdminPage() {
         orders: statsRes[2].count || 0,
         reviews: statsRes[3].count || 0,
         revenue: totalRevenue,
+        pendingReports: statsRes[5].count || 0,
       });
     } catch (error) {
       console.error('Error:', error);
@@ -139,6 +179,43 @@ export default function AdminPage() {
     }
   };
 
+  const updateReportStatus = async (report: Report, status: string) => {
+    try {
+      await supabase.from('reports').update({ 
+        status, 
+        admin_notes: adminNotes || null 
+      }).eq('id', report.id);
+      toast.success(`Report ${status}`);
+      setSelectedReport(null);
+      setAdminNotes('');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to update report');
+    }
+  };
+
+  const issueWarning = async (userId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      await supabase.from('warnings').insert({
+        user_id: userId,
+        issued_by: user.id,
+        reason: warningReason,
+        severity: warningSeverity,
+      });
+      
+      toast.success('Warning issued');
+      setSelectedUserForWarning(null);
+      setWarningReason('');
+      setWarningSeverity('warning');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to issue warning');
+    }
+  };
+
   const filteredPayments = paymentFilter === 'all' 
     ? payments 
     : payments.filter(p => p.payment_status === paymentFilter || p.payment_method === paymentFilter);
@@ -157,18 +234,20 @@ export default function AdminPage() {
     <AppLayout headerTitle="Admin Panel" showLocation={false}>
       <div className="p-4 space-y-4">
         {/* Stats */}
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-6 gap-2">
           <Card><CardContent className="p-2 text-center"><Users className="mx-auto text-primary" size={14} /><p className="text-sm font-bold">{stats.users}</p><p className="text-[8px] text-muted-foreground">Users</p></CardContent></Card>
           <Card><CardContent className="p-2 text-center"><Store className="mx-auto text-success" size={14} /><p className="text-sm font-bold">{stats.sellers}</p><p className="text-[8px] text-muted-foreground">Sellers</p></CardContent></Card>
           <Card><CardContent className="p-2 text-center"><Package className="mx-auto text-warning" size={14} /><p className="text-sm font-bold">{stats.orders}</p><p className="text-[8px] text-muted-foreground">Orders</p></CardContent></Card>
           <Card><CardContent className="p-2 text-center"><Star className="mx-auto text-info" size={14} /><p className="text-sm font-bold">{stats.reviews}</p><p className="text-[8px] text-muted-foreground">Reviews</p></CardContent></Card>
           <Card><CardContent className="p-2 text-center"><DollarSign className="mx-auto text-success" size={14} /><p className="text-sm font-bold">₹{stats.revenue}</p><p className="text-[8px] text-muted-foreground">Revenue</p></CardContent></Card>
+          <Card><CardContent className="p-2 text-center"><Flag className="mx-auto text-destructive" size={14} /><p className="text-sm font-bold">{stats.pendingReports}</p><p className="text-[8px] text-muted-foreground">Reports</p></CardContent></Card>
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="w-full grid grid-cols-5">
+          <TabsList className="w-full grid grid-cols-6">
             <TabsTrigger value="users" className="text-[10px]">Users</TabsTrigger>
             <TabsTrigger value="sellers" className="text-[10px]">Sellers</TabsTrigger>
+            <TabsTrigger value="reports" className="text-[10px]">Reports</TabsTrigger>
             <TabsTrigger value="payments" className="text-[10px]">Payments</TabsTrigger>
             <TabsTrigger value="reviews" className="text-[10px]">Reviews</TabsTrigger>
             <TabsTrigger value="featured" className="text-[10px]">Featured</TabsTrigger>
@@ -240,6 +319,47 @@ export default function AdminPage() {
                 </CardContent></Card>
               );
             }) : <p className="text-center text-muted-foreground py-8 text-sm">No payments found</p>}
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-2 mt-4">
+            <h3 className="text-sm font-semibold text-muted-foreground">Abuse Reports</h3>
+            {reports.length > 0 ? reports.map((report) => {
+              const statusColors: Record<string, string> = {
+                pending: 'bg-warning/20 text-warning',
+                reviewed: 'bg-info/20 text-info',
+                resolved: 'bg-success/20 text-success',
+                dismissed: 'bg-muted text-muted-foreground',
+              };
+              return (
+                <Card key={report.id}><CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Flag size={12} className="text-destructive" />
+                        <span className="text-xs font-medium capitalize">{report.report_type}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusColors[report.status]}`}>
+                          {report.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(report.created_at), 'MMM d, h:mm a')}
+                      </p>
+                      {report.description && <p className="text-sm mt-1 line-clamp-2">{report.description}</p>}
+                    </div>
+                    {report.status === 'pending' && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => setSelectedReport(report)}
+                      >
+                        Review
+                      </Button>
+                    )}
+                  </div>
+                </CardContent></Card>
+              );
+            }) : <p className="text-center text-muted-foreground py-8 text-sm">No reports</p>}
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-2 mt-4">
@@ -314,6 +434,96 @@ export default function AdminPage() {
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setSelectedReview(null)}>Cancel</Button>
                 <Button className="flex-1" onClick={() => selectedReview && toggleReviewHidden(selectedReview, true)}>Hide Review</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Report Review Dialog */}
+        <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Review Report</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="bg-muted rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">Report Type</p>
+                <p className="font-medium capitalize">{selectedReport?.report_type}</p>
+                {selectedReport?.description && (
+                  <>
+                    <p className="text-xs text-muted-foreground mt-2">Description</p>
+                    <p className="text-sm">{selectedReport.description}</p>
+                  </>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Admin Notes (optional):</p>
+                <Textarea
+                  placeholder="Add notes about this report..."
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => selectedReport && updateReportStatus(selectedReport, 'dismissed')}
+                >
+                  Dismiss
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={() => selectedReport && updateReportStatus(selectedReport, 'resolved')}
+                >
+                  Resolve
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Issue Warning Dialog */}
+        <Dialog open={!!selectedUserForWarning} onOpenChange={() => setSelectedUserForWarning(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="text-warning" size={18} />
+                Issue Warning
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Warning Severity:</p>
+                <Select value={warningSeverity} onValueChange={(v: 'warning' | 'final_warning') => setWarningSeverity(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="warning">Warning</SelectItem>
+                    <SelectItem value="final_warning">Final Warning (before suspension)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Reason:</p>
+                <Textarea
+                  placeholder="Explain why this warning is being issued..."
+                  value={warningReason}
+                  onChange={(e) => setWarningReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setSelectedUserForWarning(null)}>Cancel</Button>
+                <Button 
+                  className="flex-1" 
+                  disabled={!warningReason.trim()}
+                  onClick={() => selectedUserForWarning && issueWarning(selectedUserForWarning)}
+                >
+                  Issue Warning
+                </Button>
               </div>
             </div>
           </DialogContent>

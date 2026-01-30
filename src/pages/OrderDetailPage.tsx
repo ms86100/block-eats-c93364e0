@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ReviewForm } from '@/components/review/ReviewForm';
 import { OrderChat } from '@/components/chat/OrderChat';
+import { ReorderButton } from '@/components/order/ReorderButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order, OrderItem, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, OrderStatus, PaymentStatus } from '@/types/database';
 import { ArrowLeft, Phone, MapPin, Check, Star, MessageCircle, CreditCard } from 'lucide-react';
@@ -151,6 +152,7 @@ export default function OrderDetailPage() {
   const nextStatus = getNextStatus();
   const canReview = isBuyerView && order.status === 'completed' && !hasReview;
   const canChat = !['completed', 'cancelled'].includes(order.status);
+  const canReorder = isBuyerView && (order.status === 'completed' || order.status === 'delivered');
   
   // Get chat recipient info
   const chatRecipientId = isSellerView ? order.buyer_id : seller?.user_id;
@@ -245,6 +247,28 @@ export default function OrderDetailPage() {
             </span>
           </div>
         </div>
+
+        {/* Reorder Button for completed orders */}
+        {canReorder && (
+          <div className="bg-success/10 border border-success/20 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
+                  <CreditCard className="text-success" size={20} />
+                </div>
+                <div>
+                  <p className="font-semibold">Enjoyed this order?</p>
+                  <p className="text-sm text-muted-foreground">Order the same items again</p>
+                </div>
+              </div>
+              <ReorderButton
+                orderItems={items}
+                sellerId={order.seller_id}
+                size="sm"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Review CTA for completed orders */}
         {canReview && (

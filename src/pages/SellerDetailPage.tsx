@@ -9,18 +9,40 @@ import { FavoriteButton } from '@/components/favorite/FavoriteButton';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/contexts/AuthContext';
 import { SellerProfile, Product, CATEGORIES, DAYS_OF_WEEK } from '@/types/database';
-import { ArrowLeft, Clock, MapPin, Phone, ShoppingCart, Star, Calendar } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Phone, ShoppingCart, Star, Calendar, Flag } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function SellerDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const { items, totalAmount } = useCart();
   const [seller, setSeller] = useState<SellerProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('menu');
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [reportType, setReportType] = useState<string>('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -76,6 +98,35 @@ export default function SellerDetailPage() {
   );
   const cartCount = cartItemsFromSeller.reduce((sum, item) => sum + item.quantity, 0);
 
+  const handleSubmitReport = async () => {
+    if (!user || !reportType) {
+      toast.error('Please select a report type');
+      return;
+    }
+
+    setIsSubmittingReport(true);
+    try {
+      const { error } = await supabase.from('reports').insert({
+        reporter_id: user.id,
+        reported_seller_id: id,
+        report_type: reportType,
+        description: reportDescription || null,
+      });
+
+      if (error) throw error;
+
+      toast.success('Report submitted. Our team will review it shortly.');
+      setIsReportOpen(false);
+      setReportType('');
+      setReportDescription('');
+    } catch (error) {
+      console.error('Error submitting report:', error);
+      toast.error('Failed to submit report');
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayout showHeader={false}>
@@ -127,7 +178,61 @@ export default function SellerDetailPage() {
           >
             <ArrowLeft size={20} />
           </Link>
-          <FavoriteButton sellerId={seller.id} size="md" />
+          <div className="flex gap-2">
+            {user && (
+              <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+                <DialogTrigger asChild>
+                  <button className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md">
+                    <Flag size={18} className="text-muted-foreground" />
+                  </button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Report Seller</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">What's the issue?</p>
+                      <Select value={reportType} onValueChange={setReportType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a reason" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="spam">Spam or misleading</SelectItem>
+                          <SelectItem value="fraud">Suspected fraud</SelectItem>
+                          <SelectItem value="harassment">Harassment</SelectItem>
+                          <SelectItem value="inappropriate">Inappropriate content</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Additional details (optional)</p>
+                      <Textarea
+                        placeholder="Describe the issue..."
+                        value={reportDescription}
+                        onChange={(e) => setReportDescription(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={() => setIsReportOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        className="flex-1" 
+                        disabled={!reportType || isSubmittingReport}
+                        onClick={handleSubmitReport}
+                      >
+                        {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+            <FavoriteButton sellerId={seller.id} size="md" />
+          </div>
         </div>
 
         {/* Seller Avatar */}
