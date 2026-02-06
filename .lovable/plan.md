@@ -1,146 +1,249 @@
 
 
-# Plan: Fix JSON Error in Median.co Simulator
+# App Store Readiness Implementation Plan
 
-## Problem Analysis
+## Executive Summary
 
-When using Median.co to wrap your web app as a native mobile app, you're encountering a JSON parsing error. Based on my investigation, there are several potential causes:
-
-1. **Hash-based routing compatibility** - Your app now uses `HashRouter` (URLs like `/#/welcome`), which may require specific Median.co configuration
-2. **Manifest.json issues** - The PWA manifest may have compatibility issues with Median's webview
-3. **API responses or localStorage data** - Malformed JSON in API responses or cached data
-4. **Missing Median.co JavaScript bridge handling** - The app doesn't handle Median's native bridge
+This plan addresses all gaps identified for shipping your Capacitor app to App Store (iOS) and Google Play (Android). The app has strong foundations but needs backend push notification delivery, deep linking fixes, branding consistency, and asset creation guidance.
 
 ---
 
-## Root Causes & Fixes
+## Current State Assessment
 
-### Issue 1: PWA Manifest Conflict
-Median.co uses its own native app configuration. The PWA manifest (`public/manifest.json`) may conflict with Median's expectations or cause parsing errors when the simulator tries to read it.
-
-**Fix:** Conditionally disable PWA manifest loading when running in Median.co webview, OR ensure manifest.json is valid without trailing commas.
-
-### Issue 2: Hash Router + Deep Linking
-Median.co expects standard URL paths for navigation but your app uses hash-based routing (`/#/welcome`). This can cause issues with:
-- Deep link handling
-- Native navigation events
-- URL parsing in the simulator
-
-**Fix:** Add Median.co SPA navigation listener to handle routing properly.
-
-### Issue 3: localStorage JSON Parsing
-The app has several `JSON.parse()` calls for localStorage data (SearchPage, NotificationsPage, tooltip-guide). If corrupted data exists, it could throw errors.
-
-**Fix:** Add try-catch with fallback values and clear corrupted cache.
-
-### Issue 4: Missing Median JavaScript Bridge
-Median.co injects a JavaScript bridge (`median` object) for native functionality. Without proper handling, errors may occur.
-
-**Fix:** Add Median.co NPM package and proper bridge initialization.
+| Area | Status | Priority |
+|------|--------|----------|
+| Push Notification Registration | Done (client-side) | - |
+| Push Notification Delivery (backend) | Missing | Critical |
+| Deep Linking Files | Placeholders | Critical |
+| Deep Linking + HashRouter | Incompatible | Critical |
+| App Icon 1024x1024 | Missing | High |
+| Feature Graphic (Android) | Missing | High |
+| Branding Consistency | Mixed BlockEats/Greenfield | Medium |
+| Demo Account Mismatch | Different emails in docs | Medium |
+| Native Projects (ios/android folders) | Not initialized | Required externally |
 
 ---
 
-## Implementation Steps
+## Phase 1: Backend Push Notifications (Critical)
 
-### Step 1: Install Median.co NPM Package
-Add the official Median.co NPM package for proper SPA navigation and bridge handling:
-```bash
-npm install @nicholasrutherford/median-js-bridge
+### Problem
+Device tokens are stored in `device_tokens` table but there is no backend function to actually send push notifications when order events occur.
+
+### Solution
+Create a new Edge Function `send-push-notification` that:
+1. Accepts order ID and notification type
+2. Fetches recipient's device tokens from database
+3. Sends to FCM (Firebase Cloud Messaging) which handles both iOS (APNs) and Android
+
+### Implementation Details
+
+**New Edge Function: `supabase/functions/send-push-notification/index.ts`**
+
+```text
+Accepts: { userId, title, body, data }
+Steps:
+  1. Query device_tokens for user_id
+  2. For each token, call FCM HTTP v1 API
+  3. Handle token expiration (delete invalid tokens)
+  4. Return success/failure status
 ```
 
-### Step 2: Create Median Bridge Initialization
-Create a new file `src/lib/median.ts` to handle Median.co bridge initialization:
-- Detect if running in Median.co webview
-- Initialize the JavaScript bridge
-- Set up SPA navigation listeners for hash routing
+**Required Secret:**
+- `FCM_SERVER_KEY` - Firebase Cloud Messaging server key (from Firebase Console)
 
-### Step 3: Update App.tsx with Median SPA Handler
-Add a navigation listener that:
-- Listens for Median's `jsNavigation.url` events
-- Converts standard URLs to hash-based routes
-- Triggers React Router navigation programmatically
+**Trigger Points (modify existing code):**
+- Order placed - notify seller
+- Order accepted - notify buyer
+- Order ready - notify buyer
+- Order cancelled - notify buyer/seller
+- New chat message - notify recipient
 
-### Step 4: Harden JSON.parse Calls
-Update all localStorage JSON parsing to:
-- Wrap in try-catch blocks
-- Return default values on parse failure
-- Clear corrupted data automatically
+**Database Trigger Option:**
+Create a PostgreSQL trigger on `orders` table that calls the Edge Function when status changes.
 
-Files to update:
-- `src/pages/SearchPage.tsx`
-- `src/pages/NotificationsPage.tsx`
-- `src/components/ui/tooltip-guide.tsx`
+---
 
-### Step 5: Validate manifest.json
-Ensure `public/manifest.json` has no trailing commas or invalid syntax:
-- Run JSON through a validator
-- Consider removing `categories` field (not required by Median)
+## Phase 2: Deep Linking Fix (Critical)
 
-### Step 6: Add Median.co Detection Utility
-Create a utility to detect Median.co environment:
-```typescript
-export function isMedianApp(): boolean {
-  return typeof window !== 'undefined' && 
-         window.navigator.userAgent.includes('gonative');
+### Problem
+The app uses `HashRouter` (URLs like `/#/orders/123`) but the deep linking files define paths like `/order/*` which don't include the hash.
+
+### Solution Options
+
+**Option A: Update deep link paths to hash format (Recommended)**
+- Simpler, works with current HashRouter
+- iOS and Android can handle hash-based deep links with custom URL schemes
+
+**Option B: Switch to BrowserRouter**
+- Requires proper server configuration
+- More complex deployment setup
+
+### Implementation (Option A)
+
+**1. Update `public/.well-known/apple-app-site-association`:**
+```json
+{
+  "applinks": {
+    "apps": [],
+    "details": [{
+      "appID": "TEAM_ID.app.lovable.b3f6efce9b8e4071b39db038b9b1adf4",
+      "paths": ["/*"]
+    }]
+  },
+  "webcredentials": {
+    "apps": ["TEAM_ID.app.lovable.b3f6efce9b8e4071b39db038b9b1adf4"]
+  }
 }
 ```
 
----
+**2. Update `public/.well-known/assetlinks.json`:**
+- Keep structure, user must replace `SHA256_FINGERPRINT_PLACEHOLDER`
 
-## Technical Details
-
-### New File: `src/lib/median.ts`
-```typescript
-// Median.co bridge initialization and SPA navigation handling
-// - Detects Median webview environment
-// - Sets up jsNavigation listener for hash routing
-// - Provides utilities for native features
-```
-
-### Modified Files
-
-| File | Changes |
-|------|---------|
-| `src/App.tsx` | Import Median init, add useEffect for navigation listener |
-| `src/pages/SearchPage.tsx` | Harden JSON.parse with try-catch |
-| `src/pages/NotificationsPage.tsx` | Harden JSON.parse with try-catch |
-| `src/components/ui/tooltip-guide.tsx` | Already has try-catch (verify) |
-| `package.json` | Add Median.co NPM package |
-
-### Median SPA Navigation Flow
+**3. Add deep link handler in App.tsx:**
 ```text
-┌────────────────────────────────────────────────────────────────┐
-│                    Median.co Native App                        │
-├────────────────────────────────────────────────────────────────┤
-│  1. User taps native element (tab, deep link, notification)   │
-│                           ↓                                    │
-│  2. Median fires jsNavigation event with target URL           │
-│                           ↓                                    │
-│  3. Our listener catches event in App.tsx                     │
-│                           ↓                                    │
-│  4. Convert URL to hash route: /welcome → /#/welcome          │
-│                           ↓                                    │
-│  5. Call React Router navigate() for soft page load           │
-│                           ↓                                    │
-│  6. Page renders without full reload                          │
-└────────────────────────────────────────────────────────────────┘
+Listen for Capacitor App.addListener('appUrlOpen')
+Parse incoming URL and extract path after hash
+Navigate using React Router
+```
+
+**4. Update Capacitor config for custom URL scheme:**
+```text
+ios.scheme: 'greenfield'
+android: Add intent filters in AndroidManifest.xml
 ```
 
 ---
 
-## Testing Checklist
-After implementation:
-1. Test in Median.co simulator - should load without JSON error
-2. Verify all routes work (landing, auth, home, search, etc.)
-3. Test page refresh on each route
-4. Verify localStorage operations don't throw errors
-5. Test deep link handling if configured
+## Phase 3: Branding Consistency (Medium)
+
+### Changes Required
+
+| File | Current | Should Be |
+|------|---------|-----------|
+| public/manifest.json | "BlockEats" | "Greenfield Community" |
+| DEPLOYMENT.md | demo@blockeats.app | demo@greenfield.app |
+| STORE_METADATA.md | demo@greenfield.app | Consistent |
+| index.html | "BlockEats" | "Greenfield Community" |
+
+### Files to Update
+
+1. **public/manifest.json** - Update name and short_name to "Greenfield Community"
+2. **index.html** - Update title and meta tags to "Greenfield Community"
+3. **DEPLOYMENT.md** - Align demo account with STORE_METADATA.md
 
 ---
 
-## Alternative Approach
-If the above doesn't resolve the issue, we may need to:
-1. Switch back to `BrowserRouter` and configure proper server rewrites
-2. Create a separate build configuration for Median.co
-3. Enable web console logs in Median to capture the exact JSON error
+## Phase 4: Missing Assets (High - Manual Steps)
+
+These require design work outside of code:
+
+### App Icons
+| Platform | Size | Status |
+|----------|------|--------|
+| iOS App Store | 1024x1024 | Missing - scale up from 512x512 or recreate |
+| Android Play Store | 512x512 | Exists |
+
+### Graphics
+| Asset | Size | Status |
+|-------|------|--------|
+| Feature Graphic (Android) | 1024x500 | Missing - needs creation |
+
+### Guidance for User
+Add a new file or section listing exact asset requirements with recommended tools (Figma, Canva) for creating them.
+
+---
+
+## Phase 5: Code Updates Summary
+
+### New Files to Create
+
+1. **`supabase/functions/send-push-notification/index.ts`**
+   - FCM integration for push delivery
+   - Handles iOS and Android via FCM HTTP v1 API
+   - Token cleanup for expired tokens
+
+2. **`src/hooks/useDeepLinks.ts`**
+   - Capacitor App listener for `appUrlOpen` events
+   - Parse URLs and navigate via React Router
+   - Support both custom scheme (`greenfield://`) and universal links
+
+### Files to Modify
+
+1. **`public/.well-known/apple-app-site-association`**
+   - Simplify paths to `["/*"]` for hash routing compatibility
+   - Add comments about TEAM_ID replacement
+
+2. **`public/manifest.json`**
+   - Rename to "Greenfield Community"
+   - Update description
+
+3. **`index.html`**
+   - Update title to "Greenfield Community"
+   - Update Open Graph tags
+
+4. **`src/App.tsx`**
+   - Import and initialize deep link handler
+   - Add Capacitor App URL listener
+
+5. **`capacitor.config.ts`**
+   - Add iOS scheme for deep links
+   - Update comments for production readiness
+
+6. **`DEPLOYMENT.md`**
+   - Add FCM setup instructions
+   - Clarify deep linking setup steps
+   - Fix demo account reference
+
+7. **`supabase/config.toml`**
+   - Add new edge function configuration
+
+---
+
+## Phase 6: Required User Actions (External)
+
+These cannot be done in Lovable and require external accounts:
+
+### Firebase Setup (for FCM)
+1. Create Firebase project at console.firebase.google.com
+2. Add iOS and Android apps
+3. Download `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
+4. Get Server Key from Project Settings > Cloud Messaging
+5. Add `FCM_SERVER_KEY` secret in Lovable Cloud
+
+### Apple Developer Portal
+1. Get Team ID from Membership page
+2. Create APNs Key (Keys section)
+3. Upload APNs key to Firebase for iOS push
+4. Replace `TEAM_ID` placeholder in AASA file
+
+### Android Signing
+1. Create or locate release keystore
+2. Get SHA-256 fingerprint using keytool command
+3. Replace placeholder in assetlinks.json
+
+### Native Projects
+1. Run `npx cap add ios` and `npx cap add android`
+2. Configure signing in Xcode/Android Studio
+3. Add capabilities (Push, Associated Domains)
+
+---
+
+## Implementation Order
+
+1. Push Notification Backend (most impactful for user experience)
+2. Deep Linking Handler (required for notifications to work properly)
+3. Branding Updates (quick wins)
+4. Documentation Updates (guides user through external setup)
+
+---
+
+## Testing Checklist After Implementation
+
+- [ ] Send test push notification to registered device
+- [ ] Open deep link in Safari/Chrome, verify app opens
+- [ ] Tap push notification, verify correct page opens
+- [ ] Verify branding shows "Greenfield Community" everywhere
+- [ ] Test in Median.co simulator (no JSON errors)
+- [ ] Test on physical iOS device (if available)
+- [ ] Test on physical Android device (if available)
 
