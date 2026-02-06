@@ -10,6 +10,7 @@ import { OfflineBanner } from "@/components/network/OfflineBanner";
 import { PushNotificationProvider } from "@/components/notifications/PushNotificationProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { initializeMedianBridge } from "@/lib/median";
+import { useDeepLinks } from "@/hooks/useDeepLinks";
 
 // Pages
 import AuthPage from "./pages/AuthPage";
@@ -69,14 +70,18 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Median.co SPA Navigation Handler
-function MedianNavigationHandler() {
+// Median.co SPA Navigation Handler + Deep Links
+function NavigationHandler() {
   const navigate = useNavigate();
   
+  // Initialize Median bridge for SPA navigation
   useEffect(() => {
     const cleanup = initializeMedianBridge(navigate);
     return cleanup;
   }, [navigate]);
+  
+  // Handle Capacitor deep links
+  useDeepLinks();
   
   return null;
 }
@@ -119,7 +124,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <HashRouter>
-          <MedianNavigationHandler />
+          <NavigationHandler />
           <AuthProvider>
             <CartProvider>
               <PushNotificationProvider>

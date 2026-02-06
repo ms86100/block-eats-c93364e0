@@ -1,14 +1,14 @@
 {
-  "name": "BlockEats - Shriram Greenfield Marketplace",
-  "short_name": "BlockEats",
-  "description": "A community marketplace for Shriram Greenfield residents. Order homemade food from your neighbors.",
+  "name": "Greenfield Community",
+  "short_name": "Greenfield",
+  "description": "A community marketplace for Shriram Greenfield residents. Order homemade food, services, and more from your neighbors.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#F97316",
   "orientation": "portrait",
   "scope": "/",
-  "categories": ["food", "shopping", "lifestyle"],
+  "categories": ["food", "shopping", "lifestyle", "social"],
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
