@@ -3,14 +3,14 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAM_ID.app.lovable.b3f6efce9b8e4071b39db038b9b1adf4",
+        "appID": "TEAM_ID.app.greenfield.community",
         "paths": ["/*"]
       }
     ]
   },
   "webcredentials": {
     "apps": [
-      "TEAM_ID.app.lovable.b3f6efce9b8e4071b39db038b9b1adf4"
+      "TEAM_ID.app.greenfield.community"
     ]
   }
 }

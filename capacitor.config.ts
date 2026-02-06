@@ -25,7 +25,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.b3f6efce9b8e4071b39db038b9b1adf4',
+  appId: 'app.greenfield.community',
   appName: 'Greenfield Community',
   webDir: 'dist',
   

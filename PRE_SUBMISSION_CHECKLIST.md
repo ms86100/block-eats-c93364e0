@@ -1,5 +1,7 @@
 # Pre-Submission Checklist
 
+**Bundle ID:** `app.greenfield.community`
+
 All code work is complete. Follow these steps to submit to app stores.
 
 ---

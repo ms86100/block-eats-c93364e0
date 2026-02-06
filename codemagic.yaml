@@ -18,9 +18,9 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: app.lovable.b3f6efce9b8e4071b39db038b9b1adf4
+        bundle_identifier: app.greenfield.community
       vars:
-        BUNDLE_ID: "app.lovable.b3f6efce9b8e4071b39db038b9b1adf4"
+        BUNDLE_ID: "app.greenfield.community"
         APP_NAME: "Greenfield Community"
       node: 18
       xcode: latest
@@ -84,7 +84,7 @@ workflows:
       groups:
         - google_play
       vars:
-        BUNDLE_ID: "app.lovable.b3f6efce9b8e4071b39db038b9b1adf4"
+        BUNDLE_ID: "app.greenfield.community"
         APP_NAME: "Greenfield Community"
       node: 18
       java: 17
@@ -134,13 +134,13 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: app.lovable.b3f6efce9b8e4071b39db038b9b1adf4
+        bundle_identifier: app.greenfield.community
       android_signing:
         - greenfield_keystore
       groups:
         - google_play
       vars:
-        BUNDLE_ID: "app.lovable.b3f6efce9b8e4071b39db038b9b1adf4"
+        BUNDLE_ID: "app.greenfield.community"
         APP_NAME: "Greenfield Community"
       node: 18
       xcode: latest

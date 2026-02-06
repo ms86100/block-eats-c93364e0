@@ -33,7 +33,7 @@ Push notifications for both iOS and Android are handled through Firebase Cloud M
 ### 1.2 Add iOS App to Firebase
 
 1. In Firebase Console, click "Add app" → iOS
-2. Enter iOS bundle ID: `app.lovable.b3f6efce9b8e4071b39db038b9b1adf4`
+2. Enter iOS bundle ID: `app.greenfield.community`
 3. Enter app nickname: "Greenfield Community iOS"
 4. Download `GoogleService-Info.plist`
 5. Place the file in `ios/App/App/` folder
@@ -41,7 +41,7 @@ Push notifications for both iOS and Android are handled through Firebase Cloud M
 ### 1.3 Add Android App to Firebase
 
 1. In Firebase Console, click "Add app" → Android
-2. Enter package name: `app.lovable.b3f6efce9b8e4071b39db038b9b1adf4`
+2. Enter package name: `app.greenfield.community`
 3. Enter app nickname: "Greenfield Community Android"
 4. Get SHA-1 fingerprint: `keytool -list -v -keystore your-release-key.keystore`
 5. Download `google-services.json`
@@ -137,7 +137,7 @@ npx cap open ios
 1. Select the project in navigator
 2. Go to "Signing & Capabilities"
 3. Select your Team
-4. Ensure bundle ID matches: `app.lovable.b3f6efce9b8e4071b39db038b9b1adf4`
+4. Ensure bundle ID matches: `app.greenfield.community`
 
 ### 5.4 Add Required Capabilities
 Click "+ Capability" and add:
