@@ -10,6 +10,7 @@ import { RazorpayCheckout } from '@/components/payment/RazorpayCheckout';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { sendOrderStatusNotification } from '@/lib/notifications';
 import { PaymentMethod } from '@/types/database';
 import { toast } from 'sonner';
 
@@ -86,6 +87,19 @@ export default function CartPage() {
       });
 
     if (paymentError) throw paymentError;
+
+    // Send push notification to seller about new order
+    if (seller?.user_id) {
+      sendOrderStatusNotification(
+        order.id,
+        'placed',
+        user.id,
+        currentSellerId,
+        seller.user_id,
+        seller.business_name || 'Seller',
+        profile.name
+      );
+    }
 
     return order;
   };

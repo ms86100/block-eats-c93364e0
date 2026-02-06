@@ -11,6 +11,7 @@ import { UrgentOrderTimer } from '@/components/order/UrgentOrderTimer';
 import { OrderRejectionDialog } from '@/components/order/OrderRejectionDialog';
 import { useUrgentOrderSound } from '@/hooks/useUrgentOrderSound';
 import { useAuth } from '@/contexts/AuthContext';
+import { sendOrderStatusNotification } from '@/lib/notifications';
 import { Order, OrderItem, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, OrderStatus, PaymentStatus } from '@/types/database';
 import { ArrowLeft, Phone, MapPin, Check, Star, MessageCircle, CreditCard, AlertTriangle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -140,6 +141,23 @@ export default function OrderDetailPage() {
       
       setOrder({ ...order, ...updateData });
       toast.success(`Order ${ORDER_STATUS_LABELS[newStatus].label.toLowerCase()}`);
+
+      // Send push notification for status change
+      const buyerName = buyer?.name || 'Customer';
+      const sellerName = seller?.business_name || 'Seller';
+      const sellerUserId = seller?.user_id;
+      
+      if (order.buyer_id && order.seller_id && sellerUserId) {
+        sendOrderStatusNotification(
+          order.id,
+          newStatus,
+          order.buyer_id,
+          order.seller_id,
+          sellerUserId,
+          sellerName,
+          buyerName
+        );
+      }
     } catch (error: any) {
       console.error('Error updating order:', error);
       toast.error('Failed to update order');
