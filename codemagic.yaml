@@ -1,0 +1,205 @@
+# Codemagic CI/CD Configuration for Greenfield Community
+# Builds iOS and Android apps in the cloud - no Mac required!
+#
+# Setup Instructions:
+# 1. Connect this repo to Codemagic (codemagic.io)
+# 2. Add required environment variables (see below)
+# 3. Trigger a build!
+
+workflows:
+  ios-release:
+    name: iOS Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.lovable.b3f6efce9b8e4071b39db038b9b1adf4
+      vars:
+        # Set these in Codemagic dashboard → Environment variables
+        BUNDLE_ID: "app.lovable.b3f6efce9b8e4071b39db038b9b1adf4"
+        APP_NAME: "Greenfield Community"
+      node: 18
+      xcode: latest
+      cocoapods: default
+    
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install
+          
+      - name: Build web app
+        script: |
+          npm run build
+          
+      - name: Add iOS platform
+        script: |
+          npx cap add ios || true
+          npx cap sync ios
+          
+      - name: Update iOS project settings
+        script: |
+          cd ios/App
+          # Update bundle identifier
+          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = .*;/PRODUCT_BUNDLE_IDENTIFIER = $BUNDLE_ID;/g" App.xcodeproj/project.pbxproj
+          
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios/App
+          pod install
+          
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+          
+      - name: Build iOS app
+        script: |
+          cd ios/App
+          xcode-project build-ipa \
+            --workspace "App.xcworkspace" \
+            --scheme "App" \
+            --config "Release"
+    
+    artifacts:
+      - ios/App/build/ios/ipa/*.ipa
+      - ios/App/build/ios/ipa/*.dSYM.zip
+    
+    publishing:
+      app_store_connect:
+        # Codemagic handles App Store Connect auth via API key
+        # Set up in Codemagic dashboard → Team settings → App Store Connect
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - "Internal Testers"
+
+  android-release:
+    name: Android Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    
+    environment:
+      android_signing:
+        - greenfield_keystore
+      groups:
+        - google_play
+      vars:
+        BUNDLE_ID: "app.lovable.b3f6efce9b8e4071b39db038b9b1adf4"
+        APP_NAME: "Greenfield Community"
+      node: 18
+      java: 17
+    
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install
+          
+      - name: Build web app
+        script: |
+          npm run build
+          
+      - name: Add Android platform
+        script: |
+          npx cap add android || true
+          npx cap sync android
+          
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+          
+      - name: Build Android release bundle
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/*.apk
+    
+    publishing:
+      google_play:
+        # Set up in Codemagic dashboard → Team settings → Google Play
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+
+  # Combined workflow for both platforms
+  release-all:
+    name: Release All Platforms
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.lovable.b3f6efce9b8e4071b39db038b9b1adf4
+      android_signing:
+        - greenfield_keystore
+      groups:
+        - google_play
+      vars:
+        BUNDLE_ID: "app.lovable.b3f6efce9b8e4071b39db038b9b1adf4"
+        APP_NAME: "Greenfield Community"
+      node: 18
+      xcode: latest
+      cocoapods: default
+      java: 17
+    
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install
+          
+      - name: Build web app
+        script: |
+          npm run build
+          
+      # iOS Build
+      - name: Add iOS platform
+        script: |
+          npx cap add ios || true
+          npx cap sync ios
+          
+      - name: Install CocoaPods
+        script: |
+          cd ios/App && pod install
+          
+      - name: Set up iOS code signing
+        script: |
+          xcode-project use-profiles
+          
+      - name: Build iOS IPA
+        script: |
+          cd ios/App
+          xcode-project build-ipa \
+            --workspace "App.xcworkspace" \
+            --scheme "App" \
+            --config "Release"
+            
+      # Android Build
+      - name: Add Android platform
+        script: |
+          npx cap add android || true
+          npx cap sync android
+          
+      - name: Set Android SDK
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+          
+      - name: Build Android AAB
+        script: |
+          cd android && ./gradlew bundleRelease
+    
+    artifacts:
+      - ios/App/build/ios/ipa/*.ipa
+      - android/app/build/outputs/**/*.aab
+    
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
