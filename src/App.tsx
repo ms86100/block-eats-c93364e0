@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 // Pages
 import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/HomePage";
+import LandingPage from "./pages/LandingPage";
 import SearchPage from "./pages/SearchPage";
 import CategoryPage from "./pages/CategoryPage";
 import SellerDetailPage from "./pages/SellerDetailPage";
@@ -71,8 +72,10 @@ function AppRoutes() {
   
   return (
     <Routes>
+      {/* Landing page for unauthenticated users */}
+      <Route path="/welcome" element={user && profile ? <Navigate to="/" replace /> : <LandingPage />} />
       <Route path="/auth" element={user && profile ? <Navigate to="/" replace /> : <AuthPage />} />
-      <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+      <Route path="/" element={user ? <ProtectedRoute><HomePage /></ProtectedRoute> : <Navigate to="/welcome" replace />} />
       <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
       <Route path="/category/:category" element={<ProtectedRoute><CategoryGroupPage /></ProtectedRoute>} />
       <Route path="/seller/:id" element={<ProtectedRoute><SellerDetailPage /></ProtectedRoute>} />
