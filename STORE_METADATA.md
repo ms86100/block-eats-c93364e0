@@ -107,7 +107,7 @@ Version 2.0.0 - Society Super-App Update
 
 ## Demo Account for App Review
 
-**Email:** demo@greenfield.app
+**Email:** demo@blockeats.app
 **Password:** DemoReview2026!
 
 **Notes for Reviewers:**
