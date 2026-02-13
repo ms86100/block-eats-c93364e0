@@ -589,6 +589,7 @@ export type Database = {
           name: string
           phase: string | null
           phone: string
+          society_id: string | null
           updated_at: string | null
           verification_status:
             | Database["public"]["Enums"]["verification_status"]
@@ -603,6 +604,7 @@ export type Database = {
           name: string
           phase?: string | null
           phone: string
+          society_id?: string | null
           updated_at?: string | null
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
@@ -617,12 +619,21 @@ export type Database = {
           name?: string
           phase?: string | null
           phone?: string
+          society_id?: string | null
           updated_at?: string | null
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
             | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reports: {
         Row: {
@@ -752,6 +763,7 @@ export type Database = {
           rating: number | null
           razorpay_account_id: string | null
           razorpay_onboarding_status: string | null
+          society_id: string | null
           total_reviews: number | null
           updated_at: string | null
           upi_id: string | null
@@ -782,6 +794,7 @@ export type Database = {
           rating?: number | null
           razorpay_account_id?: string | null
           razorpay_onboarding_status?: string | null
+          society_id?: string | null
           total_reviews?: number | null
           updated_at?: string | null
           upi_id?: string | null
@@ -812,6 +825,7 @@ export type Database = {
           rating?: number | null
           razorpay_account_id?: string | null
           razorpay_onboarding_status?: string | null
+          society_id?: string | null
           total_reviews?: number | null
           updated_at?: string | null
           upi_id?: string | null
@@ -822,8 +836,89 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "seller_profiles_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "seller_profiles_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      societies: {
+        Row: {
+          address: string | null
+          admin_user_id: string | null
+          city: string | null
+          created_at: string
+          geofence_radius_meters: number | null
+          id: string
+          invite_code: string | null
+          is_active: boolean | null
+          is_verified: boolean | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          member_count: number | null
+          name: string
+          pincode: string | null
+          rules_text: string | null
+          slug: string
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          admin_user_id?: string | null
+          city?: string | null
+          created_at?: string
+          geofence_radius_meters?: number | null
+          id?: string
+          invite_code?: string | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          member_count?: number | null
+          name: string
+          pincode?: string | null
+          rules_text?: string | null
+          slug: string
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          admin_user_id?: string | null
+          city?: string | null
+          created_at?: string
+          geofence_radius_meters?: number | null
+          id?: string
+          invite_code?: string | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          member_count?: number | null
+          name?: string
+          pincode?: string | null
+          rules_text?: string | null
+          slug?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "societies_admin_user_id_fkey"
+            columns: ["admin_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

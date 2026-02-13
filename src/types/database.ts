@@ -12,6 +12,28 @@ export type OrderType = 'purchase' | 'booking' | 'rental' | 'enquiry';
 export type ListingType = 'product' | 'service' | 'rental' | 'resale';
 export type RentalPeriodType = 'hourly' | 'daily' | 'weekly' | 'monthly';
 export type ItemCondition = 'new' | 'like_new' | 'good' | 'fair';
+export interface Society {
+  id: string;
+  name: string;
+  slug: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  geofence_radius_meters: number;
+  is_verified: boolean;
+  is_active: boolean;
+  admin_user_id: string | null;
+  member_count: number;
+  logo_url: string | null;
+  rules_text: string | null;
+  invite_code: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Profile {
   id: string;
   phone: string;
@@ -21,8 +43,11 @@ export interface Profile {
   phase: string | null;
   avatar_url: string | null;
   verification_status: VerificationStatus;
+  society_id: string | null;
   created_at: string;
   updated_at: string;
+  // Joined data
+  society?: Society;
 }
 
 export interface SellerProfile {
@@ -45,6 +70,7 @@ export interface SellerProfile {
   rating: number;
   total_reviews: number;
   is_featured: boolean;
+  society_id: string | null;
   created_at: string;
   updated_at: string;
   // Joined data

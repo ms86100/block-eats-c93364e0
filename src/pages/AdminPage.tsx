@@ -21,8 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Profile, SellerProfile, Review, PaymentRecord, ChatMessage, VerificationStatus, PAYMENT_STATUS_LABELS, PaymentStatus } from '@/types/database';
-import { Check, X, Users, Store, Package, Star, MessageSquare, Award, Eye, EyeOff, CreditCard, DollarSign, Flag, AlertTriangle, Settings } from 'lucide-react';
+import { Profile, SellerProfile, Review, PaymentRecord, ChatMessage, VerificationStatus, PAYMENT_STATUS_LABELS, PaymentStatus, Society } from '@/types/database';
+import { Check, X, Users, Store, Package, Star, MessageSquare, Award, Eye, EyeOff, CreditCard, DollarSign, Flag, AlertTriangle, Settings, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,8 +64,9 @@ export default function AdminPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [allSocieties, setAllSocieties] = useState<Society[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState({ users: 0, sellers: 0, orders: 0, reviews: 0, revenue: 0, pendingReports: 0 });
+  const [stats, setStats] = useState({ users: 0, sellers: 0, orders: 0, reviews: 0, revenue: 0, pendingReports: 0, societies: 0 });
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [selectedUserForWarning, setSelectedUserForWarning] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     try {
-      const [usersRes, sellersRes, reviewsRes, allSellersRes, paymentsRes, reportsRes, warningsRes, statsRes] = await Promise.all([
+      const [usersRes, sellersRes, reviewsRes, allSellersRes, paymentsRes, reportsRes, warningsRes, societiesRes, statsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('verification_status', 'pending'),
         supabase.from('seller_profiles').select('*, profile:profiles!seller_profiles_user_id_fkey(name, block, flat_number)').eq('verification_status', 'pending'),
         supabase.from('reviews').select('*, buyer:profiles!reviews_buyer_id_fkey(name), seller:seller_profiles(business_name)').order('created_at', { ascending: false }).limit(50),
@@ -90,6 +91,7 @@ export default function AdminPage() {
         supabase.from('payment_records').select('*, seller:seller_profiles(business_name), order:orders(buyer:profiles!orders_buyer_id_fkey(name))').order('created_at', { ascending: false }).limit(100),
         supabase.from('reports').select('*, reporter:profiles!reports_reporter_id_fkey(name), reported_seller:seller_profiles(business_name)').order('created_at', { ascending: false }).limit(50),
         supabase.from('warnings').select('*, user:profiles!warnings_user_id_fkey(name)').order('created_at', { ascending: false }).limit(50),
+        supabase.from('societies').select('*').order('created_at', { ascending: false }),
         Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('seller_profiles').select('id', { count: 'exact', head: true }).eq('verification_status', 'approved'),
@@ -97,6 +99,7 @@ export default function AdminPage() {
           supabase.from('reviews').select('id', { count: 'exact', head: true }),
           supabase.from('payment_records').select('amount').eq('payment_status', 'paid'),
           supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('societies').select('id', { count: 'exact', head: true }),
         ]),
       ]);
 
@@ -107,6 +110,7 @@ export default function AdminPage() {
       setPayments((paymentsRes.data as any) || []);
       setReports((reportsRes.data as any) || []);
       setWarnings((warningsRes.data as any) || []);
+      setAllSocieties((societiesRes.data as Society[]) || []);
       
       const totalRevenue = (statsRes[4].data || []).reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       
@@ -117,6 +121,7 @@ export default function AdminPage() {
         reviews: statsRes[3].count || 0,
         revenue: totalRevenue,
         pendingReports: statsRes[5].count || 0,
+        societies: statsRes[6].count || 0,
       });
     } catch (error) {
       console.error('Error:', error);
@@ -243,7 +248,17 @@ export default function AdminPage() {
     }
   };
 
-  const filteredPayments = paymentFilter === 'all' 
+  const updateSocietyStatus = async (id: string, is_verified: boolean, is_active: boolean) => {
+    try {
+      await supabase.from('societies').update({ is_verified, is_active }).eq('id', id);
+      toast.success(is_verified ? 'Society approved' : 'Society updated');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to update society');
+    }
+  };
+
+  const filteredPayments = paymentFilter === 'all'
     ? payments 
     : payments.filter(p => p.payment_status === paymentFilter || p.payment_method === paymentFilter);
 
@@ -261,9 +276,10 @@ export default function AdminPage() {
     <AppLayout headerTitle="Admin Panel" showLocation={false}>
       <div className="p-4 space-y-4">
         {/* Stats */}
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-7 gap-2">
           <Card><CardContent className="p-2 text-center"><Users className="mx-auto text-primary" size={14} /><p className="text-sm font-bold">{stats.users}</p><p className="text-[8px] text-muted-foreground">Users</p></CardContent></Card>
           <Card><CardContent className="p-2 text-center"><Store className="mx-auto text-success" size={14} /><p className="text-sm font-bold">{stats.sellers}</p><p className="text-[8px] text-muted-foreground">Sellers</p></CardContent></Card>
+          <Card><CardContent className="p-2 text-center"><Building2 className="mx-auto text-info" size={14} /><p className="text-sm font-bold">{stats.societies}</p><p className="text-[8px] text-muted-foreground">Societies</p></CardContent></Card>
           <Card><CardContent className="p-2 text-center"><Package className="mx-auto text-warning" size={14} /><p className="text-sm font-bold">{stats.orders}</p><p className="text-[8px] text-muted-foreground">Orders</p></CardContent></Card>
           <Card><CardContent className="p-2 text-center"><Star className="mx-auto text-info" size={14} /><p className="text-sm font-bold">{stats.reviews}</p><p className="text-[8px] text-muted-foreground">Reviews</p></CardContent></Card>
           <Card><CardContent className="p-2 text-center"><DollarSign className="mx-auto text-success" size={14} /><p className="text-sm font-bold">₹{stats.revenue}</p><p className="text-[8px] text-muted-foreground">Revenue</p></CardContent></Card>
@@ -271,9 +287,10 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="w-full grid grid-cols-7">
+          <TabsList className="w-full grid grid-cols-8">
             <TabsTrigger value="users" className="text-[10px]">Users</TabsTrigger>
             <TabsTrigger value="sellers" className="text-[10px]">Sellers</TabsTrigger>
+            <TabsTrigger value="societies" className="text-[10px]">Societies</TabsTrigger>
             <TabsTrigger value="reports" className="text-[10px]">Reports</TabsTrigger>
             <TabsTrigger value="payments" className="text-[10px]">Payments</TabsTrigger>
             <TabsTrigger value="reviews" className="text-[10px]">Reviews</TabsTrigger>
@@ -347,6 +364,48 @@ export default function AdminPage() {
                 </CardContent></Card>
               );
             }) : <p className="text-center text-muted-foreground py-8 text-sm">No payments found</p>}
+          </TabsContent>
+
+          <TabsContent value="societies" className="space-y-2 mt-4">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Societies ({allSocieties.length}) • Pending: {allSocieties.filter(s => !s.is_verified).length}
+            </h3>
+            {allSocieties.length > 0 ? allSocieties.map((soc) => (
+              <Card key={soc.id}>
+                <CardContent className="p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${soc.is_verified ? 'bg-success' : 'bg-warning'}`} />
+                    <div>
+                      <p className="font-medium text-sm">{soc.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {[soc.city, soc.state, soc.pincode].filter(Boolean).join(', ')}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Members: {soc.member_count} • {soc.is_verified ? 'Verified' : 'Pending'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {!soc.is_verified && (
+                      <>
+                        <Button size="sm" variant="outline" className="text-destructive h-8 w-8 p-0" onClick={() => updateSocietyStatus(soc.id, false, false)}>
+                          <X size={14} />
+                        </Button>
+                        <Button size="sm" className="h-8 w-8 p-0" onClick={() => updateSocietyStatus(soc.id, true, true)}>
+                          <Check size={14} />
+                        </Button>
+                      </>
+                    )}
+                    {soc.is_verified && (
+                      <Switch
+                        checked={soc.is_active}
+                        onCheckedChange={(active) => updateSocietyStatus(soc.id, true, active)}
+                      />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )) : <p className="text-center text-muted-foreground py-8 text-sm">No societies yet</p>}
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-2 mt-4">

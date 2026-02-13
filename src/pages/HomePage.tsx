@@ -14,7 +14,7 @@ import { Search, ChevronRight, Store, Clock, Heart, Award, MapPin, Utensils, Sta
 import heroBanner from '@/assets/hero-banner.jpg';
 
 export default function HomePage() {
-  const { user, profile, isApproved, isSeller } = useAuth();
+  const { user, profile, isApproved, isSeller, society } = useAuth();
   const { showOnboarding, hasChecked, completeOnboarding } = useOnboarding();
   const [openNowSellers, setOpenNowSellers] = useState<SellerProfile[]>([]);
   const [nearbyBlockSellers, setNearbyBlockSellers] = useState<SellerProfile[]>([]);
@@ -34,12 +34,18 @@ export default function HomePage() {
       const currentHour = new Date().getHours();
       const currentTime = `${String(currentHour).padStart(2, '0')}:00`;
 
-      // Fetch all approved sellers once
-      const { data: allSellers } = await supabase
+      // Fetch all approved sellers in the user's society
+      let query = supabase
         .from('seller_profiles')
         .select(`*, profile:profiles!seller_profiles_user_id_fkey(name, block)`)
         .eq('verification_status', 'approved')
         .order('rating', { ascending: false });
+
+      if (profile?.society_id) {
+        query = query.eq('society_id', profile.society_id);
+      }
+
+      const { data: allSellers } = await query;
 
       const sellers = (allSellers as any) || [];
 

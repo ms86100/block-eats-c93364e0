@@ -18,20 +18,20 @@ export function Header({
   title,
   className 
 }: HeaderProps) {
-  const { profile, isApproved } = useAuth();
+  const { profile, isApproved, society } = useAuth();
   const { itemCount } = useCart();
 
   return (
     <header className={cn('sticky top-0 z-40 glass border-b border-border safe-top', className)}>
       <div className="flex items-center justify-between px-4 py-3">
-        {showLocation && profile ? (
+      {showLocation && profile ? (
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <MapPin className="text-primary shrink-0" size={20} />
             <div className="min-w-0">
               <p className="text-sm font-semibold truncate">
                 {profile.block}, {profile.flat_number}
               </p>
-              <p className="text-xs text-muted-foreground">Shriram Greenfield</p>
+              <p className="text-xs text-muted-foreground">{society?.name || 'Community Market'}</p>
             </div>
           </div>
         ) : title ? (

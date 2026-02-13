@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 
 export default function BecomeSellerPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingExisting, setIsCheckingExisting] = useState(true);
   const [existingSeller, setExistingSeller] = useState<{ id: string; business_name: string } | null>(null);
@@ -124,6 +124,7 @@ export default function BecomeSellerPage() {
         availability_start: formData.availability_start,
         availability_end: formData.availability_end,
         accepts_cod: formData.accepts_cod,
+        society_id: profile?.society_id || null,
       });
 
       if (error) throw error;
@@ -214,7 +215,7 @@ export default function BecomeSellerPage() {
           </div>
           <h1 className="text-2xl font-bold">Become a Seller</h1>
           <p className="text-muted-foreground mt-2">
-            Share your skills & products with Greenfield neighbors
+            Share your skills & products with your neighbors
           </p>
         </div>
 

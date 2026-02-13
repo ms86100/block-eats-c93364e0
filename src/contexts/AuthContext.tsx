@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, UserRole, SellerProfile } from '@/types/database';
+import { Profile, UserRole, SellerProfile, Society } from '@/types/database';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  society: Society | null;
   roles: UserRole[];
   sellerProfiles: SellerProfile[];
   currentSellerId: string | null;
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [society, setSociety] = useState<Society | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [sellerProfiles, setSellerProfiles] = useState<SellerProfile[]>([]);
   const [currentSellerId, setCurrentSellerId] = useState<string | null>(null);
@@ -40,6 +42,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setProfile(profileData as Profile | null);
 
+      // Fetch society data if profile has society_id
+      if (profileData?.society_id) {
+        const { data: societyData } = await supabase
+          .from('societies')
+          .select('*')
+          .eq('id', profileData.society_id)
+          .single();
+        setSociety(societyData as Society | null);
+      } else {
+        setSociety(null);
+      }
       const { data: rolesData } = await supabase
         .from('user_roles')
         .select('role')
@@ -88,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
+          setSociety(null);
           setRoles([]);
           setSellerProfiles([]);
           setCurrentSellerId(null);
@@ -115,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setSociety(null);
     setRoles([]);
     setSellerProfiles([]);
     setCurrentSellerId(null);
@@ -130,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         profile,
+        society,
         roles,
         sellerProfiles,
         currentSellerId,

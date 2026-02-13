@@ -53,7 +53,7 @@ const benefits = [
   {
     icon: Shield,
     title: 'Verified Residents Only',
-    description: 'All sellers are verified Greenfield community members',
+    description: 'All sellers are verified community members',
   },
   {
     icon: MapPin,
@@ -86,15 +86,15 @@ export default function LandingPage() {
         
         {/* Hero Content */}
         <div className="relative h-full flex flex-col justify-end px-6 pb-8 safe-top">
-          <div className="space-y-4">
+         <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/20 backdrop-blur-sm border border-primary/30">
               <Sparkles className="text-primary" size={14} />
-              <span className="text-xs font-medium text-primary">Exclusive for Greenfield Residents</span>
+              <span className="text-xs font-medium text-primary">Exclusive for Verified Residents</span>
             </div>
             
             <h1 className="text-3xl font-bold text-white leading-tight">
-              Greenfield<br />
-              <span className="text-primary">Community Market</span>
+              Your Community<br />
+              <span className="text-primary">Marketplace</span>
             </h1>
             
             <p className="text-white/90 text-base max-w-xs">
@@ -122,9 +122,9 @@ export default function LandingPage() {
       {/* About Section */}
       <div className="px-6 py-6 -mt-2 relative z-10">
         <div className="bg-card rounded-2xl shadow-lg p-5 border border-border">
-          <h2 className="text-base font-semibold mb-3">What is Greenfield Market?</h2>
+          <h2 className="text-base font-semibold mb-3">What is BlockEats?</h2>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            A <span className="text-foreground font-medium">private marketplace</span> exclusively for Shriram Greenfield residents. 
+            A <span className="text-foreground font-medium">private marketplace</span> exclusively for verified residential society members. 
             Order homemade meals from neighbors, hire trusted local services, rent party supplies, 
             find tutors for your kids — all from verified community members you can trust.
           </p>
@@ -235,7 +235,7 @@ export default function LandingPage() {
           </Link>
           
           <p className="text-center text-xs text-muted-foreground">
-            Available exclusively for Shriram Greenfield residents.<br />
+            Available for verified residential society members.<br />
             <Link to="/auth" className="text-primary hover:underline">
               Already have an account? Sign in
             </Link>

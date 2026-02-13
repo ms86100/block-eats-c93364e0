@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { SellerCard } from '@/components/seller/SellerCard';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -69,6 +70,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function SearchPage() {
+  const { profile } = useAuth();
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 300);
@@ -156,6 +158,11 @@ export default function SearchPage() {
           .from('seller_profiles')
           .select('*')
           .eq('verification_status', 'approved');
+
+        // Scope to user's society
+        if (profile?.society_id) {
+          queryBuilder = queryBuilder.eq('society_id', profile.society_id);
+        }
 
         // Category filter
         if (filters.categories.length > 0) {

@@ -147,7 +147,7 @@ export default function ProfilePage() {
             {profile?.verification_status === 'approved' && (
               <div className="mt-3 flex items-center gap-2 text-xs text-success">
                 <Shield size={14} />
-                <span>Verified Greenfield Resident</span>
+                <span>Verified Resident</span>
               </div>
             )}
           </CardContent>
@@ -204,7 +204,7 @@ export default function ProfilePage() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          BlockEats v1.4.0 • Shriram Greenfield
+          BlockEats v2.0.0
         </p>
       </div>
     </AppLayout>
