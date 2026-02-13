@@ -30,7 +30,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, profile, isSeller, isAdmin, signOut, refreshProfile } = useAuth();
   const [largeFont, setLargeFont] = useState(() => {
-    return localStorage.getItem('greenfield_large_font') === 'true';
+    return localStorage.getItem('sociva_large_font') === 'true';
   });
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
 
@@ -40,7 +40,7 @@ export default function ProfilePage() {
     } else {
       document.documentElement.classList.remove('large-font');
     }
-    localStorage.setItem('greenfield_large_font', String(largeFont));
+    localStorage.setItem('sociva_large_font', String(largeFont));
   }, [largeFont]);
 
   const handleSignOut = async () => {
@@ -204,7 +204,7 @@ export default function ProfilePage() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          BlockEats v2.0.0
+          Sociva v2.0.0
         </p>
       </div>
     </AppLayout>

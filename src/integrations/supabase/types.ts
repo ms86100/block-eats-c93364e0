@@ -191,6 +191,120 @@ export type Database = {
           },
         ]
       }
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          discount_applied: number
+          id: string
+          order_id: string
+          user_id: string
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          discount_applied?: number
+          id?: string
+          order_id: string
+          user_id: string
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          discount_applied?: number
+          id?: string
+          order_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_discount_amount: number | null
+          min_order_amount: number | null
+          per_user_limit: number
+          seller_id: string
+          society_id: string
+          starts_at: string
+          times_used: number
+          updated_at: string
+          usage_limit: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_order_amount?: number | null
+          per_user_limit?: number
+          seller_id: string
+          society_id: string
+          starts_at?: string
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_order_amount?: number | null
+          per_user_limit?: number
+          seller_id?: string
+          society_id?: string
+          starts_at?: string
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_tokens: {
         Row: {
           created_at: string | null
@@ -349,10 +463,12 @@ export type Database = {
         Row: {
           auto_cancel_at: string | null
           buyer_id: string | null
+          coupon_id: string | null
           created_at: string | null
           delivery_address: string | null
           deposit_paid: boolean | null
           deposit_refunded: boolean | null
+          discount_amount: number | null
           id: string
           notes: string | null
           order_type: string | null
@@ -374,10 +490,12 @@ export type Database = {
         Insert: {
           auto_cancel_at?: string | null
           buyer_id?: string | null
+          coupon_id?: string | null
           created_at?: string | null
           delivery_address?: string | null
           deposit_paid?: boolean | null
           deposit_refunded?: boolean | null
+          discount_amount?: number | null
           id?: string
           notes?: string | null
           order_type?: string | null
@@ -399,10 +517,12 @@ export type Database = {
         Update: {
           auto_cancel_at?: string | null
           buyer_id?: string | null
+          coupon_id?: string | null
           created_at?: string | null
           delivery_address?: string | null
           deposit_paid?: boolean | null
           deposit_refunded?: boolean | null
+          discount_amount?: number | null
           id?: string
           notes?: string | null
           order_type?: string | null
@@ -427,6 +547,13 @@ export type Database = {
             columns: ["buyer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
             referencedColumns: ["id"]
           },
           {
@@ -1040,6 +1167,7 @@ export type Database = {
     }
     Functions: {
       get_category_parent_group: { Args: { cat: string }; Returns: string }
+      get_user_society_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]

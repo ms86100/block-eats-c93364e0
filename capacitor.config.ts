@@ -26,7 +26,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.greenfield.community',
-  appName: 'Greenfield Community',
+  appName: 'Sociva',
   webDir: 'dist',
   
   // DEVELOPMENT: Live reload from Lovable sandbox

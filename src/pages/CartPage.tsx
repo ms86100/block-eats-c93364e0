@@ -7,6 +7,7 @@ import { VegBadge } from '@/components/ui/veg-badge';
 import { Textarea } from '@/components/ui/textarea';
 import { PaymentMethodSelector } from '@/components/payment/PaymentMethodSelector';
 import { RazorpayCheckout } from '@/components/payment/RazorpayCheckout';
+import { CouponInput } from '@/components/cart/CouponInput';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,13 +17,16 @@ import { toast } from 'sonner';
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, society } = useAuth();
   const { items, totalAmount, updateQuantity, removeItem, clearCart, currentSellerId } = useCart();
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [showRazorpayCheckout, setShowRazorpayCheckout] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discountAmount: number } | null>(null);
+
+  const finalAmount = appliedCoupon ? Math.max(0, totalAmount - appliedCoupon.discountAmount) : totalAmount;
 
   const seller = items[0]?.product?.seller;
   const acceptsCod = seller?.accepts_cod ?? true;
@@ -44,7 +48,9 @@ export default function CartPage() {
       .insert({
         buyer_id: user.id,
         seller_id: currentSellerId,
-        total_amount: totalAmount,
+        total_amount: finalAmount,
+        coupon_id: appliedCoupon?.id || null,
+        discount_amount: appliedCoupon?.discountAmount || 0,
         payment_type: paymentMethod,
         payment_status: paymentStatus,
         delivery_address: `Block ${profile.block}, Flat ${profile.flat_number}`,
@@ -78,12 +84,12 @@ export default function CartPage() {
         order_id: order.id,
         buyer_id: user.id,
         seller_id: currentSellerId,
-        amount: totalAmount,
+        amount: finalAmount,
         payment_method: paymentMethod,
         payment_status: paymentStatus,
         transaction_reference: transactionRef || null,
         platform_fee: 0,
-        net_amount: totalAmount,
+        net_amount: finalAmount,
       });
 
     if (paymentError) throw paymentError;
@@ -99,6 +105,16 @@ export default function CartPage() {
         seller.business_name || 'Seller',
         profile.name
       );
+    }
+
+    // Record coupon redemption
+    if (appliedCoupon) {
+      await supabase.from('coupon_redemptions').insert({
+        coupon_id: appliedCoupon.id,
+        user_id: user.id,
+        order_id: order.id,
+        discount_applied: appliedCoupon.discountAmount,
+      });
     }
 
     return order;
@@ -348,6 +364,18 @@ export default function CartPage() {
           />
         </div>
 
+        {/* Coupon */}
+        <div className="mt-6">
+          <h3 className="font-semibold mb-3">Apply Coupon</h3>
+          <CouponInput
+            sellerId={currentSellerId || ''}
+            totalAmount={totalAmount}
+            onApply={setAppliedCoupon}
+            onRemove={() => setAppliedCoupon(null)}
+            appliedCoupon={appliedCoupon}
+          />
+        </div>
+
         {/* Bill Details */}
         <div className="mt-6 bg-muted rounded-lg p-4">
           <h3 className="font-semibold mb-3">Bill Details</h3>
@@ -356,13 +384,19 @@ export default function CartPage() {
               <span className="text-muted-foreground">Item Total</span>
               <span>₹{totalAmount.toFixed(0)}</span>
             </div>
+            {appliedCoupon && (
+              <div className="flex justify-between text-primary">
+                <span>Coupon Discount ({appliedCoupon.code})</span>
+                <span>-₹{appliedCoupon.discountAmount.toFixed(0)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Delivery Fee</span>
               <span className="text-success">FREE</span>
             </div>
             <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
               <span>To Pay</span>
-              <span>₹{totalAmount.toFixed(0)}</span>
+              <span>₹{finalAmount.toFixed(0)}</span>
             </div>
           </div>
         </div>
@@ -373,7 +407,7 @@ export default function CartPage() {
           <p className="text-sm">
             {profile?.name}<br />
             Block {profile?.block}, Flat {profile?.flat_number}<br />
-            Shriram Greenfield
+            {society?.name || 'Your Society'}
           </p>
         </div>
       </div>
@@ -386,7 +420,7 @@ export default function CartPage() {
           onClick={handlePlaceOrder}
           disabled={isPlacingOrder}
         >
-          {isPlacingOrder ? 'Placing Order...' : `Place Order • ₹${totalAmount.toFixed(0)}`}
+          {isPlacingOrder ? 'Placing Order...' : `Place Order • ₹${finalAmount.toFixed(0)}`}
         </Button>
       </div>
 
@@ -399,7 +433,7 @@ export default function CartPage() {
             handleRazorpayFailed();
           }}
           orderId={pendingOrderId}
-          amount={totalAmount}
+          amount={finalAmount}
           sellerId={currentSellerId || ''}
           sellerName={seller?.business_name || 'Seller'}
           customerName={profile?.name || ''}

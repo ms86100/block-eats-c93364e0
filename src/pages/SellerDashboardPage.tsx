@@ -17,6 +17,7 @@ import { DashboardStats } from '@/components/seller/DashboardStats';
 import { QuickActions } from '@/components/seller/QuickActions';
 import { OrderFilters, OrderFilter } from '@/components/seller/OrderFilters';
 import { SellerOrderCard } from '@/components/seller/SellerOrderCard';
+import { CouponManager } from '@/components/seller/CouponManager';
 
 interface OrderItemWithStatus {
   id: string;
@@ -241,6 +242,9 @@ export default function SellerDashboardPage() {
 
         {/* Quick Actions */}
         <QuickActions />
+
+        {/* Promotions & Coupons */}
+        <CouponManager />
 
         {/* Orders Section */}
         <div>

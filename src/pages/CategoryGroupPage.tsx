@@ -11,12 +11,14 @@ import { ServiceCategory } from '@/types/categories';
 import { SellerProfile } from '@/types/database';
 import { ArrowLeft, Search, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CategoryGroupPage() {
   const { category } = useParams<{ category: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const subCategory = searchParams.get('sub') as ServiceCategory | null;
   
+  const { profile } = useAuth();
   const { groupedConfigs, isLoading: configsLoading } = useCategoryConfigs();
   const { getGroupBySlug, isLoading: groupsLoading } = useParentGroups();
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
@@ -43,6 +45,11 @@ export default function CategoryGroupPage() {
 
       if (category) {
         query = query.eq('primary_group', category);
+      }
+
+      // Society isolation: only show sellers from user's society
+      if (profile?.society_id) {
+        query = query.eq('society_id', profile.society_id);
       }
 
       if (activeSubCategory) {

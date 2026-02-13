@@ -38,8 +38,7 @@ export function Header({
           <h1 className="text-lg font-bold">{title}</h1>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-primary">Greenfield</span>
-            <span className="text-xl font-bold">Market</span>
+            <span className="text-xl font-bold text-primary">Sociva</span>
           </div>
         )}
 

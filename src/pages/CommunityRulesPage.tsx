@@ -125,7 +125,7 @@ export default function CommunityRulesPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          By using Greenfield Market, you agree to follow these guidelines.
+          By using Sociva, you agree to follow these guidelines.
           Report violations through the app or contact the admin.
         </p>
       </div>

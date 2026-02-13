@@ -14,7 +14,7 @@ import { ArrowLeft, Search as SearchIcon, X } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 // Persist last filters in localStorage
-const FILTER_STORAGE_KEY = 'greenfield_search_filters';
+const FILTER_STORAGE_KEY = 'sociva_search_filters';
 
 interface SearchResult {
   seller_id: string;

@@ -1,4 +1,4 @@
-// Database types for the Greenfield Marketplace
+// Database types for the Sociva Marketplace
 import { ServiceCategory } from './categories';
 
 export type UserRole = 'buyer' | 'seller' | 'admin';
