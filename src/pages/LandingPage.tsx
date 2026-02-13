@@ -9,13 +9,19 @@ import {
   TrendingUp, BadgeCheck, Lock, Ticket
 } from 'lucide-react';
 
-const AUTOPLAY_INTERVAL = 5000;
+const AUTOPLAY_INTERVAL = 8000;
 
 function useAutoplay(emblaApi: any, interval: number) {
   useEffect(() => {
     if (!emblaApi) return;
-    const id = setInterval(() => emblaApi.scrollNext(), interval);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setInterval>;
+    const start = () => { id = setInterval(() => emblaApi.scrollNext(), interval); };
+    const stop = () => clearInterval(id);
+    start();
+    // Pause on user interaction, resume after
+    emblaApi.on('pointerDown', stop);
+    emblaApi.on('pointerUp', () => { stop(); start(); });
+    return () => { stop(); emblaApi.off('pointerDown', stop); };
   }, [emblaApi, interval]);
 }
 
@@ -191,24 +197,26 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Carousel */}
-      <div className="relative" ref={emblaRef}>
-        <div className="flex">
+      <div className="relative overflow-hidden" ref={emblaRef}>
+        <div className="flex transition-transform duration-500 ease-out">
           {slides.map((slide, i) => (
             <div key={i} className="min-w-0 shrink-0 grow-0 basis-full">
-              {slide}
+              <div className={`transition-opacity duration-500 ${activeSlide === i ? 'opacity-100' : 'opacity-70'}`}>
+                {slide}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Dot Indicators */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-card/80 backdrop-blur-sm px-4 py-2 rounded-full border border-border shadow-lg safe-bottom">
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-card/80 backdrop-blur-sm px-4 py-2.5 rounded-full border border-border shadow-lg">
         {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => emblaApi?.scrollTo(i)}
-            className={`w-2.5 h-2.5 rounded-full transition-all ${
-              activeSlide === i ? 'bg-primary w-6' : 'bg-muted-foreground/30'
+            className={`h-2.5 rounded-full transition-all duration-300 ${
+              activeSlide === i ? 'bg-primary w-6' : 'bg-muted-foreground/30 w-2.5'
             }`}
           />
         ))}
@@ -224,7 +232,7 @@ export default function LandingPage() {
       </div>
 
       {/* Legal Footer */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 flex justify-center gap-4 text-xs text-muted-foreground pb-2 safe-bottom">
+      <div className="fixed bottom-2 left-0 right-0 z-40 flex justify-center gap-4 text-xs text-muted-foreground">
         <Link to="/privacy-policy" className="hover:text-foreground">Privacy</Link>
         <span>•</span>
         <Link to="/terms" className="hover:text-foreground">Terms</Link>

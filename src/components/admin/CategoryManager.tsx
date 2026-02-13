@@ -80,6 +80,17 @@ const COLOR_PRESETS = [
   { label: 'Slate', value: 'bg-slate-100 text-slate-600' },
 ];
 
+const EMOJI_PRESETS = [
+  '🍲', '🍕', '🍰', '🥗', '🧁', '☕', '🥤', '🧃',
+  '🎓', '📚', '🧘', '💃', '🎵', '🎨', '🗣️', '💪',
+  '🔧', '🔌', '🪠', '🪚', '❄️', '🐛', '🔩', '🧹',
+  '👩‍🍳', '🚗', '👶', '✂️', '👗', '💅', '🧕', '💈',
+  '📊', '💻', '📝', '📄', '🎯', '💼', '🏠', '🅿️',
+  '🚲', '🎉', '🎈', '📸', '🎧', '🐕', '🐾', '🐈',
+  '🛋️', '📱', '📖', '🧸', '🍳', '👕', '🎂', '🏡',
+  '🛒', '🎟️', '⭐', '🌟', '🔥', '💎', '🏪', '🌿',
+];
+
 // === Sortable Group Item ===
 function SortableGroupItem({
   group,
@@ -641,6 +652,13 @@ export function CategoryManager() {
             <div className="space-y-2">
               <Label htmlFor="icon">Icon (Emoji)</Label>
               <Input id="icon" value={editForm.icon} onChange={(e) => setEditForm({ ...editForm, icon: e.target.value })} placeholder="e.g., 🍲" className="text-2xl" />
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {EMOJI_PRESETS.map((emoji) => (
+                  <button key={emoji} type="button" onClick={() => setEditForm({ ...editForm, icon: emoji })} className={cn('w-8 h-8 rounded-md text-lg flex items-center justify-center hover:bg-muted transition-colors', editForm.icon === emoji && 'bg-primary/15 ring-1 ring-primary')}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Color</Label>
@@ -695,6 +713,13 @@ export function CategoryManager() {
             <div className="space-y-2">
               <Label htmlFor="add_icon">Icon (Emoji) *</Label>
               <Input id="add_icon" value={addForm.icon} onChange={(e) => setAddForm({ ...addForm, icon: e.target.value })} placeholder="e.g., 🍲" className="text-2xl" />
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {EMOJI_PRESETS.map((emoji) => (
+                  <button key={emoji} type="button" onClick={() => setAddForm({ ...addForm, icon: emoji })} className={cn('w-8 h-8 rounded-md text-lg flex items-center justify-center hover:bg-muted transition-colors', addForm.icon === emoji && 'bg-primary/15 ring-1 ring-primary')}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Color</Label>
@@ -789,6 +814,13 @@ export function CategoryManager() {
             <div className="space-y-2">
               <Label>Icon (Emoji) *</Label>
               <Input value={groupForm.icon} onChange={(e) => setGroupForm({ ...groupForm, icon: e.target.value })} placeholder="e.g., 🍲" className="text-2xl" />
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {EMOJI_PRESETS.map((emoji) => (
+                  <button key={emoji} type="button" onClick={() => setGroupForm({ ...groupForm, icon: emoji })} className={cn('w-8 h-8 rounded-md text-lg flex items-center justify-center hover:bg-muted transition-colors', groupForm.icon === emoji && 'bg-primary/15 ring-1 ring-primary')}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Color</Label>
