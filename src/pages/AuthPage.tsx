@@ -273,6 +273,14 @@ export default function AuthPage() {
           if (!profileError) {
             await supabase.from('user_roles').insert({ user_id: data.user.id, role: 'buyer' });
           }
+          // Server-side validation of society_id
+          try {
+            await supabase.functions.invoke('validate-society', {
+              body: { society_id: selectedSociety.id },
+            });
+          } catch (validateErr) {
+            console.warn('Society validation call failed, will be validated by admin:', validateErr);
+          }
         } catch (e) { console.log('Profile will be created after email verification'); }
         setSignupStep('verification');
         toast.success('Please check your email to verify your account');
@@ -407,7 +415,12 @@ export default function AuthPage() {
                 <motion.div key="login" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.25, ease: 'easeInOut' }} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 rounded-xl" />
+                    <div className="relative">
+                      <Input id="login-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 rounded-xl pr-10" />
+                      {email.length > 0 && validateEmail(email) && (
+                        <CheckCircle2 size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
@@ -435,7 +448,12 @@ export default function AuthPage() {
                 <motion.div key="signup-credentials" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25, ease: 'easeInOut' }} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 rounded-xl" />
+                    <div className="relative">
+                      <Input id="signup-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 rounded-xl pr-10" />
+                      {email.length > 0 && validateEmail(email) && (
+                        <CheckCircle2 size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
@@ -523,6 +541,14 @@ export default function AuthPage() {
                     {/* Sub-step: Search */}
                     {societySubStep === 'search' && (
                       <motion.div key="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4">
+                        {/* Loading skeleton while Google Maps loads */}
+                        {!mapsLoaded && (
+                          <div className="flex items-center gap-2 p-2.5 bg-muted/50 rounded-xl border border-border animate-pulse">
+                            <Loader2 size={14} className="text-muted-foreground animate-spin shrink-0" />
+                            <span className="text-xs text-muted-foreground">Loading Google Maps...</span>
+                          </div>
+                        )}
+
                         {/* Search bar */}
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
