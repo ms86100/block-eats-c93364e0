@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Mail, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff, CheckCircle2, User, Search, MapPin, Building2, Plus } from 'lucide-react';
+import { Mail, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff, CheckCircle2, User, Search, MapPin, Building2, Plus, Navigation, Key } from 'lucide-react';
 import heroBanner from '@/assets/hero-banner.jpg';
 import { Society } from '@/types/database';
 
@@ -43,6 +43,9 @@ export default function AuthPage() {
   const [isLoadingSocieties, setIsLoadingSocieties] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [newSocietyData, setNewSocietyData] = useState({ name: '', address: '', city: '', pincode: '' });
+  const [inviteCode, setInviteCode] = useState('');
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'verified' | 'failed' | 'unavailable'>('idle');
+  const [gpsDistance, setGpsDistance] = useState<number | null>(null);
 
   // Fetch societies
   useEffect(() => {
@@ -134,7 +137,60 @@ export default function AuthPage() {
       toast.error('Please select your society');
       return;
     }
+    // If society has invite_code, validate it
+    if (selectedSociety.invite_code && inviteCode.trim().toLowerCase() !== selectedSociety.invite_code.trim().toLowerCase()) {
+      toast.error('Invalid invite code for this society');
+      return;
+    }
     setSignupStep('profile');
+  };
+
+  // GPS verification
+  const verifyGpsLocation = () => {
+    if (!selectedSociety?.latitude || !selectedSociety?.longitude) {
+      setGpsStatus('unavailable');
+      return;
+    }
+    if (!navigator.geolocation) {
+      setGpsStatus('unavailable');
+      toast.error('GPS is not supported on this device');
+      return;
+    }
+    setGpsStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const dist = haversineDistance(
+          position.coords.latitude,
+          position.coords.longitude,
+          Number(selectedSociety.latitude),
+          Number(selectedSociety.longitude)
+        );
+        setGpsDistance(Math.round(dist));
+        const radius = selectedSociety.geofence_radius_meters || 500;
+        if (dist <= radius) {
+          setGpsStatus('verified');
+          toast.success('Location verified! You are within the society area.');
+        } else {
+          setGpsStatus('failed');
+          toast.error(`You appear to be ${Math.round(dist)}m away from the society.`);
+        }
+      },
+      (error) => {
+        setGpsStatus('failed');
+        toast.error('Unable to access your location. Please enable GPS.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Haversine distance formula
+  const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371000; // meters
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
   const handleRequestNewSociety = async () => {
@@ -265,6 +321,9 @@ export default function AuthPage() {
     setEmail('');
     setPassword('');
     setSelectedSociety(null);
+    setInviteCode('');
+    setGpsStatus('idle');
+    setGpsDistance(null);
     setProfileData({
       name: '',
       flat_number: '',
@@ -539,11 +598,59 @@ export default function AuthPage() {
                       Can't find your society? Request to add it
                     </button>
 
+                    {/* Invite Code (if society requires it) */}
+                    {selectedSociety?.invite_code && (
+                      <div className="space-y-2">
+                        <Label htmlFor="invite_code" className="flex items-center gap-1">
+                          <Key size={14} />
+                          Invite Code *
+                        </Label>
+                        <Input
+                          id="invite_code"
+                          placeholder="Enter society invite code"
+                          value={inviteCode}
+                          onChange={(e) => setInviteCode(e.target.value)}
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Ask your society admin for the invite code
+                        </p>
+                      </div>
+                    )}
+
+                    {/* GPS Verification */}
+                    {selectedSociety && (
+                      <div className="space-y-2">
+                        <button
+                          onClick={verifyGpsLocation}
+                          disabled={gpsStatus === 'loading'}
+                          className={`w-full flex items-center gap-2 p-3 rounded-lg border text-sm transition-colors ${
+                            gpsStatus === 'verified' ? 'border-green-300 bg-green-50 text-green-700' :
+                            gpsStatus === 'failed' ? 'border-orange-300 bg-orange-50 text-orange-700' :
+                            'border-border hover:border-primary/30 text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <Navigation size={16} className={gpsStatus === 'loading' ? 'animate-spin' : ''} />
+                          {gpsStatus === 'idle' && 'Verify your location (optional)'}
+                          {gpsStatus === 'loading' && 'Checking location...'}
+                          {gpsStatus === 'verified' && `✓ Location verified (${gpsDistance}m away)`}
+                          {gpsStatus === 'failed' && `Location check failed${gpsDistance ? ` (${gpsDistance}m away)` : ''}`}
+                          {gpsStatus === 'unavailable' && 'GPS not available for this society'}
+                        </button>
+                        <p className="text-[10px] text-muted-foreground text-center">
+                          Location verification helps speed up admin approval
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex gap-2">
                       <Button variant="outline" onClick={() => setSignupStep('credentials')} className="flex-1">
                         Back
                       </Button>
-                      <Button onClick={handleSocietyNext} disabled={!selectedSociety} className="flex-1">
+                      <Button
+                        onClick={handleSocietyNext}
+                        disabled={!selectedSociety || (selectedSociety.invite_code ? !inviteCode.trim() : false)}
+                        className="flex-1"
+                      >
                         Continue
                       </Button>
                     </div>

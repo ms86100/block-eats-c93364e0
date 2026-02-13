@@ -45,6 +45,7 @@ export default function SellerSettingsPage() {
     bank_account_number: '',
     bank_ifsc_code: '',
     bank_account_holder: '',
+    fssai_number: '',
   });
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export default function SellerSettingsPage() {
           bank_account_number: profile.bank_account_number || '',
           bank_ifsc_code: profile.bank_ifsc_code || '',
           bank_account_holder: profile.bank_account_holder || '',
+          fssai_number: profile.fssai_number || '',
         });
       }
     } catch (error) {
@@ -196,6 +198,7 @@ export default function SellerSettingsPage() {
           bank_account_number: formData.bank_account_number.trim() || null,
           bank_ifsc_code: formData.bank_ifsc_code.trim() || null,
           bank_account_holder: formData.bank_account_holder.trim() || null,
+          fssai_number: formData.fssai_number.trim() || null,
         } as any)
         .eq('id', sellerProfile.id);
 
@@ -499,6 +502,37 @@ export default function SellerSettingsPage() {
               )}
             </div>
           </div>
+
+          {/* FSSAI Registration (for food category sellers) */}
+          {primaryGroup === 'food' && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🍽️</span>
+                <Label>FSSAI Registration</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                As per Indian food safety regulations, all food sellers must have a valid FSSAI registration number.
+              </p>
+              <div className="bg-muted rounded-lg p-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fssai_number" className="text-xs">FSSAI License Number</Label>
+                  <Input
+                    id="fssai_number"
+                    placeholder="e.g., 12345678901234"
+                    value={formData.fssai_number}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 14);
+                      setFormData({ ...formData, fssai_number: val });
+                    }}
+                    maxLength={14}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    14-digit FSSAI license number. Required for food businesses with annual turnover above ₹12 lakhs.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Bank Account Details for UPI Payouts */}
           {formData.accepts_upi && (

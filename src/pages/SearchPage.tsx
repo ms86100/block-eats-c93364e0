@@ -124,7 +124,8 @@ export default function SearchPage() {
       // Use the new search_marketplace function for keyword search
       if (searchTerm.length >= 1) {
         const { data, error } = await supabase.rpc('search_marketplace', {
-          search_term: searchTerm
+          search_term: searchTerm,
+          user_society_id: profile?.society_id || null,
         });
 
         if (error) throw error;

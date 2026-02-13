@@ -372,37 +372,76 @@ export default function AdminPage() {
             </h3>
             {allSocieties.length > 0 ? allSocieties.map((soc) => (
               <Card key={soc.id}>
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${soc.is_verified ? 'bg-success' : 'bg-warning'}`} />
-                    <div>
-                      <p className="font-medium text-sm">{soc.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {[soc.city, soc.state, soc.pincode].filter(Boolean).join(', ')}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        Members: {soc.member_count} • {soc.is_verified ? 'Verified' : 'Pending'}
-                      </p>
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${soc.is_verified ? 'bg-success' : 'bg-warning'}`} />
+                      <div>
+                        <p className="font-medium text-sm">{soc.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {[soc.city, soc.state, soc.pincode].filter(Boolean).join(', ')}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Members: {soc.member_count} • {soc.is_verified ? 'Verified' : 'Pending'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {!soc.is_verified && (
+                        <>
+                          <Button size="sm" variant="outline" className="text-destructive h-8 w-8 p-0" onClick={() => updateSocietyStatus(soc.id, false, false)}>
+                            <X size={14} />
+                          </Button>
+                          <Button size="sm" className="h-8 w-8 p-0" onClick={() => updateSocietyStatus(soc.id, true, true)}>
+                            <Check size={14} />
+                          </Button>
+                        </>
+                      )}
+                      {soc.is_verified && (
+                        <Switch
+                          checked={soc.is_active}
+                          onCheckedChange={(active) => updateSocietyStatus(soc.id, true, active)}
+                        />
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {!soc.is_verified && (
-                      <>
-                        <Button size="sm" variant="outline" className="text-destructive h-8 w-8 p-0" onClick={() => updateSocietyStatus(soc.id, false, false)}>
-                          <X size={14} />
+                  {/* Invite Code Management */}
+                  {soc.is_verified && (
+                    <div className="mt-2 pt-2 border-t flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">Invite Code:</span>
+                      {soc.invite_code ? (
+                        <div className="flex items-center gap-1">
+                          <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">{soc.invite_code}</code>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 text-[10px] px-2"
+                            onClick={async () => {
+                              await supabase.from('societies').update({ invite_code: null }).eq('id', soc.id);
+                              fetchData();
+                              toast.success('Invite code removed');
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-[10px] px-2"
+                          onClick={async () => {
+                            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                            await supabase.from('societies').update({ invite_code: code }).eq('id', soc.id);
+                            fetchData();
+                            toast.success(`Invite code generated: ${code}`);
+                          }}
+                        >
+                          Generate Code
                         </Button>
-                        <Button size="sm" className="h-8 w-8 p-0" onClick={() => updateSocietyStatus(soc.id, true, true)}>
-                          <Check size={14} />
-                        </Button>
-                      </>
-                    )}
-                    {soc.is_verified && (
-                      <Switch
-                        checked={soc.is_active}
-                        onCheckedChange={(active) => updateSocietyStatus(soc.id, true, active)}
-                      />
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )) : <p className="text-center text-muted-foreground py-8 text-sm">No societies yet</p>}

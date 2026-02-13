@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Grid3X3, GripVertical, Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Grid3X3, GripVertical, Edit2, Save, X, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useParentGroups, ParentGroupRow } from '@/hooks/useParentGroups';
 import { cn } from '@/lib/utils';
 
@@ -455,6 +455,50 @@ export function CategoryManager() {
     }
   };
 
+  // === Reorder functions ===
+  const moveGroup = async (group: ParentGroupRow, direction: 'up' | 'down') => {
+    const sorted = [...groups].sort((a, b) => a.sort_order - b.sort_order);
+    const idx = sorted.findIndex(g => g.id === group.id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    const other = sorted[swapIdx];
+    try {
+      await Promise.all([
+        supabase.from('parent_groups').update({ sort_order: other.sort_order }).eq('id', group.id),
+        supabase.from('parent_groups').update({ sort_order: group.sort_order }).eq('id', other.id),
+      ]);
+      await refreshGroups();
+      toast.success('Order updated');
+    } catch (error) {
+      toast.error('Failed to reorder');
+    }
+  };
+
+  const moveCategory = async (cat: CategoryConfigRow, direction: 'up' | 'down') => {
+    const groupCats = [...(groupedCategories[cat.parent_group] || [])].sort((a, b) => a.display_order - b.display_order);
+    const idx = groupCats.findIndex(c => c.id === cat.id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= groupCats.length) return;
+
+    const other = groupCats[swapIdx];
+    try {
+      await Promise.all([
+        supabase.from('category_config').update({ display_order: other.display_order }).eq('id', cat.id),
+        supabase.from('category_config').update({ display_order: cat.display_order }).eq('id', other.id),
+      ]);
+      // Swap locally
+      setCategories(categories.map(c => {
+        if (c.id === cat.id) return { ...c, display_order: other.display_order };
+        if (c.id === other.id) return { ...c, display_order: cat.display_order };
+        return c;
+      }));
+      toast.success('Order updated');
+    } catch (error) {
+      toast.error('Failed to reorder');
+    }
+  };
+
   const groupedCategories = categories.reduce((acc, cat) => {
     if (!acc[cat.parent_group]) {
       acc[cat.parent_group] = [];
@@ -542,6 +586,24 @@ export function CategoryManager() {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
+                            onClick={() => moveGroup(group, 'up')}
+                            disabled={groups.indexOf(group) === 0}
+                          >
+                            <ChevronUp size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => moveGroup(group, 'down')}
+                            disabled={groups.indexOf(group) === groups.length - 1}
+                          >
+                            <ChevronDown size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
                             onClick={() => openGroupDialog(group)}
                           >
                             <Edit2 size={14} />
@@ -586,6 +648,20 @@ export function CategoryManager() {
                           >
                             <div className="flex items-center gap-2">
                               <GripVertical size={14} className="text-muted-foreground cursor-move opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => moveCategory(cat, 'up')}
+                                  className="text-muted-foreground hover:text-foreground h-3"
+                                >
+                                  <ChevronUp size={12} />
+                                </button>
+                                <button
+                                  onClick={() => moveCategory(cat, 'down')}
+                                  className="text-muted-foreground hover:text-foreground h-3"
+                                >
+                                  <ChevronDown size={12} />
+                                </button>
+                              </div>
                               <span className="text-lg">{cat.icon}</span>
                               <span className={cn('text-sm', !cat.is_active && 'text-muted-foreground')}>
                                 {cat.display_name}
