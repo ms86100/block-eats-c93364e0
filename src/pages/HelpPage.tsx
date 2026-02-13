@@ -125,12 +125,31 @@ export default function HelpPage() {
           ))}
         </div>
 
+        {/* Grievance Officer */}
+        <Card className="mt-6">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Shield className="text-primary" size={20} />
+              <h3 className="font-semibold">Grievance Officer</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-2">
+              In accordance with the Consumer Protection (E-Commerce) Rules, 2020:
+            </p>
+            <div className="bg-muted rounded-lg p-3 space-y-1 text-sm">
+              <p><span className="font-medium">Name:</span> Sociva Grievance Team</p>
+              <p><span className="font-medium">Email:</span> grievance@sociva.in</p>
+              <p><span className="font-medium">Response:</span> Within 48 hours</p>
+              <p><span className="font-medium">Resolution:</span> Within 30 days</p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Community Rules Link */}
         <Link to="/community-rules">
-          <Card className="mt-6">
+          <Card className="mt-4">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
-                <Shield className="text-warning" size={20} />
+                <BookOpen className="text-warning" size={20} />
               </div>
               <div className="flex-1">
                 <p className="font-medium">Community Guidelines</p>

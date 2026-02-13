@@ -33,7 +33,7 @@ import { toast } from 'sonner';
 
 export default function SellerDetailPage() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, profile: authProfile } = useAuth();
   const { configs: allCategoryConfigs } = useCategoryConfigs();
   const { items, totalAmount } = useCart();
   const [seller, setSeller] = useState<SellerProfile | null>(null);
@@ -76,7 +76,14 @@ export default function SellerDetailPage() {
       if (sellerRes.error) throw sellerRes.error;
       if (productsRes.error) throw productsRes.error;
 
-      setSeller(sellerRes.data as any);
+      // Society scoping: only allow viewing sellers from same society
+      const sellerData = sellerRes.data as any;
+      if (authProfile?.society_id && sellerData.society_id && sellerData.society_id !== authProfile.society_id) {
+        setSeller(null);
+        return;
+      }
+
+      setSeller(sellerData);
       setProducts((productsRes.data || []) as Product[]);
     } catch (error) {
       console.error('Error fetching seller:', error);

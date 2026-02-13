@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CategoryGroupGrid } from '@/components/category/CategoryGroupGrid';
 import { useParentGroups } from '@/hooks/useParentGroups';
 import { ServiceCategory } from '@/types/categories';
-import { ArrowLeft, Store, Loader2, ChevronRight, Settings } from 'lucide-react';
+import { ArrowLeft, Store, Loader2, ChevronRight, Settings, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +32,7 @@ export default function BecomeSellerPage() {
     availability_end: '21:00',
     accepts_cod: true,
   });
+  const [acceptedDeclaration, setAcceptedDeclaration] = useState(false);
 
   useEffect(() => {
     const checkExistingSeller = async () => {
@@ -93,6 +94,10 @@ export default function BecomeSellerPage() {
     }
     if (formData.categories.length === 0) {
       toast.error('Please select at least one category');
+      return;
+    }
+    if (!acceptedDeclaration) {
+      toast.error('Please accept the seller declaration to continue');
       return;
     }
 
@@ -287,7 +292,34 @@ export default function BecomeSellerPage() {
                 <li>• Start receiving orders from neighbors!</li>
               </ul>
             </div>
-            <Button className="w-full" size="lg" onClick={handleSubmit} disabled={isLoading}>
+
+            {/* Seller Declaration */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <Shield size={16} className="text-primary" />
+                Seller Declaration
+              </h4>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>By submitting this application, I declare that:</p>
+                <ul className="space-y-0.5 ml-3">
+                  <li>• I hold all necessary licenses and registrations required for my business (including FSSAI for food-related categories)</li>
+                  <li>• I am solely responsible for product/service quality and safety</li>
+                  <li>• I will comply with all applicable laws and regulations</li>
+                  <li>• I will handle customer complaints professionally</li>
+                  <li>• I understand that violations may lead to account suspension</li>
+                </ul>
+              </div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox 
+                  checked={acceptedDeclaration} 
+                  onCheckedChange={(checked) => setAcceptedDeclaration(checked as boolean)}
+                  className="mt-0.5"
+                />
+                <span className="text-sm font-medium">I agree to the seller declaration and community guidelines</span>
+              </label>
+            </div>
+
+            <Button className="w-full" size="lg" onClick={handleSubmit} disabled={isLoading || !acceptedDeclaration}>
               {isLoading ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
               Submit Application
             </Button>

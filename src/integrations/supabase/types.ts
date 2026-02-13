@@ -931,6 +931,10 @@ export type Database = {
           cover_image_url: string | null
           created_at: string | null
           description: string | null
+          food_license_reviewed_at: string | null
+          food_license_status: string | null
+          food_license_submitted_at: string | null
+          food_license_url: string | null
           fssai_number: string | null
           id: string
           is_available: boolean | null
@@ -963,6 +967,10 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           description?: string | null
+          food_license_reviewed_at?: string | null
+          food_license_status?: string | null
+          food_license_submitted_at?: string | null
+          food_license_url?: string | null
           fssai_number?: string | null
           id?: string
           is_available?: boolean | null
@@ -995,6 +1003,10 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           description?: string | null
+          food_license_reviewed_at?: string | null
+          food_license_status?: string | null
+          food_license_submitted_at?: string | null
+          food_license_url?: string | null
           fssai_number?: string | null
           id?: string
           is_available?: boolean | null

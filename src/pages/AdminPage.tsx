@@ -28,6 +28,7 @@ import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiKeySettings } from '@/components/admin/ApiKeySettings';
 import { CategoryManager } from '@/components/admin/CategoryManager';
+import { FoodLicenseManager } from '@/components/admin/FoodLicenseManager';
 
 interface Report {
   id: string;
@@ -555,6 +556,7 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4 mt-4">
+            <FoodLicenseManager />
             <ApiKeySettings />
             <CategoryManager />
           </TabsContent>

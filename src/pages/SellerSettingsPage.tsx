@@ -19,6 +19,7 @@ import { ParentGroup, ServiceCategory } from '@/types/categories';
 import { ArrowLeft, Loader2, PauseCircle, PlayCircle, Clock, Smartphone, Banknote, AlertTriangle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { FoodLicenseUpload } from '@/components/seller/FoodLicenseUpload';
 
 export default function SellerSettingsPage() {
   const { user, currentSellerId, sellerProfiles } = useAuth();
@@ -532,6 +533,16 @@ export default function SellerSettingsPage() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Food License Upload (for food category sellers) */}
+          {primaryGroup === 'food' && sellerProfile && (
+            <FoodLicenseUpload
+              sellerId={sellerProfile.id}
+              currentUrl={(sellerProfile as any).food_license_url}
+              currentStatus={(sellerProfile as any).food_license_status || 'none'}
+              onUpdate={fetchProfile}
+            />
           )}
 
           {/* Bank Account Details for UPI Payouts */}

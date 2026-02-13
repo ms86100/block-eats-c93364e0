@@ -28,7 +28,7 @@ import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, profile, isSeller, isAdmin, signOut, refreshProfile } = useAuth();
+  const { user, profile, society, isSeller, isAdmin, signOut, refreshProfile } = useAuth();
   const [largeFont, setLargeFont] = useState(() => {
     return localStorage.getItem('sociva_large_font') === 'true';
   });
@@ -131,6 +131,9 @@ export default function ProfilePage() {
               </div>
               <div className="flex-1">
                 <h2 className="text-lg font-bold">{profile?.name}</h2>
+                {society?.name && (
+                  <p className="text-xs text-primary font-medium mt-0.5">{society.name}</p>
+                )}
                 <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                   <MapPin size={14} />
                   <span>

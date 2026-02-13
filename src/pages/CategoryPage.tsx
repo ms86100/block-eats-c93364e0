@@ -5,12 +5,14 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { SellerCard } from '@/components/seller/SellerCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
+import { useAuth } from '@/contexts/AuthContext';
 import { SellerProfile, ProductCategory } from '@/types/database';
 import { ArrowLeft } from 'lucide-react';
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: ProductCategory }>();
   const { configs } = useCategoryConfigs();
+  const { profile } = useAuth();
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,16 +22,22 @@ export default function CategoryPage() {
     if (category) {
       fetchSellers();
     }
-  }, [category]);
+  }, [category, profile?.society_id]);
 
   const fetchSellers = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('seller_profiles')
         .select(`*, profile:profiles!seller_profiles_user_id_fkey(name, block)`)
         .eq('verification_status', 'approved')
         .contains('categories', [category])
         .order('rating', { ascending: false });
+
+      if (profile?.society_id) {
+        query = query.eq('society_id', profile.society_id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setSellers((data as any) || []);
