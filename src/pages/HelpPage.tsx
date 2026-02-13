@@ -78,7 +78,7 @@ export default function HelpPage() {
           </div>
           <h1 className="text-2xl font-bold">Help & Guide</h1>
           <p className="text-muted-foreground mt-1">
-            Learn how to use Greenfield Market
+            Learn how to use Sociva
           </p>
         </div>
 

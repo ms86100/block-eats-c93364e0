@@ -13,7 +13,7 @@ interface TooltipGuideProps {
   showOnce?: boolean; // If true, never show again after dismissal
 }
 
-const TOOLTIP_STORAGE_KEY = 'greenfield_tooltips_viewed';
+const TOOLTIP_STORAGE_KEY = 'sociva_tooltips_viewed';
 
 function getViewedTooltips(): string[] {
   try {

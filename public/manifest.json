@@ -1,7 +1,7 @@
 {
-  "name": "Greenfield Community",
-  "short_name": "Greenfield",
-  "description": "A community marketplace for Shriram Greenfield residents. Order homemade food, services, and more from your neighbors.",
+  "name": "Sociva - Community Marketplace",
+  "short_name": "Sociva",
+  "description": "Your society's private marketplace. Buy, sell, and connect with verified neighbors — food, services, rentals, and more.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

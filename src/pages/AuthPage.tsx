@@ -348,7 +348,7 @@ export default function AuthPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-background" />
         <div className="absolute bottom-4 left-4 right-4">
           <h1 className="text-2xl font-bold text-white drop-shadow-lg">
-            BlockEats
+            Sociva
           </h1>
           <p className="text-sm text-white/90 drop-shadow">
             Your Community Marketplace

@@ -11,7 +11,7 @@ const slides = [
   {
     icon: Users,
     title: 'Community Marketplace',
-    description: 'Buy homemade food and local goods exclusively from your Greenfield neighbors. Everything is made fresh and delivered within the community.',
+    description: 'Buy homemade food and local goods exclusively from your community neighbors. Everything is made fresh and delivered within the society.',
     color: 'bg-primary/10 text-primary',
   },
   {
@@ -29,7 +29,7 @@ const slides = [
   {
     icon: Shield,
     title: 'Trusted & Verified',
-    description: 'All sellers are verified Greenfield residents. Rate and review after each order to help the community.',
+    description: 'All sellers are verified society residents. Rate and review after each order to help the community.',
     color: 'bg-warning/10 text-warning',
   },
 ];

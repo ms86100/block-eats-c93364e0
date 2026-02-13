@@ -1,253 +1,235 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import useEmblaCarousel from 'embla-carousel-react';
+import { supabase } from '@/integrations/supabase/client';
 import { 
-  Utensils, 
-  ShoppingBag, 
-  Wrench, 
-  GraduationCap, 
-  Package,
-  Star,
-  Shield,
-  MapPin,
-  Clock,
-  Users,
-  ChevronRight,
-  Sparkles
+  Utensils, ShoppingBag, Wrench, GraduationCap, Package,
+  Star, Shield, MapPin, Users, ChevronRight, Sparkles,
+  TrendingUp, BadgeCheck, Lock, Ticket
 } from 'lucide-react';
-import heroBanner from '@/assets/hero-banner.jpg';
 
-const features = [
-  {
-    icon: Utensils,
-    title: 'Homemade Food',
-    description: 'Fresh meals, snacks & bakery items from your neighbors',
-    color: 'bg-orange-500/10 text-orange-500',
-  },
-  {
-    icon: ShoppingBag,
-    title: 'Local Shopping',
-    description: 'Buy & sell pre-loved items within the community',
-    color: 'bg-blue-500/10 text-blue-500',
-  },
-  {
-    icon: Sparkles,
-    title: 'Creative Arts',
-    description: 'Handmade crafts, paintings & custom artwork from local artists',
-    color: 'bg-green-500/10 text-green-500',
-  },
-  {
-    icon: GraduationCap,
-    title: 'Classes & Tutoring',
-    description: 'Yoga, dance, music & academic coaching nearby',
-    color: 'bg-purple-500/10 text-purple-500',
-  },
-  {
-    icon: Package,
-    title: 'Rentals',
-    description: 'Party supplies, equipment & more on rent',
-    color: 'bg-pink-500/10 text-pink-500',
-  },
-];
+const AUTOPLAY_INTERVAL = 5000;
 
-const benefits = [
-  {
-    icon: Shield,
-    title: 'Verified Residents Only',
-    description: 'All sellers are verified community members',
-  },
-  {
-    icon: MapPin,
-    title: 'Hyperlocal Delivery',
-    description: 'Everything delivered within the community',
-  },
-  {
-    icon: Clock,
-    title: 'Quick & Convenient',
-    description: 'Order anytime, get it delivered fast',
-  },
-  {
-    icon: Users,
-    title: 'Support Neighbors',
-    description: 'Your purchases help local home businesses thrive',
-  },
-];
+function useAutoplay(emblaApi: any, interval: number) {
+  useEffect(() => {
+    if (!emblaApi) return;
+    const id = setInterval(() => emblaApi.scrollNext(), interval);
+    return () => clearInterval(id);
+  }, [emblaApi, interval]);
+}
 
 export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <div className="relative h-[55vh] min-h-[380px]">
-        <img
-          src={heroBanner}
-          alt="Community marketplace"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-background" />
-        
-        {/* Hero Content */}
-        <div className="relative h-full flex flex-col justify-end px-6 pb-8 safe-top">
-         <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/20 backdrop-blur-sm border border-primary/30">
-              <Sparkles className="text-primary" size={14} />
-              <span className="text-xs font-medium text-primary">Exclusive for Verified Residents</span>
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [stats, setStats] = useState({ societies: 0, sellers: 0, categories: 0 });
+
+  useAutoplay(emblaApi, AUTOPLAY_INTERVAL);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setActiveSlide(emblaApi.selectedScrollSnap());
+    emblaApi.on('select', onSelect);
+    return () => { emblaApi.off('select', onSelect); };
+  }, [emblaApi]);
+
+  useEffect(() => {
+    async function fetchStats() {
+      const [{ count: sCount }, { count: selCount }, { count: catCount }] = await Promise.all([
+        supabase.from('societies').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('seller_profiles').select('*', { count: 'exact', head: true }).eq('verification_status', 'approved'),
+        supabase.from('parent_groups').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      ]);
+      setStats({ societies: sCount || 0, sellers: selCount || 0, categories: catCount || 0 });
+    }
+    fetchStats();
+  }, []);
+
+  const slides = [
+    // Slide 1: Hero
+    <div key="hero" className="min-h-[100dvh] flex flex-col justify-center items-center text-center px-6 bg-gradient-to-br from-primary/10 via-background to-accent/10">
+      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/15 border border-primary/20 mb-6">
+        <Sparkles className="text-primary" size={16} />
+        <span className="text-sm font-semibold text-primary">Private & Verified</span>
+      </div>
+      <h1 className="text-4xl font-extrabold leading-tight mb-4">
+        Your Society.<br />
+        <span className="text-primary">Your Marketplace.</span>
+      </h1>
+      <p className="text-muted-foreground text-lg max-w-sm mb-8">
+        Buy, sell, and connect with trusted neighbors in your residential community.
+      </p>
+      <div className="flex gap-3">
+        <Link to="/auth">
+          <Button size="lg" className="font-semibold px-8">
+            Join Now <ChevronRight size={18} className="ml-1" />
+          </Button>
+        </Link>
+        <Link to="/auth">
+          <Button size="lg" variant="outline" className="font-semibold">Sign In</Button>
+        </Link>
+      </div>
+    </div>,
+
+    // Slide 2: Trust & Safety
+    <div key="trust" className="min-h-[100dvh] flex flex-col justify-center px-6 bg-gradient-to-br from-secondary via-background to-secondary/30">
+      <div className="max-w-sm mx-auto">
+        <Shield className="text-primary mb-6" size={48} />
+        <h2 className="text-3xl font-bold mb-4">Only Verified<br />Residents</h2>
+        <p className="text-muted-foreground text-base mb-8">
+          Every member is GPS-verified and admin-approved. Your community, your safety.
+        </p>
+        <div className="space-y-4">
+          {[
+            { icon: MapPin, text: 'GPS location verification at signup' },
+            { icon: Lock, text: 'Society invite code required' },
+            { icon: BadgeCheck, text: 'Admin-approved memberships' },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className="flex items-center gap-3 bg-card p-3 rounded-xl border border-border">
+              <Icon className="text-primary shrink-0" size={20} />
+              <span className="text-sm font-medium">{text}</span>
             </div>
-            
-            <h1 className="text-3xl font-bold text-white leading-tight">
-              Your Community<br />
-              <span className="text-primary">Marketplace</span>
-            </h1>
-            
-            <p className="text-white/90 text-base max-w-xs">
-              Your neighborhood's trusted marketplace for homemade food, services & more.
-            </p>
-
-            {/* Quick CTA in Hero */}
-            <div className="flex gap-3 pt-2">
-              <Link to="/auth">
-                <Button size="lg" className="font-semibold">
-                  Join Now
-                  <ChevronRight size={18} className="ml-1" />
-                </Button>
-              </Link>
-              <Link to="/auth">
-                <Button size="lg" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
+    </div>,
 
-      {/* About Section */}
-      <div className="px-6 py-6 -mt-2 relative z-10">
-        <div className="bg-card rounded-2xl shadow-lg p-5 border border-border">
-          <h2 className="text-base font-semibold mb-3">What is BlockEats?</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            A <span className="text-foreground font-medium">private marketplace</span> exclusively for verified residential society members. 
-            Order homemade meals from neighbors, hire trusted local services, rent party supplies, 
-            find tutors for your kids — all from verified community members you can trust.
-          </p>
-          <div className="flex items-center gap-2 text-xs text-primary font-medium">
-            <Shield size={14} />
-            <span>Only verified residents can join</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="px-6 py-4">
-        <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-          <ShoppingBag className="text-primary" size={18} />
-          What You Can Do
-        </h2>
-          
-        <div className="space-y-3">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <div 
-                key={index}
-                className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${feature.color}`}>
-                  <Icon size={20} />
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm">{feature.title}</h3>
-                  <p className="text-xs text-muted-foreground">{feature.description}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Benefits Section */}
-      <div className="px-6 py-4">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Star className="text-warning" size={20} />
-          Why Choose Us
-        </h2>
-        
+    // Slide 3: What You Can Do
+    <div key="categories" className="min-h-[100dvh] flex flex-col justify-center px-6 bg-gradient-to-br from-accent/10 via-background to-primary/5">
+      <div className="max-w-sm mx-auto">
+        <h2 className="text-3xl font-bold mb-2">Everything You Need</h2>
+        <p className="text-muted-foreground mb-6">From your neighbors, for your community.</p>
         <div className="grid grid-cols-2 gap-3">
-          {benefits.map((benefit, index) => {
-            const Icon = benefit.icon;
-            return (
-              <div 
-                key={index}
-                className="p-4 rounded-xl bg-card border border-border"
-              >
-                <Icon className="text-primary mb-2" size={24} />
-                <h3 className="font-medium text-sm mb-1">{benefit.title}</h3>
-                <p className="text-xs text-muted-foreground">{benefit.description}</p>
+          {[
+            { icon: Utensils, title: 'Home Food', desc: 'Fresh meals & snacks', color: 'bg-orange-500/10 text-orange-500' },
+            { icon: GraduationCap, title: 'Classes', desc: 'Yoga, dance, tutoring', color: 'bg-purple-500/10 text-purple-500' },
+            { icon: Wrench, title: 'Services', desc: 'Electrician, plumber...', color: 'bg-blue-500/10 text-blue-500' },
+            { icon: Package, title: 'Rentals', desc: 'Party supplies & more', color: 'bg-pink-500/10 text-pink-500' },
+            { icon: ShoppingBag, title: 'Buy & Sell', desc: 'Pre-loved items', color: 'bg-green-500/10 text-green-500' },
+            { icon: Ticket, title: 'Coupons', desc: 'Exclusive deals', color: 'bg-amber-500/10 text-amber-500' },
+          ].map(({ icon: Icon, title, desc, color }) => (
+            <div key={title} className="p-4 rounded-xl bg-card border border-border">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${color}`}>
+                <Icon size={20} />
               </div>
-            );
-          })}
+              <h3 className="font-semibold text-sm">{title}</h3>
+              <p className="text-xs text-muted-foreground">{desc}</p>
+            </div>
+          ))}
         </div>
       </div>
+    </div>,
 
-      {/* Testimonial/Social Proof */}
-      <div className="px-6 py-6">
-        <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-2xl p-6 border border-primary/20">
-          <div className="flex items-center gap-1 mb-3">
+    // Slide 4: For Sellers
+    <div key="sellers" className="min-h-[100dvh] flex flex-col justify-center px-6 bg-gradient-to-br from-primary/5 via-background to-accent/10">
+      <div className="max-w-sm mx-auto">
+        <TrendingUp className="text-primary mb-6" size={48} />
+        <h2 className="text-3xl font-bold mb-4">Turn Your Passion<br />Into <span className="text-primary">Income</span></h2>
+        <p className="text-muted-foreground text-base mb-8">
+          Set up your store in minutes. Reach hundreds of neighbors instantly.
+        </p>
+        <div className="space-y-3">
+          {['Zero listing fee to start', 'Built-in coupon & promotion tools', 'Real-time order dashboard', 'UPI & COD payments supported'].map((text) => (
+            <div key={text} className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                <ChevronRight className="text-primary" size={14} />
+              </div>
+              <span className="text-sm">{text}</span>
+            </div>
+          ))}
+        </div>
+        <Link to="/auth" className="block mt-8">
+          <Button size="lg" className="w-full font-semibold">Start Selling Today</Button>
+        </Link>
+      </div>
+    </div>,
+
+    // Slide 5: Social Proof + CTA
+    <div key="social" className="min-h-[100dvh] flex flex-col justify-center px-6 bg-gradient-to-br from-secondary/20 via-background to-primary/10">
+      <div className="max-w-sm mx-auto text-center">
+        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm mb-8">
+          <div className="flex justify-center gap-1 mb-3">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className="fill-warning text-warning" size={16} />
+              <Star key={i} className="fill-warning text-warning" size={18} />
             ))}
           </div>
           <p className="text-sm italic text-foreground/80 mb-3">
-            "Finally a marketplace just for our community! I love ordering homemade food from my neighbors. It's fresh, tasty, and delivered in minutes!"
+            "Finally a marketplace just for our community! Fresh food from neighbors, trusted services — all in one app."
           </p>
-          <p className="text-xs font-medium text-muted-foreground">
-            — Priya S., Block C Resident
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">— Priya S., Verified Resident</p>
         </div>
-      </div>
 
-      {/* Stats Section */}
-      <div className="px-6 py-4">
-        <div className="flex justify-around text-center">
+        <div className="flex justify-around mb-8 bg-card rounded-xl p-4 border border-border">
           <div>
-            <p className="text-2xl font-bold text-primary">50+</p>
-            <p className="text-xs text-muted-foreground">Local Sellers</p>
+            <p className="text-2xl font-bold text-primary">{stats.societies || '10'}+</p>
+            <p className="text-xs text-muted-foreground">Societies</p>
           </div>
           <div className="w-px bg-border" />
           <div>
-            <p className="text-2xl font-bold text-primary">12</p>
+            <p className="text-2xl font-bold text-primary">{stats.sellers || '50'}+</p>
+            <p className="text-xs text-muted-foreground">Sellers</p>
+          </div>
+          <div className="w-px bg-border" />
+          <div>
+            <p className="text-2xl font-bold text-primary">{stats.categories || '12'}+</p>
             <p className="text-xs text-muted-foreground">Categories</p>
           </div>
-          <div className="w-px bg-border" />
-          <div>
-            <p className="text-2xl font-bold text-primary">100%</p>
-            <p className="text-xs text-muted-foreground">Verified</p>
-          </div>
+        </div>
+
+        <Link to="/auth" className="block">
+          <Button className="w-full h-14 text-base font-semibold" size="lg">
+            Get Started <ChevronRight className="ml-2" size={20} />
+          </Button>
+        </Link>
+        <p className="text-xs text-muted-foreground mt-4">
+          <Link to="/auth" className="text-primary hover:underline">Already have an account? Sign in</Link>
+        </p>
+      </div>
+    </div>,
+  ];
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Carousel */}
+      <div className="relative" ref={emblaRef}>
+        <div className="flex">
+          {slides.map((slide, i) => (
+            <div key={i} className="min-w-0 shrink-0 grow-0 basis-full">
+              {slide}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* CTA Section */}
-      <div className="px-6 py-8 pb-12 safe-bottom">
-        <div className="space-y-3">
-          <Link to="/auth" className="block">
-            <Button className="w-full h-14 text-base font-semibold" size="lg">
-              Get Started
-              <ChevronRight className="ml-2" size={20} />
-            </Button>
-          </Link>
-          
-          <p className="text-center text-xs text-muted-foreground">
-            Available for verified residential society members.<br />
-            <Link to="/auth" className="text-primary hover:underline">
-              Already have an account? Sign in
-            </Link>
-          </p>
-        </div>
+      {/* Dot Indicators */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-card/80 backdrop-blur-sm px-4 py-2 rounded-full border border-border shadow-lg safe-bottom">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => emblaApi?.scrollTo(i)}
+            className={`w-2.5 h-2.5 rounded-full transition-all ${
+              activeSlide === i ? 'bg-primary w-6' : 'bg-muted-foreground/30'
+            }`}
+          />
+        ))}
       </div>
 
-      {/* Footer Links */}
-      <div className="px-6 pb-8 flex justify-center gap-4 text-xs text-muted-foreground">
-        <Link to="/privacy-policy" className="hover:text-foreground">Privacy Policy</Link>
+      {/* Footer */}
+      <div className="fixed top-4 right-4 z-50">
+        <Link to="/auth">
+          <Button size="sm" variant="secondary" className="font-medium shadow-lg">
+            Sign In
+          </Button>
+        </Link>
+      </div>
+
+      {/* Legal Footer */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex justify-center gap-4 text-xs text-muted-foreground pb-2 safe-bottom">
+        <Link to="/privacy-policy" className="hover:text-foreground">Privacy</Link>
         <span>•</span>
-        <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
+        <Link to="/terms" className="hover:text-foreground">Terms</Link>
+        <span>•</span>
+        <Link to="/pricing" className="hover:text-foreground">Pricing</Link>
       </div>
     </div>
   );

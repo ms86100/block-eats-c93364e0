@@ -34,6 +34,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsPage from "./pages/TermsPage";
 import CategoryGroupPage from "./pages/CategoryGroupPage";
+import PricingPage from "./pages/PricingPage";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -111,6 +112,7 @@ function AppRoutes() {
       <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminPage /></AdminRoute></ProtectedRoute>} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

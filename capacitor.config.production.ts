@@ -14,7 +14,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.greenfield.community',
-  appName: 'Greenfield Community',
+  appName: 'Sociva',
   webDir: 'dist',
   
   // NO server block - app loads from bundled assets
