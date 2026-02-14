@@ -64,14 +64,14 @@ export default function TermsPage() {
                 <li>Honor accepted orders and deliver on time</li>
                 <li>Handle customer complaints professionally</li>
                 <li>Comply with all applicable regulations</li>
-                <li>Sellers in food, bakery, or snack categories must hold a valid FSSAI registration/license number as per Food Safety and Standards Act, 2006</li>
+                <li>Sellers in regulated categories must hold valid licenses as configured by the platform (e.g., FSSAI for food, Clinical Establishment License for medical services)</li>
               </ul>
             </section>
 
             <section>
-              <h3 className="font-semibold mb-2">7. FSSAI Compliance</h3>
+              <h3 className="font-semibold mb-2">7. Regulatory Compliance</h3>
               <p className="text-muted-foreground">
-                All food-related sellers must provide a valid 14-digit FSSAI registration number. Sociva displays this information for consumer transparency but does not independently verify FSSAI compliance. Sellers are solely responsible for maintaining valid food safety certifications.
+                Sellers in regulated categories must provide valid license or registration documents as required by applicable laws (e.g., FSSAI for food, Clinical Establishment License for medical services). Sociva displays this information for consumer transparency but does not independently verify compliance. Sellers are solely responsible for maintaining valid certifications.
               </p>
             </section>
 

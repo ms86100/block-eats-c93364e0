@@ -342,7 +342,7 @@ export default function BecomeSellerPage() {
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>By submitting this application, I declare that:</p>
                 <ul className="space-y-0.5 ml-3">
-                  <li>• I hold all necessary licenses and registrations required for my business (including FSSAI for food-related categories)</li>
+                  <li>• I hold all necessary licenses and registrations as required for my business category</li>
                   <li>• I am solely responsible for product/service quality and safety</li>
                   <li>• I will comply with all applicable laws and regulations</li>
                   <li>• I will handle customer complaints professionally</li>

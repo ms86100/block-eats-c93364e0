@@ -573,7 +573,11 @@ export type Database = {
           icon: string
           id: string
           is_active: boolean
+          license_description: string | null
+          license_mandatory: boolean
+          license_type_name: string | null
           name: string
+          requires_license: boolean
           slug: string
           sort_order: number
           updated_at: string
@@ -585,7 +589,11 @@ export type Database = {
           icon?: string
           id?: string
           is_active?: boolean
+          license_description?: string | null
+          license_mandatory?: boolean
+          license_type_name?: string | null
           name: string
+          requires_license?: boolean
           slug: string
           sort_order?: number
           updated_at?: string
@@ -597,7 +605,11 @@ export type Database = {
           icon?: string
           id?: string
           is_active?: boolean
+          license_description?: string | null
+          license_mandatory?: boolean
+          license_type_name?: string | null
           name?: string
+          requires_license?: boolean
           slug?: string
           sort_order?: number
           updated_at?: string
@@ -910,6 +922,60 @@ export type Database = {
           },
           {
             foreignKeyName: "reviews_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_licenses: {
+        Row: {
+          admin_notes: string | null
+          document_url: string
+          group_id: string
+          id: string
+          license_number: string | null
+          license_type: string
+          reviewed_at: string | null
+          seller_id: string
+          status: string
+          submitted_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          document_url: string
+          group_id: string
+          id?: string
+          license_number?: string | null
+          license_type: string
+          reviewed_at?: string | null
+          seller_id: string
+          status?: string
+          submitted_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          document_url?: string
+          group_id?: string
+          id?: string
+          license_number?: string | null
+          license_type?: string
+          reviewed_at?: string | null
+          seller_id?: string
+          status?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_licenses_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "parent_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_licenses_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "seller_profiles"
