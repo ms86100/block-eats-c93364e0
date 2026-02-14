@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, ChevronRight, Store, Heart, Award, MapPin, Utensils, Star, TrendingUp, Activity, ShoppingBag } from 'lucide-react';
+import { useEffectiveFeatures } from '@/hooks/useEffectiveFeatures';
+import { Search, ChevronRight, Store, Heart, Award, MapPin, Utensils, Star, TrendingUp, Activity, ShoppingBag, Shield } from 'lucide-react';
 import {
   useOpenNowSellers,
   useNearbyBlockSellers,
@@ -22,6 +23,7 @@ import {
 export default function HomePage() {
   const { user, profile, isApproved, isSeller, society } = useAuth();
   const { showOnboarding, hasChecked, completeOnboarding } = useOnboarding();
+  const { isFeatureEnabled } = useEffectiveFeatures();
 
   const { data: openNowSellers = [], isLoading: loadingOpen } = useOpenNowSellers();
   const { data: nearbyBlockSellers = [] } = useNearbyBlockSellers();
@@ -52,6 +54,24 @@ export default function HomePage() {
   return (
     <AppLayout>
       <div className="pb-4">
+        {/* Gate Entry Button */}
+        {isFeatureEnabled('resident_identity_verification') && (
+          <div className="px-4 pt-4">
+            <Link to="/gate-entry">
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Shield className="text-primary" size={24} />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-foreground">Gate Entry</h4>
+                  <p className="text-sm text-muted-foreground">Show QR code to security</p>
+                </div>
+                <ChevronRight className="text-muted-foreground" size={20} />
+              </div>
+            </Link>
+          </div>
+        )}
+
         {/* ═══════════════════════════════════════════════════════ */}
         {/* SECTION 1: SOCIETY HEALTH DASHBOARD (Trust-First)     */}
         {/* ═══════════════════════════════════════════════════════ */}

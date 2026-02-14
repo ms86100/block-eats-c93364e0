@@ -17,7 +17,8 @@ export type FeatureKey =
   | 'payment_milestones'
   | 'maintenance'
   | 'guard_kiosk'
-  | 'vehicle_parking';
+  | 'vehicle_parking'
+  | 'resident_identity_verification';
 
 export type FeatureState = 'enabled' | 'disabled' | 'locked' | 'unavailable';
 

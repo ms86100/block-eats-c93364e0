@@ -22,7 +22,8 @@ interface VerifiedVisitor {
 }
 
 export default function GuardKioskPage() {
-  const { effectiveSocietyId, isSocietyAdmin, isAdmin } = useAuth();
+  const { effectiveSocietyId, isSocietyAdmin, isAdmin, roles } = useAuth();
+  const isSecurityOfficer = roles?.includes('security_officer' as any);
   const [otpInput, setOtpInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifiedVisitor, setVerifiedVisitor] = useState<VerifiedVisitor | null>(null);
@@ -83,13 +84,13 @@ export default function GuardKioskPage() {
     toast.info('Entry denied');
   };
 
-  if (!isSocietyAdmin && !isAdmin) {
+  if (!isSocietyAdmin && !isAdmin && !isSecurityOfficer) {
     return (
       <AppLayout headerTitle="Guard Kiosk" showLocation={false}>
         <div className="p-4 text-center py-20 text-muted-foreground">
           <Shield size={48} className="mx-auto mb-4 opacity-50" />
           <p className="font-medium">Access Restricted</p>
-          <p className="text-sm">Only society admins can access the guard kiosk.</p>
+          <p className="text-sm">Only society admins and security officers can access the guard kiosk.</p>
         </div>
       </AppLayout>
     );

@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   IndianRupee, Building2, Bug, ShieldAlert, FileText, 
   MessageCircle, Radio, ChevronRight, CreditCard, Clock, BarChart3, Shield,
-  Users, ClipboardCheck, Landmark, Package, UserCheck, ShieldCheck, Car
+  Users, ClipboardCheck, Landmark, Package, UserCheck, ShieldCheck, Car, QrCode
 } from 'lucide-react';
 
 interface DashboardStat {
@@ -109,6 +109,7 @@ export default function SocietyDashboardPage() {
     { icon: MessageCircle, label: 'Q&A', to: '/society/progress', stat: `${stats.unansweredQs} unanswered`, color: 'text-primary' },
     { icon: CreditCard, label: 'Maintenance', to: '/maintenance', stat: stats.pendingDues > 0 ? `${stats.pendingDues} pending` : 'All clear', color: 'text-success' },
     ...(isSocietyAdmin ? [
+      { icon: QrCode, label: 'Security Verify', to: '/security/verify', stat: 'Scan resident QR', color: 'text-success' } as DashboardStat,
       { icon: ShieldCheck, label: 'Guard Kiosk', to: '/guard-kiosk', stat: 'Verify visitor OTPs', color: 'text-success' } as DashboardStat,
       { icon: Shield, label: 'Society Admin', to: '/society/admin', stat: 'Manage society', color: 'text-info' } as DashboardStat,
     ] : []),

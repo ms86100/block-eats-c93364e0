@@ -1367,6 +1367,70 @@ export type Database = {
           },
         ]
       }
+      gate_entries: {
+        Row: {
+          confirmation_status: string | null
+          created_at: string
+          entry_time: string
+          entry_type: string
+          flat_number: string | null
+          id: string
+          notes: string | null
+          resident_name: string | null
+          society_id: string
+          user_id: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          confirmation_status?: string | null
+          created_at?: string
+          entry_time?: string
+          entry_type?: string
+          flat_number?: string | null
+          id?: string
+          notes?: string | null
+          resident_name?: string | null
+          society_id: string
+          user_id?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          confirmation_status?: string | null
+          created_at?: string
+          entry_time?: string
+          entry_type?: string
+          flat_number?: string | null
+          id?: string
+          notes?: string | null
+          resident_name?: string | null
+          society_id?: string
+          user_id?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gate_entries_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gate_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gate_entries_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_requests: {
         Row: {
           author_id: string
@@ -1639,6 +1703,67 @@ export type Database = {
           },
           {
             foreignKeyName: "maintenance_dues_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_entry_requests: {
+        Row: {
+          claimed_name: string
+          created_at: string
+          expires_at: string
+          flat_number: string
+          id: string
+          requested_by: string | null
+          resident_id: string | null
+          responded_at: string | null
+          society_id: string
+          status: string
+        }
+        Insert: {
+          claimed_name: string
+          created_at?: string
+          expires_at?: string
+          flat_number: string
+          id?: string
+          requested_by?: string | null
+          resident_id?: string | null
+          responded_at?: string | null
+          society_id: string
+          status?: string
+        }
+        Update: {
+          claimed_name?: string
+          created_at?: string
+          expires_at?: string
+          flat_number?: string
+          id?: string
+          requested_by?: string | null
+          resident_id?: string | null
+          responded_at?: string | null
+          society_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_entry_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_entry_requests_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_entry_requests_society_id_fkey"
             columns: ["society_id"]
             isOneToOne: false
             referencedRelation: "societies"
@@ -2963,6 +3088,58 @@ export type Database = {
           },
         ]
       }
+      security_staff: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          deactivated_at: string | null
+          id: string
+          is_active: boolean
+          society_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          deactivated_at?: string | null
+          id?: string
+          is_active?: boolean
+          society_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          deactivated_at?: string | null
+          id?: string
+          is_active?: boolean
+          society_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_staff_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_staff_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_staff_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_licenses: {
         Row: {
           admin_notes: string | null
@@ -4165,6 +4342,10 @@ export type Database = {
         Args: { _feature_key: string; _society_id: string }
         Returns: boolean
       }
+      is_security_officer: {
+        Args: { _society_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_society_admin: {
         Args: { _society_id: string; _user_id: string }
         Returns: boolean
@@ -4288,7 +4469,7 @@ export type Database = {
         | "flat_rent"
         | "roommate"
         | "parking"
-      user_role: "buyer" | "seller" | "admin"
+      user_role: "buyer" | "seller" | "admin" | "security_officer"
       verification_status: "pending" | "approved" | "rejected" | "suspended"
     }
     CompositeTypes: {
@@ -4489,7 +4670,7 @@ export const Constants = {
         "roommate",
         "parking",
       ],
-      user_role: ["buyer", "seller", "admin"],
+      user_role: ["buyer", "seller", "admin", "security_officer"],
       verification_status: ["pending", "approved", "rejected", "suspended"],
     },
   },
