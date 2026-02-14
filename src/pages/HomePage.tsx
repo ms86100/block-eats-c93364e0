@@ -6,12 +6,13 @@ import { CategoryGroupGrid } from '@/components/category/CategoryGroupGrid';
 import { SellerCard } from '@/components/seller/SellerCard';
 import { OnboardingWalkthrough, useOnboarding } from '@/components/onboarding/OnboardingWalkthrough';
 import { TrustScoreDetailed } from '@/components/trust/TrustScoreDetailed';
+import { ActivityFeed } from '@/components/activity/ActivityFeed';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { SellerProfile } from '@/types/database';
-import { Search, ChevronRight, Store, Clock, Heart, Award, MapPin, Utensils, Star, TrendingUp } from 'lucide-react';
+import { Search, ChevronRight, Store, Clock, Heart, Award, MapPin, Utensils, Star, TrendingUp, Activity } from 'lucide-react';
 import heroBanner from '@/assets/hero-banner.jpg';
 
 export default function HomePage() {
@@ -159,6 +160,15 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
+        </div>
+
+        {/* Society Activity Feed */}
+        <div className="px-4 mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Activity className="text-primary" size={18} />
+            <h3 className="font-semibold">Recent in your society</h3>
+          </div>
+          <ActivityFeed />
         </div>
 
         {/* Trust Score */}

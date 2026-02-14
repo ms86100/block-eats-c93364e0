@@ -82,7 +82,29 @@ export function SnagDetailSheet({
             </p>
           </div>
 
-          {/* Photos */}
+          {/* Acknowledgment Indicator */}
+          {ticket.acknowledged_at ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20">
+              <ShieldCheck size={14} className="text-success" />
+              <span className="text-xs text-success font-medium">
+                Seen by committee — {format(new Date(ticket.acknowledged_at), 'MMM d, h:mm a')}
+              </span>
+            </div>
+          ) : (
+            (() => {
+              const hoursSince = (Date.now() - new Date(ticket.created_at).getTime()) / 3600000;
+              return hoursSince > 48 ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20">
+                  <AlertTriangle size={14} className="text-warning" />
+                  <span className="text-xs text-warning font-medium">
+                    Awaiting review — submitted {Math.floor(hoursSince / 24)} days ago
+                  </span>
+                </div>
+              ) : null;
+            })()
+          )}
+
+
           {ticket.photo_urls.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
               {ticket.photo_urls.map((url, i) => (

@@ -941,6 +941,60 @@ export type Database = {
           },
         ]
       }
+      maintenance_dues: {
+        Row: {
+          amount: number
+          created_at: string
+          flat_identifier: string
+          id: string
+          month: string
+          paid_date: string | null
+          receipt_url: string | null
+          resident_id: string | null
+          society_id: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          flat_identifier: string
+          id?: string
+          month: string
+          paid_date?: string | null
+          receipt_url?: string | null
+          resident_id?: string | null
+          society_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          flat_identifier?: string
+          id?: string
+          month?: string
+          paid_date?: string | null
+          receipt_url?: string | null
+          resident_id?: string | null
+          society_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_dues_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_dues_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestone_reactions: {
         Row: {
           created_at: string
@@ -2128,6 +2182,60 @@ export type Database = {
           },
         ]
       }
+      society_activity: {
+        Row: {
+          activity_type: string
+          actor_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          reference_id: string | null
+          reference_type: string | null
+          society_id: string
+          title: string
+        }
+        Insert: {
+          activity_type: string
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          reference_id?: string | null
+          reference_type?: string | null
+          society_id: string
+          title: string
+        }
+        Update: {
+          activity_type?: string
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          reference_id?: string | null
+          reference_type?: string | null
+          society_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_activity_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "society_activity_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       society_expenses: {
         Row: {
           added_by: string
@@ -2335,6 +2443,50 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          reference_id: string | null
+          reference_path: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          reference_id?: string | null
+          reference_path?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          reference_id?: string | null
+          reference_path?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

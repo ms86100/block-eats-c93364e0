@@ -134,6 +134,26 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
               <span>Filed {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}</span>
               <span>SLA: {format(new Date(ticket.sla_deadline), 'MMM d, h:mm a')}</span>
             </div>
+
+            {/* Seen by Committee indicator */}
+            {ticket.acknowledged_at ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20">
+                <span className="text-xs text-success font-medium">
+                  ✓ Seen by committee — {format(new Date(ticket.acknowledged_at), 'MMM d, h:mm a')}
+                </span>
+              </div>
+            ) : (
+              (() => {
+                const hoursSince = (Date.now() - new Date(ticket.created_at).getTime()) / 3600000;
+                return hoursSince > 48 ? (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20">
+                    <span className="text-xs text-warning font-medium">
+                      ⚠ Awaiting review — submitted {Math.floor(hoursSince / 24)} days ago
+                    </span>
+                  </div>
+                ) : null;
+              })()
+            )}
           </div>
 
           {/* Admin Actions */}

@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Notify all society members via push notification
- * This calls the send-push-notification edge function for each member
+ * Also writes to user_notifications table for persistent inbox
  */
 export async function notifySocietyMembers(
   societyId: string,
@@ -12,7 +12,6 @@ export async function notifySocietyMembers(
   excludeUserId?: string
 ): Promise<void> {
   try {
-    // Get all user IDs in this society
     const { data: members } = await supabase
       .from('profiles')
       .select('id')
@@ -21,12 +20,25 @@ export async function notifySocietyMembers(
 
     if (!members || members.length === 0) return;
 
-    // Send notification to each member (except excluded user)
     const targets = excludeUserId
       ? members.filter(m => m.id !== excludeUserId)
       : members;
 
-    // Fire and forget - don't await all
+    // Write persistent notifications to inbox
+    const notificationRows = targets.map(m => ({
+      user_id: m.id,
+      title,
+      body,
+      type: data?.type || 'general',
+      reference_path: data?.path || null,
+      reference_id: data?.reference_id || null,
+    }));
+
+    supabase.from('user_notifications').insert(notificationRows as any).then(({ error }) => {
+      if (error) console.error('Failed to write notifications:', error);
+    });
+
+    // Fire push notifications
     for (const member of targets) {
       supabase.functions.invoke('send-push-notification', {
         body: { userId: member.id, title, body, data },
@@ -47,7 +59,6 @@ export async function notifySocietyAdmins(
   data?: Record<string, string>
 ): Promise<void> {
   try {
-    // Get admin user IDs in this society
     const { data: adminRoles } = await supabase
       .from('user_roles')
       .select('user_id')
@@ -57,7 +68,6 @@ export async function notifySocietyAdmins(
 
     const adminIds = adminRoles.map(r => r.user_id);
 
-    // Filter to only admins in this society
     const { data: adminProfiles } = await supabase
       .from('profiles')
       .select('id')
@@ -65,6 +75,20 @@ export async function notifySocietyAdmins(
       .in('id', adminIds);
 
     if (!adminProfiles) return;
+
+    // Write persistent notifications
+    const notificationRows = adminProfiles.map(a => ({
+      user_id: a.id,
+      title,
+      body,
+      type: data?.type || 'admin',
+      reference_path: data?.path || null,
+      reference_id: data?.reference_id || null,
+    }));
+
+    supabase.from('user_notifications').insert(notificationRows as any).then(({ error }) => {
+      if (error) console.error('Failed to write admin notifications:', error);
+    });
 
     for (const admin of adminProfiles) {
       supabase.functions.invoke('send-push-notification', {
