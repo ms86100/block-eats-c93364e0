@@ -7,16 +7,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { Profile, SellerProfile, VerificationStatus, SocietyAdmin } from '@/types/database';
-import { Check, X, Users, Store, Settings, Shield, UserPlus, Trash2, ToggleLeft } from 'lucide-react';
+import { Check, X, Users, Store, Settings, Shield, UserPlus, Trash2, ToggleLeft, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAudit } from '@/lib/audit';
 import { SocietySwitcher } from '@/components/admin/SocietySwitcher';
-import { useSocietyFeatures, FeatureKey } from '@/hooks/useSocietyFeatures';
+import { useEffectiveFeatures } from '@/hooks/useEffectiveFeatures';
+import type { FeatureKey } from '@/hooks/useEffectiveFeatures';
 
 const FEATURE_LABELS: Record<FeatureKey, { label: string; description: string }> = {
   marketplace: { label: 'Marketplace', description: 'Buy & sell within the society' },
@@ -47,7 +49,7 @@ export default function SocietyAdminPage() {
   const [appointOpen, setAppointOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
-  const { isFeatureEnabled, toggleFeature } = useSocietyFeatures();
+  const { features, isFeatureEnabled, getFeatureState, isConfigurable, toggleFeature } = useEffectiveFeatures();
 
   const societyId = effectiveSocietyId;
 
@@ -327,25 +329,43 @@ export default function SocietyAdminPage() {
             {societyAdmins.length === 0 && <p className="text-center text-muted-foreground py-8 text-sm">No admins appointed yet</p>}
           </TabsContent>
 
-          {/* Features Tab */}
           <TabsContent value="features" className="space-y-2 mt-4">
             <div className="flex items-center gap-2 mb-3">
               <ToggleLeft size={16} className="text-primary" />
               <h3 className="text-sm font-semibold text-muted-foreground">Society Features</h3>
             </div>
             <Card><CardContent className="p-4 space-y-4">
-              {(Object.keys(FEATURE_LABELS) as FeatureKey[]).map((key) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">{FEATURE_LABELS[key].label}</Label>
-                    <p className="text-xs text-muted-foreground">{FEATURE_LABELS[key].description}</p>
+              {(Object.keys(FEATURE_LABELS) as FeatureKey[]).map((key) => {
+                const state = getFeatureState(key);
+                const configurable = isConfigurable(key);
+                const enabled = isFeatureEnabled(key);
+
+                return (
+                  <div key={key} className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <Label className="text-sm font-medium">{FEATURE_LABELS[key].label}</Label>
+                        {state === 'locked' && (
+                          <Badge variant="secondary" className="text-[8px] h-4 gap-0.5">
+                            <Lock size={8} /> Locked
+                          </Badge>
+                        )}
+                        {state === 'unavailable' && (
+                          <Badge variant="outline" className="text-[8px] h-4 text-muted-foreground">
+                            Not in plan
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{FEATURE_LABELS[key].description}</p>
+                    </div>
+                    <Switch
+                      checked={enabled}
+                      disabled={!configurable}
+                      onCheckedChange={(checked) => toggleFeature.mutate({ key, enabled: checked })}
+                    />
                   </div>
-                  <Switch
-                    checked={isFeatureEnabled(key)}
-                    onCheckedChange={(checked) => toggleFeature.mutate({ key, enabled: checked })}
-                  />
-                </div>
-              ))}
+                );
+              })}
             </CardContent></Card>
           </TabsContent>
 

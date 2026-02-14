@@ -128,6 +128,55 @@ export type Database = {
         }
         Relationships: []
       }
+      builder_feature_packages: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          builder_id: string
+          expires_at: string | null
+          id: string
+          package_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          builder_id: string
+          expires_at?: string | null
+          id?: string
+          package_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          builder_id?: string
+          expires_at?: string | null
+          id?: string
+          package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_feature_packages_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "builder_feature_packages_builder_id_fkey"
+            columns: ["builder_id"]
+            isOneToOne: false
+            referencedRelation: "builders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "builder_feature_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "feature_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       builder_members: {
         Row: {
           builder_id: string
@@ -1205,6 +1254,69 @@ export type Database = {
           },
         ]
       }
+      feature_package_items: {
+        Row: {
+          enabled: boolean
+          feature_id: string
+          id: string
+          package_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          feature_id: string
+          id?: string
+          package_id: string
+        }
+        Update: {
+          enabled?: boolean
+          feature_id?: string
+          id?: string
+          package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_package_items_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "platform_features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_package_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "feature_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_packages: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          package_name: string
+          price_tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          package_name: string
+          price_tier?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          package_name?: string
+          price_tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       featured_items: {
         Row: {
           created_at: string | null
@@ -2269,6 +2381,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_features: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          feature_key: string
+          feature_name: string
+          id: string
+          is_core: boolean
+          is_experimental: boolean
+          society_configurable: boolean
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          feature_key: string
+          feature_name: string
+          id?: string
+          is_core?: boolean
+          is_experimental?: boolean
+          society_configurable?: boolean
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          is_core?: boolean
+          is_experimental?: boolean
+          society_configurable?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -3430,6 +3581,55 @@ export type Database = {
           },
         ]
       }
+      society_feature_overrides: {
+        Row: {
+          feature_id: string
+          id: string
+          is_enabled: boolean
+          overridden_at: string
+          overridden_by: string | null
+          society_id: string
+        }
+        Insert: {
+          feature_id: string
+          id?: string
+          is_enabled: boolean
+          overridden_at?: string
+          overridden_by?: string | null
+          society_id: string
+        }
+        Update: {
+          feature_id?: string
+          id?: string
+          is_enabled?: boolean
+          overridden_at?: string
+          overridden_by?: string | null
+          society_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_feature_overrides_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "platform_features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "society_feature_overrides_overridden_by_fkey"
+            columns: ["overridden_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "society_feature_overrides_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       society_features: {
         Row: {
           config: Json
@@ -3938,6 +4138,15 @@ export type Database = {
       }
       get_builder_dashboard: { Args: { _builder_id: string }; Returns: Json }
       get_category_parent_group: { Args: { cat: string }; Returns: string }
+      get_effective_society_features: {
+        Args: { _society_id: string }
+        Returns: {
+          feature_key: string
+          is_enabled: boolean
+          society_configurable: boolean
+          source: string
+        }[]
+      }
       get_user_auth_context: { Args: { _user_id: string }; Returns: Json }
       get_user_society_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -3950,6 +4159,10 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_builder_member: {
         Args: { _builder_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_feature_enabled_for_society: {
+        Args: { _feature_key: string; _society_id: string }
         Returns: boolean
       }
       is_society_admin: {

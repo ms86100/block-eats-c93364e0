@@ -1,4 +1,5 @@
-import { useSocietyFeatures, FeatureKey } from '@/hooks/useSocietyFeatures';
+import { useEffectiveFeatures } from '@/hooks/useEffectiveFeatures';
+import type { FeatureKey } from '@/hooks/useEffectiveFeatures';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShieldOff } from 'lucide-react';
 
@@ -9,7 +10,7 @@ interface FeatureGateProps {
 }
 
 export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
-  const { isFeatureEnabled, isLoading } = useSocietyFeatures();
+  const { isFeatureEnabled, isLoading } = useEffectiveFeatures();
 
   if (isLoading) {
     return (

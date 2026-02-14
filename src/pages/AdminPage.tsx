@@ -33,6 +33,7 @@ import { AdminDisputesTab } from '@/components/admin/AdminDisputesTab';
 import { EmergencyBroadcastSheet } from '@/components/admin/EmergencyBroadcastSheet';
 import { logAudit } from '@/lib/audit';
 import { SocietySwitcher } from '@/components/admin/SocietySwitcher';
+import { FeatureManagement } from '@/components/admin/FeatureManagement';
 interface Report {
   id: string;
   reporter_id: string;
@@ -303,7 +304,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="w-full grid grid-cols-9">
+          <TabsList className="w-full grid grid-cols-10">
             <TabsTrigger value="users" className="text-[10px]">Users</TabsTrigger>
             <TabsTrigger value="sellers" className="text-[10px]">Sellers</TabsTrigger>
             <TabsTrigger value="societies" className="text-[10px]">Societies</TabsTrigger>
@@ -312,6 +313,7 @@ export default function AdminPage() {
             <TabsTrigger value="payments" className="text-[10px]">Payments</TabsTrigger>
             <TabsTrigger value="reviews" className="text-[10px]">Reviews</TabsTrigger>
             <TabsTrigger value="featured" className="text-[10px]">Featured</TabsTrigger>
+            <TabsTrigger value="features" className="text-[10px]">Features</TabsTrigger>
             <TabsTrigger value="settings" className="text-[10px]">Settings</TabsTrigger>
           </TabsList>
 
@@ -593,6 +595,10 @@ export default function AdminPage() {
                 <Switch checked={seller.is_featured} onCheckedChange={() => toggleSellerFeatured(seller)} />
               </CardContent></Card>
             ))}
+          </TabsContent>
+
+          <TabsContent value="features" className="mt-4">
+            <FeatureManagement />
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4 mt-4">

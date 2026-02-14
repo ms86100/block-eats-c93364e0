@@ -1,7 +1,8 @@
 import { Home, Store, Users, Building2, User } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useSocietyFeatures, FeatureKey } from '@/hooks/useSocietyFeatures';
+import { useEffectiveFeatures } from '@/hooks/useEffectiveFeatures';
+import type { FeatureKey } from '@/hooks/useEffectiveFeatures';
 
 const navItems: { to: string; icon: typeof Home; label: string; featureKey?: FeatureKey }[] = [
   { to: '/', icon: Home, label: 'Home' },
@@ -13,7 +14,7 @@ const navItems: { to: string; icon: typeof Home; label: string; featureKey?: Fea
 
 export function BottomNav() {
   const location = useLocation();
-  const { isFeatureEnabled, isLoading } = useSocietyFeatures();
+  const { isFeatureEnabled, isLoading } = useEffectiveFeatures();
 
   const visibleItems = isLoading
     ? navItems
