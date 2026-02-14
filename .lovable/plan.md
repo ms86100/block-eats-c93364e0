@@ -1,387 +1,167 @@
 
 
-# Sociva Platform Evolution: 4 Major Features Implementation Plan
+# Sociva Trust Architecture: 4 New Pillars Implementation Plan
 
-## Overview
-
-This plan covers the implementation of 4 high-impact features that will transform Sociva from a marketplace into a full community operating system. Each feature is designed to build incrementally, with the Community Bulletin Board receiving the richest treatment based on your specifications.
+## Vision
+Transform Sociva from a community marketplace into a **Trust-Rated Living Platform** by adding four new pillars: Enhanced Skill Exchange, Builder Transparency Dashboard, Financial Transparency Engine, and Silent Dispute System -- all unified by a **Society Trust Score**.
 
 ---
 
-## Feature Tracker (will be saved to `.lovable/feature-roadmap.md`)
+## What Gets Built
+
+### Pillar 1: Enhanced Skill & Help Exchange (Upgrade Existing)
+The current Trust Directory (`/directory`) is basic -- just skill name + endorsement. This upgrade makes it a proper **micro-marketplace for neighbor expertise**.
+
+**New capabilities:**
+- **Skill categories**: Professional (Doctor, CA, Lawyer) vs Hobby (Guitar, Cooking) vs Trade (Plumber, Electrician)
+- **Rate/pricing field**: Free, Paid (with indicative rate), or "Let's Discuss"
+- **Contact request system**: Instead of exposing phone numbers, a "Request Help" button sends a notification; the skill-holder accepts/declines
+- **Skill verification badge**: If a resident is also an approved seller in the same domain, auto-badge them as "Verified Provider"
+- **Response time tracking**: Average response time displayed on skill cards
+- **"Who Can Help?" quick search**: Prominent entry point from Home page
+
+**Database changes:**
+- Add columns to `skill_listings`: `category` (professional/hobby/trade), `pricing_type` (free/paid/negotiable), `indicative_rate`, `response_count`, `avg_response_hours`
+- New table: `skill_requests` (id, skill_id, requester_id, message, status [pending/accepted/declined/completed], created_at)
+- RLS: Society-scoped, only requester and skill-owner can see requests
+
+### Pillar 2: Builder Transparency Dashboard
+A **milestone tracker** for under-construction or newly delivered societies. Think "Domino's Pizza Tracker for real estate."
+
+**New capabilities:**
+- Society-level "Construction Progress" page (only for societies marked `is_under_construction`)
+- Admin/builder uploads milestone updates with photos and RERA stage tags
+- Timeline view showing progress: Foundation > Structure > MEP > Finishing > Handover
+- Each milestone has: title, description, photos, date, RERA stage tag, completion percentage
+- Residents can "react" to milestones (thumbs up/concern flag)
+- Push notification when a new milestone is posted
+- Public-facing progress page (no auth required) for prospective buyers
+
+**Database changes:**
+- Add column to `societies`: `is_under_construction` (boolean, default false)
+- New table: `construction_milestones` (id, society_id, title, description, stage [foundation/structure/mep/finishing/handover/completed], photos text[], completion_percentage int, posted_by uuid, created_at)
+- New table: `milestone_reactions` (id, milestone_id, user_id, reaction_type [thumbsup/concern], created_at, UNIQUE(milestone_id, user_id))
+- RLS: Anyone in society can view; only admins can insert/update milestones
+
+### Pillar 3: Financial Transparency Engine
+Replace opaque PDF audits with a **visual spending dashboard** for society maintenance funds.
+
+**New capabilities:**
+- Society-level "Finances" page showing monthly spending breakdown as interactive pie chart
+- Categories: Security, Water, Electricity, Repairs, Gardening, Lift Maintenance, Staff Salaries, Miscellaneous
+- Click any category to see line-item expenses with vendor name, amount, date, and optional invoice image
+- Monthly comparison view (bar chart) -- "Are we spending more than last month?"
+- Committee members (admin role) can add expense entries with invoice uploads
+- Summary card: Total collection vs Total spent vs Balance
+- Residents can flag an expense for clarification (creates a private ticket to committee)
+
+**Database changes:**
+- New table: `society_expenses` (id, society_id, category, title, amount, vendor_name, invoice_url, expense_date, added_by uuid, created_at)
+- New table: `society_income` (id, society_id, source [maintenance/penalty/interest/other], amount, description, income_date, added_by uuid, created_at)
+- New table: `expense_flags` (id, expense_id, flagged_by uuid, reason, status [open/resolved], admin_response, created_at)
+- RLS: View by society members; insert/update by admins only; expense_flags insertable by any society member, viewable by flagger + admins
+
+### Pillar 4: Silent Dispute System
+A **private, ticket-based escalation system** to replace toxic WhatsApp wars.
+
+**New capabilities:**
+- "Raise a Concern" button accessible from Profile menu and Community page
+- Private ticket form: category (Noise, Parking, Pet, Maintenance, Other), description, optional photo evidence
+- Tickets visible ONLY to the submitter and committee (admins)
+- SLA timer: 48 hours for committee acknowledgment, 7 days for resolution
+- Status flow: Submitted > Acknowledged > Under Review > Resolved / Escalated
+- Committee can add private notes, request more info, or mark resolved
+- Anonymous mode option: Committee sees the complaint but not who filed it (for sensitive issues)
+- Dashboard for committee showing open tickets, SLA breaches, resolution stats
+
+**Database changes:**
+- New table: `dispute_tickets` (id, society_id, submitted_by uuid, category, description, photo_urls text[], is_anonymous boolean, status [submitted/acknowledged/under_review/resolved/escalated/closed], sla_deadline timestamptz, acknowledged_at, resolved_at, created_at)
+- New table: `dispute_comments` (id, ticket_id, author_id uuid, body text, is_committee_note boolean, created_at)
+- RLS: Submitter can see own tickets + comments; admins see all tickets in their society; anonymous tickets hide submitted_by from non-admin queries
+
+---
+
+## Pillar 5 (Unifying Layer): Society Trust Score
+
+A computed, weighted score displayed on every society's profile and Home page.
+
+**Formula:**
+- **Vibrancy** (25%): Active skill listings + help requests answered in last 30 days
+- **Transparency** (25%): Number of financial entries posted + milestone updates in last 90 days
+- **Governance** (25%): Dispute resolution rate + average resolution time
+- **Community** (25%): Bulletin engagement (posts + comments + votes in last 30 days)
+
+**Implementation:**
+- Database function `calculate_society_trust_score(society_id)` that computes the score
+- Add column to `societies`: `trust_score` (numeric, default 0)
+- Cron job or trigger to recalculate daily
+- Display as a badge on Home page header and society profile
+- Score range: 0-10 with labels (Below 3: "Getting Started", 3-5: "Growing", 5-7: "Active", 7-9: "Thriving", 9+: "Model Community")
+
+---
+
+## New Routes
+
+| Route | Page | Access |
+|-------|------|--------|
+| `/directory` | Enhanced Trust Directory (upgrade) | Bottom nav / Profile menu |
+| `/society/progress` | Builder Transparency Dashboard | Society members + public |
+| `/society/finances` | Financial Transparency Engine | Society members only |
+| `/disputes` | My Dispute Tickets | Authenticated residents |
+| `/admin` (new tabs) | Dispute Management + Finance Admin | Admin only |
+
+---
+
+## New Files to Create
 
 ```text
-STATUS KEY: [ ] Todo  [~] In Progress  [x] Done
+src/pages/SocietyProgressPage.tsx
+src/pages/SocietyFinancesPage.tsx
+src/pages/DisputesPage.tsx
+src/components/directory/SkillRequestSheet.tsx
+src/components/progress/MilestoneCard.tsx
+src/components/progress/ProgressTimeline.tsx
+src/components/finances/SpendingPieChart.tsx
+src/components/finances/ExpenseList.tsx
+src/components/finances/AddExpenseSheet.tsx
+src/components/finances/IncomeVsExpenseChart.tsx
+src/components/disputes/CreateDisputeSheet.tsx
+src/components/disputes/DisputeTicketCard.tsx
+src/components/disputes/DisputeDetailSheet.tsx
+src/components/trust/SocietyTrustBadge.tsx
+```
 
-=== FEATURE 1: RECURRING SUBSCRIPTIONS ===
-[ ] Database tables: subscriptions, subscription_deliveries
-[ ] RLS policies for subscriptions
-[ ] SubscriptionSheet component (create/edit)
-[ ] Buyer: Subscribe button on seller products
-[ ] Buyer: My Subscriptions page
-[ ] Seller: Subscription management dashboard
-[ ] Auto-order generation edge function (cron)
-[ ] Pause/Resume/Cancel functionality
-[ ] Push notification for delivery reminders
+## Files to Modify
 
-=== FEATURE 2: COMMUNITY BULLETIN BOARD ===
-[ ] Database tables: bulletin_posts, bulletin_comments, bulletin_votes, bulletin_rsvps
-[ ] RLS policies (society-scoped)
-[ ] Realtime subscription for new posts
-[ ] BulletinPage with category tabs (Event/Alert/Maintenance/Poll/Lost & Found)
-[ ] CreatePostSheet with category picker + attachments
-[ ] PostCard component with vote/comment/RSVP actions
-[ ] Poll system with deadline + results visualization
-[ ] RSVP system with attendee count
-[ ] Attachment support (images via storage bucket)
-[ ] Society-level pinning (admin only)
-[ ] Auto-archive after 30 days (cron edge function)
-[ ] AI summary for long threads (Lovable AI integration)
-[ ] "Most Discussed Today" highlight section
-[ ] Search and filter within bulletin
-[ ] Bottom nav integration (new "Community" tab)
-
-=== FEATURE 3: QUICK HELP REQUESTS (SOS) ===
-[ ] Database table: help_requests, help_responses
-[ ] RLS policies (society-scoped)
-[ ] HelpRequestSheet (create with tags: Borrow/Emergency/Question/Offer)
-[ ] Help feed on Community page or dedicated tab
-[ ] Auto-expiry after configurable hours (default 24h)
-[ ] Private response system (only requester sees responders)
-[ ] Push notification for new requests in society
-
-=== FEATURE 4: COMMUNITY TRUST DIRECTORY ===
-[ ] Database table: skill_listings, skill_endorsements
-[ ] RLS policies
-[ ] TrustDirectoryPage with search
-[ ] SkillCard component with trust score
-[ ] Endorsement/recommendation system
-[ ] Integration with existing seller reviews for trust scoring
-[ ] Profile badge display
+```text
+src/pages/TrustDirectoryPage.tsx -- add categories, pricing, request system
+src/pages/HomePage.tsx -- add Trust Score badge, "Who Can Help?" quick link
+src/pages/ProfilePage.tsx -- add Disputes + Finances menu items
+src/pages/AdminPage.tsx -- add Disputes tab + Finances tab
+src/App.tsx -- add new routes
+src/components/layout/BottomNav.tsx -- no change needed (existing nav sufficient)
+.lovable/feature-roadmap.md -- update with new features
 ```
 
 ---
 
 ## Implementation Sequence
 
-We will build in this order for maximum impact:
-
-1. **Community Bulletin Board** (largest, most engaging -- 3 phases)
-2. **Quick Help Requests** (lightweight, reuses bulletin infrastructure)
-3. **Recurring Subscriptions** (monetization, independent module)
-4. **Trust Directory** (enrichment layer, builds on existing data)
-
----
-
-## FEATURE 1: Community Bulletin Board (Detailed)
-
-### Database Schema
-
-**Table: `bulletin_posts`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| society_id | uuid | FK to societies, scoping |
-| author_id | uuid | FK to profiles |
-| category | text | event / alert / maintenance / poll / lost_found |
-| title | text | Required, max 200 chars |
-| body | text | Markdown-supported content |
-| attachment_urls | text[] | Array of storage URLs |
-| is_pinned | boolean | Admin-only toggle |
-| is_archived | boolean | Auto-set after 30 days |
-| poll_options | jsonb | For polls: [{id, text, votes: 0}] |
-| poll_deadline | timestamptz | When poll voting closes |
-| event_date | timestamptz | For events |
-| event_location | text | For events |
-| rsvp_enabled | boolean | For events |
-| comment_count | integer | Denormalized counter |
-| vote_count | integer | Denormalized upvote counter |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
-
-**Table: `bulletin_comments`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| post_id | uuid | FK to bulletin_posts |
-| author_id | uuid | FK to profiles |
-| body | text | Comment text |
-| created_at | timestamptz | |
-
-**Table: `bulletin_votes`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| post_id | uuid | FK to bulletin_posts |
-| user_id | uuid | |
-| poll_option_id | text | If voting on a poll option |
-| vote_type | text | 'upvote' for posts, 'poll' for poll votes |
-| created_at | timestamptz | |
-| UNIQUE | | (post_id, user_id, vote_type) |
-
-**Table: `bulletin_rsvps`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| post_id | uuid | FK to bulletin_posts |
-| user_id | uuid | |
-| status | text | 'going' / 'maybe' / 'not_going' |
-| created_at | timestamptz | |
-| UNIQUE | | (post_id, user_id) |
-
-### RLS Policies
-
-All tables scoped to user's society via `get_user_society_id(auth.uid())`:
-- SELECT: Users can view posts in their society
-- INSERT: Authenticated users can create posts/comments in their society
-- UPDATE: Authors can edit their own posts; admins can pin/archive any post
-- DELETE: Authors can delete their own posts; admins can delete any
-
-### Realtime
-
-Enable realtime on `bulletin_posts` and `bulletin_comments` for live feed updates.
-
-### UI Components
-
-1. **BulletinPage** (`src/pages/BulletinPage.tsx`)
-   - Category filter tabs: All | Event | Alert | Maintenance | Poll | Lost & Found
-   - "Most Discussed Today" hero section (top 3 by comment_count in last 24h)
-   - Floating "+" button to create new post
-   - Search bar for filtering posts
-   - Pinned posts always shown at top
-
-2. **CreatePostSheet** (`src/components/bulletin/CreatePostSheet.tsx`)
-   - Category selector (icons for each type)
-   - Title + Body fields
-   - Image attachment upload (max 4 images, uses `app-images` bucket)
-   - Poll builder (add options, set deadline) -- shown when category = "poll"
-   - Event fields (date, location, enable RSVP) -- shown when category = "event"
-
-3. **PostCard** (`src/components/bulletin/PostCard.tsx`)
-   - Category badge with color coding
-   - Author name + block + time ago
-   - Title + truncated body
-   - Image carousel if attachments exist
-   - Action bar: Upvote | Comment count | Share
-   - Poll results bar chart (if poll)
-   - RSVP buttons (if event with rsvp_enabled)
-   - Pin indicator for admins
-
-4. **PostDetailSheet** (`src/components/bulletin/PostDetailSheet.tsx`)
-   - Full post content
-   - Comment thread
-   - AI Summary button (for posts with 10+ comments)
-   - Poll voting UI with real-time results
-
-5. **AI Summary** (`supabase/functions/summarize-thread/index.ts`)
-   - Edge function using Lovable AI (google/gemini-2.5-flash)
-   - Takes post body + all comments, returns 2-3 sentence summary
-   - Cached in post metadata to avoid repeated calls
-
-### Auto-Archive Cron
-
-Edge function `auto-archive-bulletin` runs daily:
-```sql
-UPDATE bulletin_posts 
-SET is_archived = true 
-WHERE created_at < now() - interval '30 days' 
-  AND is_archived = false 
-  AND is_pinned = false;
-```
-
-### Navigation Changes
-
-- Add "Community" tab to BottomNav (using `MessageSquare` or `Users` icon)
-- Route: `/community`
-- Positioned between "Orders" and "Profile" (or "Seller")
+**Phase 1**: Silent Dispute System (highest immediate pain relief, relatively simple)
+**Phase 2**: Financial Transparency Engine (high trust impact, uses recharts already installed)
+**Phase 3**: Enhanced Skill Exchange (upgrade existing directory)
+**Phase 4**: Builder Transparency Dashboard (niche but high-value for under-construction societies)
+**Phase 5**: Society Trust Score (unifying layer, depends on all above)
 
 ---
 
-## FEATURE 2: Quick Help Requests (SOS)
+## Technical Notes
 
-### Database Schema
-
-**Table: `help_requests`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| society_id | uuid | Scoping |
-| author_id | uuid | |
-| title | text | Short description |
-| description | text | Details |
-| tag | text | borrow / emergency / question / offer |
-| status | text | open / fulfilled / expired |
-| expires_at | timestamptz | Auto-set to created_at + 24h |
-| response_count | integer | Denormalized |
-| created_at | timestamptz | |
-
-**Table: `help_responses`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| request_id | uuid | FK |
-| responder_id | uuid | |
-| message | text | |
-| created_at | timestamptz | |
-
-### UI
-
-- Integrated as a tab within the Community/Bulletin page ("Help" tab)
-- HelpRequestCard with tag badge, time remaining, response count
-- Only the requester can see who responded (privacy)
-- Auto-expire cron reuses the bulletin archive function
-
----
-
-## FEATURE 3: Recurring Subscriptions
-
-### Database Schema
-
-**Table: `subscriptions`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| buyer_id | uuid | |
-| seller_id | uuid | |
-| product_id | uuid | |
-| frequency | text | daily / weekly / monthly |
-| quantity | integer | |
-| delivery_days | text[] | For weekly: ['Mon','Wed','Fri'] |
-| status | text | active / paused / cancelled |
-| next_delivery_date | date | |
-| pause_until | date | null if not paused |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
-
-**Table: `subscription_deliveries`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| subscription_id | uuid | FK |
-| order_id | uuid | FK to orders (auto-generated) |
-| scheduled_date | date | |
-| status | text | pending / delivered / skipped |
-| created_at | timestamptz | |
-
-### Edge Function: `process-subscriptions` (daily cron)
-
-- Queries active subscriptions where `next_delivery_date = today`
-- Creates orders automatically
-- Updates `next_delivery_date` based on frequency
-- Sends push notification to both buyer and seller
-
-### UI
-
-- "Subscribe" button on product cards (alongside "Add to Cart")
-- SubscriptionSheet: frequency picker, quantity, delivery days
-- My Subscriptions page (accessible from Profile)
-- Seller subscription management in Seller Dashboard
-
----
-
-## FEATURE 4: Community Trust Directory
-
-### Database Schema
-
-**Table: `skill_listings`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| user_id | uuid | |
-| society_id | uuid | |
-| skill_name | text | e.g. "Plumbing", "Math Tutoring" |
-| description | text | |
-| availability | text | |
-| trust_score | numeric | Computed from endorsements + reviews |
-| endorsement_count | integer | |
-| created_at | timestamptz | |
-
-**Table: `skill_endorsements`**
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| skill_id | uuid | FK |
-| endorser_id | uuid | |
-| comment | text | Optional recommendation |
-| created_at | timestamptz | |
-| UNIQUE | | (skill_id, endorser_id) |
-
-### UI
-
-- TrustDirectoryPage (`/directory`)
-- Searchable grid of skill cards
-- "Endorse" button for neighbors
-- Trust score badge on profile pages
-- Accessible from Profile page menu
-
----
-
-## Routing Changes Summary
-
-| Route | Page | Nav |
-|-------|------|-----|
-| `/community` | BulletinPage | Bottom nav "Community" tab |
-| `/community/:id` | PostDetailSheet (or page) | -- |
-| `/subscriptions` | MySubscriptionsPage | Profile menu |
-| `/directory` | TrustDirectoryPage | Profile menu |
-
----
-
-## Files to Create
-
-```text
-src/pages/BulletinPage.tsx
-src/pages/MySubscriptionsPage.tsx
-src/pages/TrustDirectoryPage.tsx
-src/components/bulletin/CreatePostSheet.tsx
-src/components/bulletin/PostCard.tsx
-src/components/bulletin/PostDetailSheet.tsx
-src/components/bulletin/PollBuilder.tsx
-src/components/bulletin/PollResults.tsx
-src/components/bulletin/RsvpButtons.tsx
-src/components/bulletin/CategoryFilter.tsx
-src/components/bulletin/MostDiscussedSection.tsx
-src/components/bulletin/HelpRequestCard.tsx
-src/components/bulletin/CreateHelpSheet.tsx
-src/components/subscription/SubscriptionSheet.tsx
-src/components/subscription/SubscriptionCard.tsx
-src/components/directory/SkillCard.tsx
-src/components/directory/EndorseButton.tsx
-supabase/functions/summarize-thread/index.ts
-supabase/functions/auto-archive-bulletin/index.ts
-supabase/functions/process-subscriptions/index.ts
-.lovable/feature-roadmap.md
-```
-
-## Files to Modify
-
-```text
-src/App.tsx -- add new routes
-src/components/layout/BottomNav.tsx -- add Community tab
-src/types/database.ts -- add new type interfaces
-```
-
----
-
-## Implementation Priority
-
-We will start with **Feature 2: Community Bulletin Board** (Phase 1) which includes:
-1. Database migration (all bulletin tables + RLS + realtime)
-2. BulletinPage with category tabs
-3. CreatePostSheet
-4. PostCard component
-5. Bottom nav update
-6. Pinning + basic interactions
-
-Then iterate with polls, RSVP, AI summary, auto-archive, and the remaining features.
+- All new tables use society-scoped RLS via existing `get_user_society_id()` function
+- Photo uploads use existing `app-images` storage bucket
+- Charts use `recharts` (already installed)
+- Push notifications use existing `send-push-notification` edge function
+- Trust Score calculation uses a `SECURITY DEFINER` function to aggregate across tables
+- Anonymous dispute mode implemented via RLS policy that hides `submitted_by` when `is_anonymous = true` for non-admin users
+- SLA deadlines set via Postgres default: `now() + interval '48 hours'` for acknowledgment
 
