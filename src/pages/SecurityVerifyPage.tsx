@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,8 +36,41 @@ export default function SecurityVerifyPage() {
   const [confirmTimeout, setConfirmTimeout] = useState(20);
   const [flatInput, setFlatInput] = useState('');
   const [nameInput, setNameInput] = useState('');
-  const [manualStatus, setManualStatus] = useState<'idle' | 'sent'>('idle');
+  const [manualStatus, setManualStatus] = useState<'idle' | 'sent' | 'approved' | 'denied' | 'expired'>('idle');
+  const manualRequestIdRef = useRef<string | null>(null);
 
+  // Fix 5: Realtime subscription for manual entry responses
+  useEffect(() => {
+    if (manualStatus !== 'sent' || !manualRequestIdRef.current) return;
+
+    const channel = supabase
+      .channel(`manual-entry-${manualRequestIdRef.current}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'manual_entry_requests',
+          filter: `id=eq.${manualRequestIdRef.current}`,
+        },
+        (payload) => {
+          const newStatus = (payload.new as any).status;
+          if (newStatus === 'approved') {
+            setManualStatus('approved');
+            toast.success('✅ Entry approved by resident!');
+          } else if (newStatus === 'denied') {
+            setManualStatus('denied');
+            toast.error('❌ Entry denied by resident');
+          } else if (newStatus === 'expired') {
+            setManualStatus('expired');
+            toast.warning('⏰ Request expired — no response');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [manualStatus]);
   const handleConfirmationComplete = useCallback((status: 'confirmed' | 'denied' | 'expired') => {
     if (status === 'confirmed') {
       setVerificationStatus('success');
@@ -138,16 +171,17 @@ export default function SecurityVerifyPage() {
         .eq('verification_status', 'approved')
         .maybeSingle();
 
-      const { error } = await supabase.from('manual_entry_requests').insert({
+      const { data: insertData, error } = await supabase.from('manual_entry_requests').insert({
         society_id: effectiveSocietyId,
         flat_number: flatInput.trim(),
         claimed_name: nameInput.trim(),
         requested_by: profile?.id,
         resident_id: resident?.id || null,
         status: 'pending',
-      });
+      }).select('id').single();
 
       if (error) throw error;
+      manualRequestIdRef.current = insertData?.id || null;
       setManualStatus('sent');
       toast.success('Verification request sent to resident');
 
@@ -288,8 +322,44 @@ export default function SecurityVerifyPage() {
                   <div className="bg-muted rounded-lg p-4 text-center">
                     <Clock className="mx-auto text-muted-foreground mb-2 animate-pulse" size={24} />
                     <p className="text-sm font-medium">Waiting for resident confirmation...</p>
-                    <p className="text-xs text-muted-foreground mt-1">The resident will receive a notification</p>
+                    <p className="text-xs text-muted-foreground mt-1">You'll be notified when they respond</p>
                   </div>
+                )}
+                {manualStatus === 'approved' && (
+                  <Card className="border-success/50 bg-success/5">
+                    <CardContent className="p-4 text-center">
+                      <CheckCircle className="mx-auto text-success mb-2" size={48} />
+                      <p className="text-xl font-bold text-success">APPROVED</p>
+                      <p className="text-sm text-muted-foreground mt-1">Resident confirmed entry</p>
+                      <Button variant="outline" className="mt-3" onClick={() => { setManualStatus('idle'); setFlatInput(''); setNameInput(''); manualRequestIdRef.current = null; }}>
+                        Next Entry
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {manualStatus === 'denied' && (
+                  <Card className="border-destructive/50 bg-destructive/5">
+                    <CardContent className="p-4 text-center">
+                      <XCircle className="mx-auto text-destructive mb-2" size={48} />
+                      <p className="text-xl font-bold text-destructive">DENIED</p>
+                      <p className="text-sm text-muted-foreground mt-1">Resident rejected entry</p>
+                      <Button variant="outline" className="mt-3" onClick={() => { setManualStatus('idle'); setFlatInput(''); setNameInput(''); manualRequestIdRef.current = null; }}>
+                        Next Entry
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {manualStatus === 'expired' && (
+                  <Card className="border-warning/50 bg-warning/5">
+                    <CardContent className="p-4 text-center">
+                      <Clock className="mx-auto text-warning mb-2" size={48} />
+                      <p className="text-xl font-bold text-warning">EXPIRED</p>
+                      <p className="text-sm text-muted-foreground mt-1">No response from resident</p>
+                      <Button variant="outline" className="mt-3" onClick={() => { setManualStatus('idle'); setFlatInput(''); setNameInput(''); manualRequestIdRef.current = null; }}>
+                        Try Again
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
               </CardContent>
             </Card>

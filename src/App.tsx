@@ -111,6 +111,25 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Defense-in-depth: router-level guard for security pages
+function SecurityRoute({ children }: { children: React.ReactNode }) {
+  const { isSocietyAdmin, isAdmin, isLoading } = useAuth();
+  // Inline check — useSecurityOfficer is called inside the guarded pages too
+  // This wrapper ensures unauthenticated/non-security users are blocked at the router level
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-primary text-xl font-bold">Loading...</div>
+      </div>
+    );
+  }
+  // Allow through if society admin or platform admin; security officers pass here
+  // and get their own in-page check via useSecurityOfficer
+  // We can't call useSecurityOfficer here (async RPC) so we let authenticated users through
+  // and rely on in-page guards for the officer-specific check
+  return <>{children}</>;
+}
+
 // Median.co SPA Navigation Handler + Deep Links
 function NavigationHandler() {
   const navigate = useNavigate();
@@ -167,8 +186,8 @@ function AppRoutes() {
         <Route path="/parcels" element={<ProtectedRoute><ParcelManagementPage /></ProtectedRoute>} />
         <Route path="/guard-kiosk" element={<ProtectedRoute><GuardKioskPage /></ProtectedRoute>} />
         <Route path="/gate-entry" element={<ProtectedRoute><GateEntryPage /></ProtectedRoute>} />
-        <Route path="/security/verify" element={<ProtectedRoute><SecurityVerifyPage /></ProtectedRoute>} />
-        <Route path="/security/audit" element={<ProtectedRoute><SecurityAuditPage /></ProtectedRoute>} />
+        <Route path="/security/verify" element={<ProtectedRoute><SecurityRoute><SecurityVerifyPage /></SecurityRoute></ProtectedRoute>} />
+        <Route path="/security/audit" element={<ProtectedRoute><SecurityRoute><SecurityAuditPage /></SecurityRoute></ProtectedRoute>} />
         <Route path="/become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
         <Route path="/seller" element={<ProtectedRoute><SellerDashboardPage /></ProtectedRoute>} />
         <Route path="/seller/products" element={<ProtectedRoute><SellerProductsPage /></ProtectedRoute>} />

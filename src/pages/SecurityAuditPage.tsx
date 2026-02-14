@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSecurityOfficer } from '@/hooks/useSecurityOfficer';
 import { useGateAudit, useGateAuditMetrics, GateAuditFilters } from '@/hooks/useGateAudit';
 import {
   Shield, Download, ChevronLeft, ChevronRight, Clock, Users,
@@ -14,7 +15,11 @@ import {
 } from 'lucide-react';
 
 export default function SecurityAuditPage() {
-  const { effectiveSocietyId, isSocietyAdmin, isAdmin } = useAuth();
+  const { profile, effectiveSocietyId, isSocietyAdmin, isAdmin } = useAuth();
+  const { isSecurityOfficer, isLoading: roleLoading } = useSecurityOfficer();
+
+  // Security officers see only their own verifications; admins see all
+  const isOfficerOnly = isSecurityOfficer && !isSocietyAdmin && !isAdmin;
 
   const [filters, setFilters] = useState<GateAuditFilters>({
     page: 0,
@@ -22,16 +27,37 @@ export default function SecurityAuditPage() {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: auditData, isLoading } = useGateAudit(effectiveSocietyId, filters);
+  // Scope query: officers only see entries they verified
+  const scopedFilters = useMemo<GateAuditFilters>(() => {
+    if (isOfficerOnly && profile?.id) {
+      return { ...filters, officerId: profile.id };
+    }
+    return filters;
+  }, [filters, isOfficerOnly, profile?.id]);
+
+  const { data: auditData, isLoading } = useGateAudit(effectiveSocietyId, scopedFilters);
   const { data: metrics } = useGateAuditMetrics(effectiveSocietyId);
 
-  if (!isSocietyAdmin && !isAdmin) {
+  const hasAccess = isSocietyAdmin || isAdmin || isSecurityOfficer;
+
+  if (roleLoading) {
+    return (
+      <AppLayout headerTitle="Security Audit" showLocation={false}>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-14 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!hasAccess) {
     return (
       <AppLayout headerTitle="Security Audit" showLocation={false}>
         <div className="p-4 text-center py-20 text-muted-foreground">
           <Shield size={48} className="mx-auto mb-4 opacity-50" />
           <p className="font-medium">Access Restricted</p>
-          <p className="text-sm">Only society admins can access this page.</p>
+          <p className="text-sm">Only security staff and society admins can access this page.</p>
         </div>
       </AppLayout>
     );
