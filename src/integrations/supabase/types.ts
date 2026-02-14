@@ -378,6 +378,57 @@ export type Database = {
           },
         ]
       }
+      construction_milestones: {
+        Row: {
+          completion_percentage: number
+          created_at: string
+          description: string | null
+          id: string
+          photos: string[] | null
+          posted_by: string
+          society_id: string
+          stage: string
+          title: string
+        }
+        Insert: {
+          completion_percentage?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          photos?: string[] | null
+          posted_by: string
+          society_id: string
+          stage?: string
+          title: string
+        }
+        Update: {
+          completion_percentage?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          photos?: string[] | null
+          posted_by?: string
+          society_id?: string
+          stage?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "construction_milestones_posted_by_fkey"
+            columns: ["posted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "construction_milestones_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupon_redemptions: {
         Row: {
           coupon_id: string
@@ -829,6 +880,45 @@ export type Database = {
           {
             foreignKeyName: "help_responses_responder_id_fkey"
             columns: ["responder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      milestone_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          milestone_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          milestone_id: string
+          reaction_type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          milestone_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestone_reactions_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "construction_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milestone_reactions_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1636,6 +1726,7 @@ export type Database = {
           id: string
           invite_code: string | null
           is_active: boolean | null
+          is_under_construction: boolean
           is_verified: boolean | null
           latitude: number | null
           logo_url: string | null
@@ -1657,6 +1748,7 @@ export type Database = {
           id?: string
           invite_code?: string | null
           is_active?: boolean | null
+          is_under_construction?: boolean
           is_verified?: boolean | null
           latitude?: number | null
           logo_url?: string | null
@@ -1678,6 +1770,7 @@ export type Database = {
           id?: string
           invite_code?: string | null
           is_active?: boolean | null
+          is_under_construction?: boolean
           is_verified?: boolean | null
           latitude?: number | null
           logo_url?: string | null

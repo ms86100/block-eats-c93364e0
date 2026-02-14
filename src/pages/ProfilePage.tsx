@@ -27,6 +27,7 @@ import {
   Award,
   ShieldAlert,
   IndianRupee,
+  Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -94,6 +95,7 @@ export default function ProfilePage() {
     { icon: Award, label: 'Community Directory', to: '/directory' },
     { icon: ShieldAlert, label: 'My Concerns', to: '/disputes' },
     { icon: IndianRupee, label: 'Society Finances', to: '/society/finances' },
+    { icon: Building2, label: 'Construction Progress', to: '/society/progress' },
     ...(isSeller
       ? [{ icon: Store, label: 'Seller Dashboard', to: '/seller' }]
       : [{ icon: Store, label: 'Become a Seller', to: '/become-seller' }]),
