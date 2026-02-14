@@ -1992,6 +1992,144 @@ export type Database = {
         }
         Relationships: []
       }
+      parking_slots: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          id: string
+          is_occupied: boolean
+          slot_number: string
+          slot_type: string
+          society_id: string
+          tower_id: string | null
+          updated_at: string
+          vehicle_number: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          is_occupied?: boolean
+          slot_number: string
+          slot_type?: string
+          society_id: string
+          tower_id?: string | null
+          updated_at?: string
+          vehicle_number?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          is_occupied?: boolean
+          slot_number?: string
+          slot_type?: string
+          society_id?: string
+          tower_id?: string | null
+          updated_at?: string
+          vehicle_number?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parking_slots_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_slots_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_slots_tower_id_fkey"
+            columns: ["tower_id"]
+            isOneToOne: false
+            referencedRelation: "project_towers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parking_violations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          photo_url: string | null
+          reported_by: string
+          resolved_at: string | null
+          resolved_by: string | null
+          slot_id: string | null
+          society_id: string
+          status: string
+          vehicle_number: string | null
+          violation_type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          photo_url?: string | null
+          reported_by: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          slot_id?: string | null
+          society_id: string
+          status?: string
+          vehicle_number?: string | null
+          violation_type?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          photo_url?: string | null
+          reported_by?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          slot_id?: string | null
+          society_id?: string
+          status?: string
+          vehicle_number?: string | null
+          violation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parking_violations_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_violations_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_violations_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "parking_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_violations_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_milestones: {
         Row: {
           amount_percentage: number

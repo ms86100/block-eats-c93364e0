@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { Builder } from '@/types/database';
-import { Building2, Users, Shield, AlertTriangle, ChevronRight, IndianRupee, Clock } from 'lucide-react';
+import { Building2, Users, Shield, AlertTriangle, ChevronRight, IndianRupee, Clock, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useBuilderStats } from '@/hooks/queries/useBuilderStats';
 
@@ -148,6 +148,23 @@ export default function BuilderDashboardPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Analytics Link */}
+        <Card 
+          className="hover:shadow-md transition-shadow cursor-pointer border-primary/20 bg-primary/5"
+          onClick={() => navigate('/builder/analytics')}
+        >
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <BarChart3 size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Portfolio Analytics</p>
+              <p className="text-xs text-muted-foreground">Complaint trends, SLA compliance, revenue</p>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </CardContent>
+        </Card>
 
         {/* Societies List */}
         <h3 className="font-semibold text-sm text-muted-foreground">Managed Societies</h3>

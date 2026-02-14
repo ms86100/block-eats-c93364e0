@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   IndianRupee, Building2, Bug, ShieldAlert, FileText, 
   MessageCircle, Radio, ChevronRight, CreditCard, Clock, BarChart3, Shield,
-  Users, ClipboardCheck, Landmark, Package, UserCheck, ShieldCheck
+  Users, ClipboardCheck, Landmark, Package, UserCheck, ShieldCheck, Car
 } from 'lucide-react';
 
 interface DashboardStat {
@@ -98,6 +98,7 @@ export default function SocietyDashboardPage() {
     { icon: Users, label: 'Visitors', to: '/visitors', stat: 'Gate Management', color: 'text-primary' },
     { icon: UserCheck, label: 'Domestic Help', to: '/domestic-help', stat: 'Attendance tracking', color: 'text-primary' },
     { icon: Package, label: 'Parcels', to: '/parcels', stat: 'Delivery tracking', color: 'text-warning' },
+    { icon: Car, label: 'Parking', to: '/parking', stat: 'Slots & violations', color: 'text-primary' },
     { icon: IndianRupee, label: 'Finances', to: '/society/finances', stat: `${stats.recentExpenses} this month`, color: 'text-warning' },
     { icon: Landmark, label: 'Payment Schedule', to: '/payment-milestones', stat: 'Track milestones', color: 'text-info' },
     { icon: Building2, label: 'Construction', to: '/society/progress', stat: `${stats.recentMilestones} updates this week`, color: 'text-primary' },

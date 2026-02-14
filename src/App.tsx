@@ -52,6 +52,8 @@ const MaintenancePage = lazy(() => import("./pages/MaintenancePage"));
 const SocietyReportPage = lazy(() => import("./pages/SocietyReportPage"));
 const SocietyAdminPage = lazy(() => import("./pages/SocietyAdminPage"));
 const BuilderDashboardPage = lazy(() => import("./pages/BuilderDashboardPage"));
+const BuilderAnalyticsPage = lazy(() => import("./pages/BuilderAnalyticsPage"));
+const VehicleParkingPage = lazy(() => import("./pages/VehicleParkingPage"));
 const VisitorManagementPage = lazy(() => import("./pages/VisitorManagementPage"));
 const PaymentMilestonesPage = lazy(() => import("./pages/PaymentMilestonesPage"));
 const InspectionChecklistPage = lazy(() => import("./pages/InspectionChecklistPage"));
@@ -153,6 +155,8 @@ function AppRoutes() {
         <Route path="/society/reports" element={<ProtectedRoute><SocietyReportPage /></ProtectedRoute>} />
         <Route path="/society/admin" element={<ProtectedRoute><SocietyAdminPage /></ProtectedRoute>} />
         <Route path="/builder" element={<ProtectedRoute><BuilderDashboardPage /></ProtectedRoute>} />
+        <Route path="/builder/analytics" element={<ProtectedRoute><BuilderAnalyticsPage /></ProtectedRoute>} />
+        <Route path="/parking" element={<ProtectedRoute><VehicleParkingPage /></ProtectedRoute>} />
         <Route path="/visitors" element={<ProtectedRoute><VisitorManagementPage /></ProtectedRoute>} />
         <Route path="/payment-milestones" element={<ProtectedRoute><PaymentMilestonesPage /></ProtectedRoute>} />
         <Route path="/inspection" element={<ProtectedRoute><InspectionChecklistPage /></ProtectedRoute>} />

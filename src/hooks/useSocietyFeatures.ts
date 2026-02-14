@@ -16,7 +16,8 @@ export type FeatureKey =
   | 'inspection'
   | 'payment_milestones'
   | 'maintenance'
-  | 'guard_kiosk';
+  | 'guard_kiosk'
+  | 'vehicle_parking';
 
 interface SocietyFeature {
   id: string;

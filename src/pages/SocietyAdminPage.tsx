@@ -33,6 +33,7 @@ const FEATURE_LABELS: Record<FeatureKey, { label: string; description: string }>
   payment_milestones: { label: 'Payment Milestones', description: 'Construction-linked payment tracker' },
   maintenance: { label: 'Maintenance Dues', description: 'Monthly maintenance payment tracking' },
   guard_kiosk: { label: 'Guard Kiosk', description: 'Gate security OTP verification panel' },
+  vehicle_parking: { label: 'Vehicle Parking', description: 'Slot allocation & violation tracking' },
 };
 
 export default function SocietyAdminPage() {
