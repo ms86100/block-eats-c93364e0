@@ -8,12 +8,54 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
-import { CategoryGroupGrid } from '@/components/category/CategoryGroupGrid';
+import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { useParentGroups } from '@/hooks/useParentGroups';
 import { ServiceCategory } from '@/types/categories';
 import { ArrowLeft, Store, Loader2, ChevronRight, Settings, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+function SubCategorySelector({
+  selectedGroup,
+  selectedCategories,
+  onCategorySelect,
+}: {
+  selectedGroup: string;
+  selectedCategories: ServiceCategory[];
+  onCategorySelect: (category: ServiceCategory, selected: boolean) => void;
+}) {
+  const { groupedConfigs, isLoading } = useCategoryConfigs();
+  const categories = groupedConfigs[selectedGroup as keyof typeof groupedConfigs] || [];
+
+  if (isLoading) return <div className="text-center py-4 text-muted-foreground">Loading categories...</div>;
+  if (categories.length === 0) return <div className="text-center py-4 text-muted-foreground">No categories available</div>;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-muted-foreground">Select your categories:</p>
+      <div className="grid grid-cols-2 gap-2">
+        {categories.map((config) => {
+          const isSelected = selectedCategories.includes(config.category);
+          return (
+            <button
+              key={config.category}
+              onClick={() => onCategorySelect(config.category, !isSelected)}
+              className={cn(
+                'flex items-center gap-2 p-3 rounded-lg border transition-all text-left',
+                isSelected
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-muted-foreground/30'
+              )}
+            >
+              <span className="text-lg">{config.icon}</span>
+              <span className="text-sm font-medium">{config.displayName}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function BecomeSellerPage() {
   const navigate = useNavigate();
@@ -236,12 +278,10 @@ export default function BecomeSellerPage() {
                 <p className="text-xs text-muted-foreground">{selectedGroupInfo?.description}</p>
               </div>
             </div>
-            <CategoryGroupGrid
-              variant="selection"
+            <SubCategorySelector
               selectedGroup={selectedGroup}
               selectedCategories={formData.categories as ServiceCategory[]}
               onCategorySelect={handleCategoryChange}
-              onGroupSelect={() => {}}
             />
             <Button className="w-full" onClick={() => setStep(3)} disabled={formData.categories.length === 0}>
               Continue
