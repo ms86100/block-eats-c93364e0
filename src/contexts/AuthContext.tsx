@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, UserRole, SellerProfile, Society } from '@/types/database';
+import { Profile, UserRole, SellerProfile, Society, SocietyAdmin } from '@/types/database';
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +15,10 @@ interface AuthContextType {
   isApproved: boolean;
   isSeller: boolean;
   isAdmin: boolean;
+  isSocietyAdmin: boolean;
+  isBuilderMember: boolean;
+  societyAdminRole: SocietyAdmin | null;
+  managedBuilderIds: string[];
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   setCurrentSellerId: (id: string | null) => void;
@@ -31,6 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [sellerProfiles, setSellerProfiles] = useState<SellerProfile[]>([]);
   const [currentSellerId, setCurrentSellerId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [societyAdminRole, setSocietyAdminRole] = useState<SocietyAdmin | null>(null);
+  const [managedBuilderIds, setManagedBuilderIds] = useState<string[]>([]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -50,9 +56,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', profileData.society_id)
           .single();
         setSociety(societyData as Society | null);
+
+        // Check if user is a society admin
+        const { data: saData } = await supabase
+          .from('society_admins')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('society_id', profileData.society_id)
+          .maybeSingle();
+        setSocietyAdminRole(saData as SocietyAdmin | null);
       } else {
         setSociety(null);
+        setSocietyAdminRole(null);
       }
+
       const { data: rolesData } = await supabase
         .from('user_roles')
         .select('role')
@@ -76,6 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (sellers.length === 0) {
         setCurrentSellerId(null);
       }
+
+      // Check builder membership
+      const { data: builderData } = await supabase
+        .from('builder_members')
+        .select('builder_id')
+        .eq('user_id', userId);
+      setManagedBuilderIds((builderData || []).map(b => b.builder_id));
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -105,6 +129,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setRoles([]);
           setSellerProfiles([]);
           setCurrentSellerId(null);
+          setSocietyAdminRole(null);
+          setManagedBuilderIds([]);
         }
         setIsLoading(false);
       }
@@ -133,11 +159,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRoles([]);
     setSellerProfiles([]);
     setCurrentSellerId(null);
+    setSocietyAdminRole(null);
+    setManagedBuilderIds([]);
   };
 
   const isApproved = profile?.verification_status === 'approved';
   const isSeller = roles.includes('seller') || sellerProfiles.length > 0;
   const isAdmin = roles.includes('admin');
+  const isSocietyAdmin = !!societyAdminRole || isAdmin;
+  const isBuilderMember = managedBuilderIds.length > 0;
 
   return (
     <AuthContext.Provider
@@ -153,6 +183,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isApproved,
         isSeller,
         isAdmin,
+        isSocietyAdmin,
+        isBuilderMember,
+        societyAdminRole,
+        managedBuilderIds,
         signOut,
         refreshProfile,
         setCurrentSellerId,

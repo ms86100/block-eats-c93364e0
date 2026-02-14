@@ -2,6 +2,35 @@
 import { ServiceCategory } from './categories';
 
 export type UserRole = 'buyer' | 'seller' | 'admin';
+
+export interface SocietyAdmin {
+  id: string;
+  society_id: string;
+  user_id: string;
+  role: 'admin' | 'moderator';
+  appointed_by: string | null;
+  created_at: string;
+}
+
+export interface Builder {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BuilderMember {
+  id: string;
+  builder_id: string;
+  user_id: string;
+  role: 'member' | 'admin';
+  created_at: string;
+}
 export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 export type OrderStatus = 'placed' | 'accepted' | 'preparing' | 'ready' | 'picked_up' | 'delivered' | 'completed' | 'cancelled' | 'enquired' | 'quoted' | 'scheduled' | 'in_progress' | 'returned';
 // ProductCategory is now an alias to ServiceCategory for backward compatibility
@@ -30,6 +59,9 @@ export interface Society {
   logo_url: string | null;
   rules_text: string | null;
   invite_code: string | null;
+  auto_approve_residents: boolean;
+  approval_method: string;
+  builder_id: string | null;
   created_at: string;
   updated_at: string;
 }

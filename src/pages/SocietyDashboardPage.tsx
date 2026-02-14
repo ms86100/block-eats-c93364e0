@@ -7,7 +7,7 @@ import { SocietyTrustBadge } from '@/components/trust/SocietyTrustBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   IndianRupee, Building2, Bug, ShieldAlert, FileText, 
-  MessageCircle, Radio, ChevronRight, CreditCard, Clock, BarChart3
+  MessageCircle, Radio, ChevronRight, CreditCard, Clock, BarChart3, Shield
 } from 'lucide-react';
 
 interface DashboardStat {
@@ -20,7 +20,7 @@ interface DashboardStat {
 }
 
 export default function SocietyDashboardPage() {
-  const { profile, society, isAdmin } = useAuth();
+  const { profile, society, isAdmin, isSocietyAdmin } = useAuth();
   const [stats, setStats] = useState({
     openSnags: 0,
     openDisputes: 0,
@@ -101,7 +101,8 @@ export default function SocietyDashboardPage() {
     { icon: FileText, label: 'Documents', to: '/society/progress', stat: `${stats.documents} uploaded`, color: 'text-info' },
     { icon: MessageCircle, label: 'Q&A', to: '/society/progress', stat: `${stats.unansweredQs} unanswered`, color: 'text-primary' },
     { icon: CreditCard, label: 'Maintenance', to: '/maintenance', stat: stats.pendingDues > 0 ? `${stats.pendingDues} pending` : 'All clear', color: 'text-success' },
-    ...(isAdmin ? [{ icon: Radio, label: 'Broadcasts', to: '/admin', stat: 'Admin only', color: 'text-destructive', adminOnly: true } as DashboardStat] : []),
+    ...(isSocietyAdmin ? [{ icon: Shield, label: 'Society Admin', to: '/society/admin', stat: 'Manage society', color: 'text-info' } as DashboardStat] : []),
+    ...(isAdmin ? [{ icon: Radio, label: 'Platform Admin', to: '/admin', stat: 'Global admin', color: 'text-destructive', adminOnly: true } as DashboardStat] : []),
   ];
 
   return (

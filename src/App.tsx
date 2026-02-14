@@ -49,6 +49,8 @@ import SocietyDashboardPage from "./pages/SocietyDashboardPage";
 import NotificationInboxPage from "./pages/NotificationInboxPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import SocietyReportPage from "./pages/SocietyReportPage";
+import SocietyAdminPage from "./pages/SocietyAdminPage";
+import BuilderDashboardPage from "./pages/BuilderDashboardPage";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -129,6 +131,8 @@ function AppRoutes() {
       <Route path="/notifications/inbox" element={<ProtectedRoute><NotificationInboxPage /></ProtectedRoute>} />
       <Route path="/maintenance" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
       <Route path="/society/reports" element={<ProtectedRoute><SocietyReportPage /></ProtectedRoute>} />
+      <Route path="/society/admin" element={<ProtectedRoute><SocietyAdminPage /></ProtectedRoute>} />
+      <Route path="/builder" element={<ProtectedRoute><BuilderDashboardPage /></ProtectedRoute>} />
       <Route path="/become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
       <Route path="/seller" element={<ProtectedRoute><SellerDashboardPage /></ProtectedRoute>} />
       <Route path="/seller/products" element={<ProtectedRoute><SellerProductsPage /></ProtectedRoute>} />

@@ -44,6 +44,117 @@ export type Database = {
         }
         Relationships: []
       }
+      builder_members: {
+        Row: {
+          builder_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          builder_id: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          builder_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_members_builder_id_fkey"
+            columns: ["builder_id"]
+            isOneToOne: false
+            referencedRelation: "builders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "builder_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      builder_societies: {
+        Row: {
+          builder_id: string
+          created_at: string
+          id: string
+          society_id: string
+        }
+        Insert: {
+          builder_id: string
+          created_at?: string
+          id?: string
+          society_id: string
+        }
+        Update: {
+          builder_id?: string
+          created_at?: string
+          id?: string
+          society_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_societies_builder_id_fkey"
+            columns: ["builder_id"]
+            isOneToOne: false
+            referencedRelation: "builders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "builder_societies_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      builders: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bulletin_comments: {
         Row: {
           author_id: string
@@ -2141,6 +2252,9 @@ export type Database = {
         Row: {
           address: string | null
           admin_user_id: string | null
+          approval_method: string
+          auto_approve_residents: boolean
+          builder_id: string | null
           city: string | null
           created_at: string
           geofence_radius_meters: number | null
@@ -2164,6 +2278,9 @@ export type Database = {
         Insert: {
           address?: string | null
           admin_user_id?: string | null
+          approval_method?: string
+          auto_approve_residents?: boolean
+          builder_id?: string | null
           city?: string | null
           created_at?: string
           geofence_radius_meters?: number | null
@@ -2187,6 +2304,9 @@ export type Database = {
         Update: {
           address?: string | null
           admin_user_id?: string | null
+          approval_method?: string
+          auto_approve_residents?: boolean
+          builder_id?: string | null
           city?: string | null
           created_at?: string
           geofence_radius_meters?: number | null
@@ -2213,6 +2333,13 @@ export type Database = {
             columns: ["admin_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "societies_builder_id_fkey"
+            columns: ["builder_id"]
+            isOneToOne: false
+            referencedRelation: "builders"
             referencedColumns: ["id"]
           },
         ]
@@ -2277,6 +2404,55 @@ export type Database = {
             columns: ["tower_id"]
             isOneToOne: false
             referencedRelation: "project_towers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      society_admins: {
+        Row: {
+          appointed_by: string | null
+          created_at: string
+          id: string
+          role: string
+          society_id: string
+          user_id: string
+        }
+        Insert: {
+          appointed_by?: string | null
+          created_at?: string
+          id?: string
+          role?: string
+          society_id: string
+          user_id: string
+        }
+        Update: {
+          appointed_by?: string | null
+          created_at?: string
+          id?: string
+          role?: string
+          society_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_admins_appointed_by_fkey"
+            columns: ["appointed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "society_admins_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "society_admins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2637,6 +2813,10 @@ export type Database = {
         Returns: number
       }
       calculate_trust_score: { Args: { _user_id: string }; Returns: number }
+      can_manage_society: {
+        Args: { _society_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_category_parent_group: { Args: { cat: string }; Returns: string }
       get_user_society_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -2647,6 +2827,14 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_builder_member: {
+        Args: { _builder_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_society_admin: {
+        Args: { _society_id: string; _user_id: string }
+        Returns: boolean
+      }
       refresh_all_trust_scores: { Args: never; Returns: undefined }
       search_marketplace:
         | {
