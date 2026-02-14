@@ -18,7 +18,8 @@ export type FeatureKey =
   | 'maintenance'
   | 'guard_kiosk'
   | 'vehicle_parking'
-  | 'resident_identity_verification';
+  | 'resident_identity_verification'
+  | 'worker_marketplace';
 
 export type FeatureState = 'enabled' | 'disabled' | 'locked' | 'unavailable';
 

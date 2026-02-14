@@ -64,6 +64,10 @@ const GuardKioskPage = lazy(() => import("./pages/GuardKioskPage"));
 const GateEntryPage = lazy(() => import("./pages/GateEntryPage"));
 const SecurityVerifyPage = lazy(() => import("./pages/SecurityVerifyPage"));
 const SecurityAuditPage = lazy(() => import("./pages/SecurityAuditPage"));
+const WorkerJobsPage = lazy(() => import("./pages/WorkerJobsPage"));
+const WorkerMyJobsPage = lazy(() => import("./pages/WorkerMyJobsPage"));
+const WorkerHirePage = lazy(() => import("./pages/WorkerHirePage"));
+const CreateJobRequestPage = lazy(() => import("./pages/CreateJobRequestPage"));
 
 const queryClient = new QueryClient();
 
@@ -190,6 +194,10 @@ function AppRoutes() {
         <Route path="/gate-entry" element={<ProtectedRoute><GateEntryPage /></ProtectedRoute>} />
         <Route path="/security/verify" element={<ProtectedRoute><SecurityRoute><SecurityVerifyPage /></SecurityRoute></ProtectedRoute>} />
         <Route path="/security/audit" element={<ProtectedRoute><SecurityRoute><SecurityAuditPage /></SecurityRoute></ProtectedRoute>} />
+        <Route path="/worker/jobs" element={<ProtectedRoute><WorkerJobsPage /></ProtectedRoute>} />
+        <Route path="/worker/my-jobs" element={<ProtectedRoute><WorkerMyJobsPage /></ProtectedRoute>} />
+        <Route path="/worker-hire" element={<ProtectedRoute><WorkerHirePage /></ProtectedRoute>} />
+        <Route path="/worker-hire/create" element={<ProtectedRoute><CreateJobRequestPage /></ProtectedRoute>} />
         <Route path="/become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
         <Route path="/seller" element={<ProtectedRoute><SellerDashboardPage /></ProtectedRoute>} />
         <Route path="/seller/products" element={<ProtectedRoute><SellerProductsPage /></ProtectedRoute>} />

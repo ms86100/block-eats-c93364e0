@@ -39,6 +39,7 @@ const FEATURE_LABELS: Record<FeatureKey, { label: string; description: string }>
   guard_kiosk: { label: 'Guard Kiosk', description: 'Gate security OTP verification panel' },
   vehicle_parking: { label: 'Vehicle Parking', description: 'Slot allocation & violation tracking' },
   resident_identity_verification: { label: 'Resident ID Verification', description: 'QR-based gate entry with anti-impersonation' },
+  worker_marketplace: { label: 'Worker Marketplace', description: 'AI-assisted daily help hiring system' },
 };
 
 export default function SocietyAdminPage() {

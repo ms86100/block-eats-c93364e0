@@ -3984,6 +3984,65 @@ export type Database = {
           },
         ]
       }
+      society_workers: {
+        Row: {
+          created_at: string
+          deactivated_at: string | null
+          id: string
+          is_available: boolean | null
+          is_verified: boolean | null
+          languages: string[] | null
+          rating: number | null
+          skills: Json | null
+          society_id: string
+          total_jobs: number | null
+          total_ratings: number | null
+          updated_at: string
+          user_id: string
+          worker_type: string
+        }
+        Insert: {
+          created_at?: string
+          deactivated_at?: string | null
+          id?: string
+          is_available?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          rating?: number | null
+          skills?: Json | null
+          society_id: string
+          total_jobs?: number | null
+          total_ratings?: number | null
+          updated_at?: string
+          user_id: string
+          worker_type?: string
+        }
+        Update: {
+          created_at?: string
+          deactivated_at?: string | null
+          id?: string
+          is_available?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          rating?: number | null
+          skills?: Json | null
+          society_id?: string
+          total_jobs?: number | null
+          total_ratings?: number | null
+          updated_at?: string
+          user_id?: string
+          worker_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_workers_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_deliveries: {
         Row: {
           created_at: string
@@ -4326,11 +4385,121 @@ export type Database = {
           },
         ]
       }
+      worker_job_requests: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          duration_hours: number | null
+          expires_at: string | null
+          id: string
+          job_type: string
+          location_details: string | null
+          payment_amount: number | null
+          payment_status: string | null
+          price: number | null
+          resident_id: string
+          resident_rating: number | null
+          resident_review: string | null
+          society_id: string
+          start_time: string | null
+          status: string
+          updated_at: string
+          urgency: string | null
+          voice_summary_url: string | null
+          worker_rating: number | null
+          worker_review: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          expires_at?: string | null
+          id?: string
+          job_type: string
+          location_details?: string | null
+          payment_amount?: number | null
+          payment_status?: string | null
+          price?: number | null
+          resident_id: string
+          resident_rating?: number | null
+          resident_review?: string | null
+          society_id: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          urgency?: string | null
+          voice_summary_url?: string | null
+          worker_rating?: number | null
+          worker_review?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          expires_at?: string | null
+          id?: string
+          job_type?: string
+          location_details?: string | null
+          payment_amount?: number | null
+          payment_status?: string | null
+          price?: number | null
+          resident_id?: string
+          resident_rating?: number | null
+          resident_review?: string | null
+          society_id?: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          urgency?: string | null
+          voice_summary_url?: string | null
+          worker_rating?: number | null
+          worker_review?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_job_requests_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_job_requests_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_job_requests_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      accept_worker_job: {
+        Args: { _job_id: string; _worker_id: string }
+        Returns: Json
+      }
       calculate_society_trust_score: {
         Args: { _society_id: string }
         Returns: number
@@ -4339,6 +4508,10 @@ export type Database = {
       can_manage_society: {
         Args: { _society_id: string; _user_id: string }
         Returns: boolean
+      }
+      complete_worker_job: {
+        Args: { _job_id: string; _worker_id: string }
+        Returns: Json
       }
       get_builder_dashboard: { Args: { _builder_id: string }; Returns: Json }
       get_category_parent_group: { Args: { cat: string }; Returns: string }
@@ -4376,6 +4549,10 @@ export type Database = {
       is_society_admin: {
         Args: { _society_id: string; _user_id: string }
         Returns: boolean
+      }
+      rate_worker_job: {
+        Args: { _job_id: string; _rating: number; _review?: string }
+        Returns: Json
       }
       refresh_all_trust_scores: { Args: never; Returns: undefined }
       search_marketplace:

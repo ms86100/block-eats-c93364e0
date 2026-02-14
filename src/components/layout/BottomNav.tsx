@@ -1,8 +1,9 @@
-import { Home, Store, Users, Building2, User, Shield, ClipboardList } from 'lucide-react';
+import { Home, Store, Users, Building2, User, Shield, ClipboardList, Briefcase, ListChecks } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useEffectiveFeatures } from '@/hooks/useEffectiveFeatures';
 import { useSecurityOfficer } from '@/hooks/useSecurityOfficer';
+import { useWorkerRole } from '@/hooks/useWorkerRole';
 import type { FeatureKey } from '@/hooks/useEffectiveFeatures';
 
 const residentNavItems: { to: string; icon: typeof Home; label: string; featureKey?: FeatureKey }[] = [
@@ -19,13 +20,20 @@ const securityNavItems: { to: string; icon: typeof Shield; label: string }[] = [
   { to: '/profile', icon: User, label: 'Profile' },
 ];
 
+const workerNavItems: { to: string; icon: typeof Briefcase; label: string }[] = [
+  { to: '/worker/jobs', icon: Briefcase, label: 'Jobs' },
+  { to: '/worker/my-jobs', icon: ListChecks, label: 'My Jobs' },
+  { to: '/profile', icon: User, label: 'Profile' },
+];
+
 export function BottomNav() {
   const location = useLocation();
   const { isFeatureEnabled, isLoading } = useEffectiveFeatures();
   const { isSecurityOfficer } = useSecurityOfficer();
+  const { isWorker } = useWorkerRole();
 
-  // Security officers get kiosk-mode nav — only security-related pages
-  const navItems = isSecurityOfficer ? securityNavItems : residentNavItems;
+  // Role-based navigation: security officers and workers get restricted nav
+  const navItems = isSecurityOfficer ? securityNavItems : isWorker ? workerNavItems : residentNavItems;
 
   const visibleItems = isLoading
     ? navItems

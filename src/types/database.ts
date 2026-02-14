@@ -1,7 +1,7 @@
 // Database types for the Sociva Marketplace
 import { ServiceCategory } from './categories';
 
-export type UserRole = 'buyer' | 'seller' | 'admin';
+export type UserRole = 'buyer' | 'seller' | 'admin' | 'worker';
 
 export interface SocietyAdmin {
   id: string;
