@@ -320,11 +320,31 @@ export default function AdminPage() {
           <TabsContent value="sellers" className="space-y-2 mt-4">
             <h3 className="text-sm font-semibold text-muted-foreground">Pending Sellers ({pendingSellers.length})</h3>
             {pendingSellers.length > 0 ? pendingSellers.map((seller) => (
-              <Card key={seller.id}><CardContent className="p-3 flex items-center justify-between">
-                <div><p className="font-medium text-sm">{seller.business_name}</p><p className="text-xs text-muted-foreground">{(seller as any).profile?.name} • Block {(seller as any).profile?.block}</p></div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="text-destructive h-8 w-8 p-0" onClick={() => updateSellerStatus(seller.id, 'rejected')}><X size={14} /></Button>
-                  <Button size="sm" className="h-8 w-8 p-0" onClick={() => updateSellerStatus(seller.id, 'approved')}><Check size={14} /></Button>
+              <Card key={seller.id}><CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-semibold text-sm">{seller.business_name}</p>
+                    <p className="text-xs text-muted-foreground">{(seller as any).profile?.name} • Block {(seller as any).profile?.block}, Flat {(seller as any).profile?.flat_number}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="text-destructive h-8 w-8 p-0" onClick={() => updateSellerStatus(seller.id, 'rejected')}><X size={14} /></Button>
+                    <Button size="sm" className="h-8 w-8 p-0" onClick={() => updateSellerStatus(seller.id, 'approved')}><Check size={14} /></Button>
+                  </div>
+                </div>
+                {seller.description && (
+                  <p className="text-xs text-muted-foreground">{seller.description}</p>
+                )}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {seller.primary_group && (
+                    <div><span className="text-muted-foreground">Category:</span> <span className="font-medium capitalize">{seller.primary_group.replace(/_/g, ' ')}</span></div>
+                  )}
+                  {seller.categories && seller.categories.length > 0 && (
+                    <div className="col-span-2"><span className="text-muted-foreground">Sub-categories:</span> <span className="font-medium">{seller.categories.map((c: string) => c.replace(/_/g, ' ')).join(', ')}</span></div>
+                  )}
+                  {(seller.availability_start || seller.availability_end) && (
+                    <div><span className="text-muted-foreground">Hours:</span> <span className="font-medium">{seller.availability_start || '—'} – {seller.availability_end || '—'}</span></div>
+                  )}
+                  <div><span className="text-muted-foreground">COD:</span> <span className="font-medium">{seller.accepts_cod ? 'Yes' : 'No'}</span></div>
                 </div>
               </CardContent></Card>
             )) : <p className="text-center text-muted-foreground py-8 text-sm">No pending sellers</p>}
