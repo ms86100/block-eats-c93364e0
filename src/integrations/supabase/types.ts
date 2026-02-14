@@ -1737,6 +1737,7 @@ export type Database = {
           rules_text: string | null
           slug: string
           state: string | null
+          trust_score: number
           updated_at: string
         }
         Insert: {
@@ -1759,6 +1760,7 @@ export type Database = {
           rules_text?: string | null
           slug: string
           state?: string | null
+          trust_score?: number
           updated_at?: string
         }
         Update: {
@@ -1781,6 +1783,7 @@ export type Database = {
           rules_text?: string | null
           slug?: string
           state?: string | null
+          trust_score?: number
           updated_at?: string
         }
         Relationships: [
@@ -2068,6 +2071,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_society_trust_score: {
+        Args: { _society_id: string }
+        Returns: number
+      }
       calculate_trust_score: { Args: { _user_id: string }; Returns: number }
       get_category_parent_group: { Args: { cat: string }; Returns: string }
       get_user_society_id: { Args: { _user_id: string }; Returns: string }
@@ -2079,6 +2086,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      refresh_all_trust_scores: { Args: never; Returns: undefined }
       search_marketplace:
         | {
             Args: { search_term: string }

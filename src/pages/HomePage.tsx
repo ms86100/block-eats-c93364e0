@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { CategoryGroupGrid } from '@/components/category/CategoryGroupGrid';
 import { SellerCard } from '@/components/seller/SellerCard';
 import { OnboardingWalkthrough, useOnboarding } from '@/components/onboarding/OnboardingWalkthrough';
+import { SocietyTrustBadge } from '@/components/trust/SocietyTrustBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -158,6 +159,11 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
+        </div>
+
+        {/* Trust Score Badge */}
+        <div className="px-4 mt-4">
+          <SocietyTrustBadge />
         </div>
 
         {/* Search Bar */}
