@@ -27,7 +27,7 @@ interface Props {
 }
 
 export function CreateDisputeSheet({ open, onOpenChange, onCreated }: Props) {
-  const { user, profile } = useAuth();
+  const { user, profile, viewAsSocietyId } = useAuth();
   const [category, setCategory] = useState('other');
   const [description, setDescription] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -106,10 +106,13 @@ export function CreateDisputeSheet({ open, onOpenChange, onCreated }: Props) {
             </div>
             <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} />
           </div>
-          <Button className="w-full" onClick={handleSubmit} disabled={saving || !description.trim()}>
+          <Button className="w-full" onClick={handleSubmit} disabled={saving || !description.trim() || !!viewAsSocietyId}>
             {saving && <Loader2 size={16} className="animate-spin mr-2" />}
             Submit Concern
           </Button>
+          {viewAsSocietyId && (
+            <p className="text-xs text-muted-foreground text-center">You are viewing another society. Switch back to create content.</p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

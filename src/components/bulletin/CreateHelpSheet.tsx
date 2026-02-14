@@ -24,7 +24,7 @@ interface CreateHelpSheetProps {
 }
 
 export function CreateHelpSheet({ open, onOpenChange, onCreated }: CreateHelpSheetProps) {
-  const { profile } = useAuth();
+  const { profile, viewAsSocietyId } = useAuth();
   const [tag, setTag] = useState('question');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -102,10 +102,13 @@ export function CreateHelpSheet({ open, onOpenChange, onCreated }: CreateHelpShe
             <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Any extra info..." rows={3} />
           </div>
           <p className="text-[10px] text-muted-foreground">This request expires automatically in 24 hours.</p>
-          <Button className="w-full" onClick={handleSubmit} disabled={loading || !title.trim()}>
+          <Button className="w-full" onClick={handleSubmit} disabled={loading || !title.trim() || !!viewAsSocietyId}>
             {loading ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
             Post Request
           </Button>
+          {viewAsSocietyId && (
+            <p className="text-xs text-muted-foreground text-center">You are viewing another society. Switch back to create content.</p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

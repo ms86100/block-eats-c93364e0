@@ -22,7 +22,7 @@ interface AddMilestoneSheetProps {
 }
 
 export function AddMilestoneSheet({ onAdded, towers = [] }: AddMilestoneSheetProps) {
-  const { user, profile } = useAuth();
+  const { user, profile, viewAsSocietyId } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState('');
@@ -146,12 +146,15 @@ export function AddMilestoneSheet({ onAdded, towers = [] }: AddMilestoneSheetPro
           </div>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !title.trim()}
+            disabled={isSubmitting || !title.trim() || !!viewAsSocietyId}
             className="w-full"
           >
             {isSubmitting ? <Loader2 className="animate-spin mr-2" size={16} /> : null}
             Post Milestone
           </Button>
+          {viewAsSocietyId && (
+            <p className="text-xs text-muted-foreground text-center">You are viewing another society. Switch back to create content.</p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

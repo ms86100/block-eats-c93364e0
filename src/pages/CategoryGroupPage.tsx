@@ -18,7 +18,7 @@ export default function CategoryGroupPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const subCategory = searchParams.get('sub') as ServiceCategory | null;
   
-  const { profile } = useAuth();
+  const { effectiveSocietyId } = useAuth();
   const { groupedConfigs, isLoading: configsLoading } = useCategoryConfigs();
   const { getGroupBySlug, isLoading: groupsLoading } = useParentGroups();
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
@@ -48,8 +48,8 @@ export default function CategoryGroupPage() {
       }
 
       // Society isolation: only show sellers from user's society
-      if (profile?.society_id) {
-        query = query.eq('society_id', profile.society_id);
+      if (effectiveSocietyId) {
+        query = query.eq('society_id', effectiveSocietyId);
       }
 
       if (activeSubCategory) {

@@ -21,7 +21,7 @@ interface MaintenanceDue {
 }
 
 export default function MaintenancePage() {
-  const { user, profile, isAdmin } = useAuth();
+  const { user, profile, isAdmin, effectiveSocietyId } = useAuth();
   const [dues, setDues] = useState<MaintenanceDue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [generateMonth, setGenerateMonth] = useState('');
@@ -34,11 +34,11 @@ export default function MaintenancePage() {
   }, [user, profile]);
 
   const fetchDues = async () => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
     const { data } = await supabase
       .from('maintenance_dues')
       .select('*')
-      .eq('society_id', profile.society_id)
+      .eq('society_id', effectiveSocietyId)
       .order('month', { ascending: false })
       .limit(100);
     setDues((data as any) || []);

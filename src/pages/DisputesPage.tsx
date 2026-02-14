@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateDisputeSheet } from '@/components/disputes/CreateDisputeSheet';
@@ -52,6 +53,7 @@ export default function DisputesPage() {
 
   return (
     <AppLayout headerTitle="My Concerns" showLocation={false}>
+      <FeatureGate feature="disputes">
       <div className="p-4 space-y-4">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full grid grid-cols-2">
@@ -100,6 +102,7 @@ export default function DisputesPage() {
         onOpenChange={(open) => { if (!open) setSelectedTicket(null); }}
         onUpdated={() => { fetchTickets(); setSelectedTicket(null); }}
       />
+      </FeatureGate>
     </AppLayout>
   );
 }

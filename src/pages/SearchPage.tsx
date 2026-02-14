@@ -71,7 +71,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function SearchPage() {
-  const { profile } = useAuth();
+  const { effectiveSocietyId } = useAuth();
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 300);
@@ -125,7 +125,7 @@ export default function SearchPage() {
       if (searchTerm.length >= 1) {
         const { data, error } = await supabase.rpc('search_marketplace', {
           search_term: searchTerm,
-          user_society_id: profile?.society_id || null,
+          user_society_id: effectiveSocietyId || null,
         });
 
         if (error) throw error;
@@ -162,8 +162,8 @@ export default function SearchPage() {
           .eq('verification_status', 'approved');
 
         // Scope to user's society
-        if (profile?.society_id) {
-          queryBuilder = queryBuilder.eq('society_id', profile.society_id);
+        if (effectiveSocietyId) {
+          queryBuilder = queryBuilder.eq('society_id', effectiveSocietyId);
         }
 
         // Category filter

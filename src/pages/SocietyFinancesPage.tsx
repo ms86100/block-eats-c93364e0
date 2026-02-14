@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
@@ -91,6 +92,7 @@ export default function SocietyFinancesPage() {
 
   return (
     <AppLayout headerTitle="Society Finances" showLocation={false}>
+      <FeatureGate feature="finances">
       <div className="p-4 space-y-4">
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="animate-spin text-muted-foreground" /></div>
@@ -188,6 +190,7 @@ export default function SocietyFinancesPage() {
           </Button>
         </DialogContent>
       </Dialog>
+      </FeatureGate>
     </AppLayout>
   );
 }

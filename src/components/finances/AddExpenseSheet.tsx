@@ -36,7 +36,7 @@ interface Props {
 }
 
 export function AddExpenseSheet({ open, onOpenChange, onCreated, type }: Props) {
-  const { user, profile } = useAuth();
+  const { user, profile, viewAsSocietyId } = useAuth();
   const [category, setCategory] = useState(type === 'expense' ? 'miscellaneous' : 'maintenance');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -127,10 +127,13 @@ export function AddExpenseSheet({ open, onOpenChange, onCreated, type }: Props) 
               <ImageUpload value={invoiceUrl} onChange={setInvoiceUrl} folder="invoices" userId={user.id} />
             </div>
           )}
-          <Button className="w-full" onClick={handleSubmit} disabled={saving || !amount || (type === 'expense' && !title.trim())}>
+          <Button className="w-full" onClick={handleSubmit} disabled={saving || !amount || (type === 'expense' && !title.trim()) || !!viewAsSocietyId}>
             {saving && <Loader2 size={16} className="animate-spin mr-2" />}
             Add {type === 'expense' ? 'Expense' : 'Income'}
           </Button>
+          {viewAsSocietyId && (
+            <p className="text-xs text-muted-foreground text-center">You are viewing another society. Switch back to create content.</p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

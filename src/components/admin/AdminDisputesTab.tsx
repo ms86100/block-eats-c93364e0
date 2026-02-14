@@ -22,13 +22,13 @@ interface Ticket {
 }
 
 export function AdminDisputesTab() {
-  const { profile } = useAuth();
+  const { effectiveSocietyId } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Ticket | null>(null);
 
   const fetchTickets = useCallback(async () => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
     setLoading(true);
     const { data } = await supabase
       .from('dispute_tickets')
@@ -36,7 +36,7 @@ export function AdminDisputesTab() {
       .order('created_at', { ascending: false });
     setTickets((data as any) || []);
     setLoading(false);
-  }, [profile?.society_id]);
+  }, [effectiveSocietyId]);
 
   useEffect(() => { fetchTickets(); }, [fetchTickets]);
 

@@ -11,7 +11,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function AddDocumentSheet({ onAdded }: { onAdded: () => void }) {
-  const { user, profile } = useAuth();
+  const { user, profile, viewAsSocietyId } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState('');
@@ -82,10 +82,13 @@ export function AddDocumentSheet({ onAdded }: { onAdded: () => void }) {
             <label className="text-sm font-medium">File *</label>
             <ImageUpload value={fileUrl} onChange={setFileUrl} folder="documents" userId={user?.id || ''} />
           </div>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !title.trim() || !fileUrl} className="w-full">
+          <Button onClick={handleSubmit} disabled={isSubmitting || !title.trim() || !fileUrl || !!viewAsSocietyId} className="w-full">
             {isSubmitting && <Loader2 className="animate-spin mr-2" size={16} />}
             Upload Document
           </Button>
+          {viewAsSocietyId && (
+            <p className="text-xs text-muted-foreground text-center">You are viewing another society. Switch back to create content.</p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

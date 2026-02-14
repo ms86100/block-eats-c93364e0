@@ -17,34 +17,31 @@ function getTrustInfo(score: number) {
 }
 
 export function SocietyTrustBadge() {
-  const { profile } = useAuth();
+  const { effectiveSocietyId } = useAuth();
   const [score, setScore] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
 
     const fetchScore = async () => {
-      // First try to get cached score from societies table
       const { data } = await supabase
         .from('societies')
         .select('trust_score')
-        .eq('id', profile.society_id!)
+        .eq('id', effectiveSocietyId)
         .single();
 
       if (data) {
         let s = Number(data.trust_score);
-        // If score is 0, try computing live
         if (s === 0) {
           const { data: computed } = await supabase.rpc('calculate_society_trust_score', {
-            _society_id: profile.society_id!,
+            _society_id: effectiveSocietyId,
           });
           if (computed !== null && computed !== undefined) {
             s = Number(computed);
-            // Update cached score
             await supabase
               .from('societies')
               .update({ trust_score: s })
-              .eq('id', profile.society_id!);
+              .eq('id', effectiveSocietyId);
           }
         }
         setScore(s);
@@ -52,7 +49,7 @@ export function SocietyTrustBadge() {
     };
 
     fetchScore();
-  }, [profile?.society_id]);
+  }, [effectiveSocietyId]);
 
   if (score === null) return null;
 

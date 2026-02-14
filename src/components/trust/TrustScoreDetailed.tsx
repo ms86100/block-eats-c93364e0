@@ -28,16 +28,16 @@ function getTrustInfo(score: number) {
 }
 
 export function TrustScoreDetailed() {
-  const { profile } = useAuth();
+  const { effectiveSocietyId } = useAuth();
   const [metrics, setMetrics] = useState<TrustMetrics | null>(null);
 
   useEffect(() => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
     fetchMetrics();
-  }, [profile?.society_id]);
+  }, [effectiveSocietyId]);
 
   const fetchMetrics = async () => {
-    const sid = profile!.society_id!;
+    const sid = effectiveSocietyId!;
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 

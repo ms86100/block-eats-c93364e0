@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { notifySocietyAdmins } from '@/lib/society-notifications';
 
 export function CreateSnagSheet({ onCreated }: { onCreated: () => void }) {
-  const { user, profile } = useAuth();
+  const { user, profile, viewAsSocietyId } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [description, setDescription] = useState('');
@@ -88,10 +88,13 @@ export function CreateSnagSheet({ onCreated }: { onCreated: () => void }) {
             <label className="text-sm font-medium">Photo (optional)</label>
             <ImageUpload value={photoUrl} onChange={setPhotoUrl} folder="snags" userId={user?.id || ''} />
           </div>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !description.trim()} className="w-full">
+          <Button onClick={handleSubmit} disabled={isSubmitting || !description.trim() || !!viewAsSocietyId} className="w-full">
             {isSubmitting && <Loader2 className="animate-spin mr-2" size={16} />}
             Submit Report
           </Button>
+          {viewAsSocietyId && (
+            <p className="text-xs text-muted-foreground text-center">You are viewing another society. Switch back to create content.</p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

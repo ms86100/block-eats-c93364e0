@@ -20,7 +20,7 @@ const BROADCAST_CATEGORIES = [
 ];
 
 export function EmergencyBroadcastSheet() {
-  const { user, profile } = useAuth();
+  const { user, profile, viewAsSocietyId } = useAuth();
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [category, setCategory] = useState('general');
@@ -116,12 +116,15 @@ export function EmergencyBroadcastSheet() {
           <Button
             variant="destructive"
             onClick={handleSend}
-            disabled={sending || !title.trim() || !body.trim()}
+            disabled={sending || !title.trim() || !body.trim() || !!viewAsSocietyId}
             className="w-full"
           >
             {sending ? <Loader2 className="animate-spin mr-2" size={16} /> : <Megaphone size={16} className="mr-2" />}
             Send to All Residents
           </Button>
+          {viewAsSocietyId && (
+            <p className="text-xs text-muted-foreground text-center">You are viewing another society. Switch back to create content.</p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

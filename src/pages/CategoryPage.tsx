@@ -12,7 +12,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function CategoryPage() {
   const { category } = useParams<{ category: ProductCategory }>();
   const { configs } = useCategoryConfigs();
-  const { profile } = useAuth();
+  const { effectiveSocietyId } = useAuth();
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -22,7 +22,7 @@ export default function CategoryPage() {
     if (category) {
       fetchSellers();
     }
-  }, [category, profile?.society_id]);
+  }, [category, effectiveSocietyId]);
 
   const fetchSellers = async () => {
     try {
@@ -33,8 +33,8 @@ export default function CategoryPage() {
         .contains('categories', [category])
         .order('rating', { ascending: false });
 
-      if (profile?.society_id) {
-        query = query.eq('society_id', profile.society_id);
+      if (effectiveSocietyId) {
+        query = query.eq('society_id', effectiveSocietyId);
       }
 
       const { data, error } = await query;

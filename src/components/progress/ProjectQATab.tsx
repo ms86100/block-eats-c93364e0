@@ -43,7 +43,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export function ProjectQATab() {
-  const { user, society, isAdmin } = useAuth();
+  const { user, isAdmin, effectiveSocietyId } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedQ, setExpandedQ] = useState<string | null>(null);
@@ -51,12 +51,12 @@ export function ProjectQATab() {
   const [isReplying, setIsReplying] = useState(false);
 
   const fetchQuestions = async () => {
-    if (!society?.id) return;
+    if (!effectiveSocietyId) return;
 
     const { data: qData } = await supabase
       .from('project_questions')
       .select('*, asker:profiles!project_questions_asked_by_fkey(name)')
-      .eq('society_id', society.id)
+      .eq('society_id', effectiveSocietyId)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -80,7 +80,7 @@ export function ProjectQATab() {
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchQuestions(); }, [society?.id]);
+  useEffect(() => { fetchQuestions(); }, [effectiveSocietyId]);
 
   const handleReply = async (questionId: string) => {
     if (!user || !replyText.trim()) return;

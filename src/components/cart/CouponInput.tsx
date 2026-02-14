@@ -15,12 +15,12 @@ interface CouponInputProps {
 }
 
 export function CouponInput({ sellerId, totalAmount, onApply, onRemove, appliedCoupon }: CouponInputProps) {
-  const { user, profile } = useAuth();
+  const { user, effectiveSocietyId } = useAuth();
   const [code, setCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
 
   const handleApply = async () => {
-    if (!code.trim() || !user || !profile?.society_id) return;
+    if (!code.trim() || !user || !effectiveSocietyId) return;
     setIsValidating(true);
 
     try {
@@ -29,7 +29,7 @@ export function CouponInput({ sellerId, totalAmount, onApply, onRemove, appliedC
         .from('coupons')
         .select('*')
         .eq('code', code.toUpperCase().trim())
-        .eq('society_id', profile.society_id)
+        .eq('society_id', effectiveSocietyId)
         .eq('seller_id', sellerId)
         .eq('is_active', true)
         .single();

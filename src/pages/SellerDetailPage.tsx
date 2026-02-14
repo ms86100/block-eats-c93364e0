@@ -33,7 +33,7 @@ import { toast } from 'sonner';
 
 export default function SellerDetailPage() {
   const { id } = useParams();
-  const { user, profile: authProfile } = useAuth();
+  const { user, profile: authProfile, effectiveSocietyId } = useAuth();
   const { configs: allCategoryConfigs } = useCategoryConfigs();
   const { items, totalAmount } = useCart();
   const [seller, setSeller] = useState<SellerProfile | null>(null);
@@ -78,7 +78,7 @@ export default function SellerDetailPage() {
 
       // Society scoping: only allow viewing sellers from same society
       const sellerData = sellerRes.data as any;
-      if (authProfile?.society_id && sellerData.society_id && sellerData.society_id !== authProfile.society_id) {
+      if (effectiveSocietyId && sellerData.society_id && sellerData.society_id !== effectiveSocietyId) {
         setSeller(null);
         return;
       }

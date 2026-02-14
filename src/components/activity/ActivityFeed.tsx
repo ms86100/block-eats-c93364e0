@@ -7,12 +7,12 @@ import { Activity, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function ActivityFeed() {
-  const { profile } = useAuth();
+  const { effectiveSocietyId } = useAuth();
   const [activities, setActivities] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
     fetchActivities();
 
     // Realtime subscription
@@ -22,21 +22,21 @@ export function ActivityFeed() {
         event: 'INSERT',
         schema: 'public',
         table: 'society_activity',
-        filter: `society_id=eq.${profile.society_id}`,
+        filter: `society_id=eq.${effectiveSocietyId}`,
       }, (payload) => {
         setActivities(prev => [payload.new as any, ...prev].slice(0, 5));
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [profile?.society_id]);
+  }, [effectiveSocietyId]);
 
   const fetchActivities = async () => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
     const { data } = await supabase
       .from('society_activity')
       .select('*, tower:project_towers!society_activity_tower_id_fkey(name)')
-      .eq('society_id', profile.society_id)
+      .eq('society_id', effectiveSocietyId)
       .order('created_at', { ascending: false })
       .limit(5);
     setActivities(data || []);

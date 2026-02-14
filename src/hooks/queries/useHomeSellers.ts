@@ -6,9 +6,9 @@ import { SellerProfile } from '@/types/database';
 const SELLER_SELECT = `*, profile:profiles!seller_profiles_user_id_fkey(name, block)`;
 
 export function useOpenNowSellers() {
-  const { profile, isApproved } = useAuth();
+  const { profile, isApproved, effectiveSocietyId } = useAuth();
   return useQuery({
-    queryKey: ['sellers', 'open-now', profile?.society_id],
+    queryKey: ['sellers', 'open-now', effectiveSocietyId],
     queryFn: async () => {
       const query = supabase
         .from('seller_profiles')
@@ -18,28 +18,28 @@ export function useOpenNowSellers() {
         .order('rating', { ascending: false })
         .limit(6);
 
-      const { data } = profile?.society_id
-        ? await query.eq('society_id', profile.society_id)
+      const { data } = effectiveSocietyId
+        ? await query.eq('society_id', effectiveSocietyId)
         : await query;
 
       return (data as any[]) || [];
     },
-    enabled: !!isApproved && !!profile?.society_id,
+    enabled: !!isApproved && !!effectiveSocietyId,
     staleTime: 30_000,
   });
 }
 
 export function useNearbyBlockSellers() {
-  const { profile, isApproved } = useAuth();
+  const { profile, isApproved, effectiveSocietyId } = useAuth();
   return useQuery({
-    queryKey: ['sellers', 'nearby', profile?.society_id, profile?.block],
+    queryKey: ['sellers', 'nearby', effectiveSocietyId, profile?.block],
     queryFn: async () => {
-      if (!profile?.block || !profile?.society_id) return [];
+      if (!profile?.block || !effectiveSocietyId) return [];
       const { data } = await supabase
         .from('seller_profiles')
         .select(SELLER_SELECT)
         .eq('verification_status', 'approved')
-        .eq('society_id', profile.society_id)
+        .eq('society_id', effectiveSocietyId)
         .order('rating', { ascending: false })
         .limit(5);
 
@@ -48,48 +48,48 @@ export function useNearbyBlockSellers() {
         (s: any) => s.profile?.block === profile.block
       ) as SellerProfile[];
     },
-    enabled: !!isApproved && !!profile?.society_id && !!profile?.block,
+    enabled: !!isApproved && !!effectiveSocietyId && !!profile?.block,
     staleTime: 30_000,
   });
 }
 
 export function useTopRatedSellers() {
-  const { profile, isApproved } = useAuth();
+  const { isApproved, effectiveSocietyId } = useAuth();
   return useQuery({
-    queryKey: ['sellers', 'top-rated', profile?.society_id],
+    queryKey: ['sellers', 'top-rated', effectiveSocietyId],
     queryFn: async () => {
       const { data } = await supabase
         .from('seller_profiles')
         .select(SELLER_SELECT)
         .eq('verification_status', 'approved')
-        .eq('society_id', profile!.society_id!)
+        .eq('society_id', effectiveSocietyId!)
         .gte('rating', 4)
         .order('rating', { ascending: false })
         .limit(5);
 
       return (data as any[]) || [];
     },
-    enabled: !!isApproved && !!profile?.society_id,
+    enabled: !!isApproved && !!effectiveSocietyId,
     staleTime: 30_000,
   });
 }
 
 export function useFeaturedSellers() {
-  const { profile, isApproved } = useAuth();
+  const { isApproved, effectiveSocietyId } = useAuth();
   return useQuery({
-    queryKey: ['sellers', 'featured', profile?.society_id],
+    queryKey: ['sellers', 'featured', effectiveSocietyId],
     queryFn: async () => {
       const { data } = await supabase
         .from('seller_profiles')
         .select(SELLER_SELECT)
         .eq('verification_status', 'approved')
-        .eq('society_id', profile!.society_id!)
+        .eq('society_id', effectiveSocietyId!)
         .eq('is_featured', true)
         .limit(5);
 
       return (data as any[]) || [];
     },
-    enabled: !!isApproved && !!profile?.society_id,
+    enabled: !!isApproved && !!effectiveSocietyId,
     staleTime: 30_000,
   });
 }

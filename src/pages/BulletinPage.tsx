@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { CategoryFilter, type BulletinCategory } from '@/components/bulletin/CategoryFilter';
 import { PostCard, type BulletinPost } from '@/components/bulletin/PostCard';
 import { CreatePostSheet } from '@/components/bulletin/CreatePostSheet';
@@ -17,7 +18,7 @@ import { toast } from '@/hooks/use-toast';
 import { Plus, Search, Loader2, Send, MessageCircle } from 'lucide-react';
 
 export default function BulletinPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, effectiveSocietyId } = useAuth();
   const [activeTab, setActiveTab] = useState('board');
   const [category, setCategory] = useState<BulletinCategory>('all');
   const [posts, setPosts] = useState<BulletinPost[]>([]);
@@ -37,7 +38,7 @@ export default function BulletinPage() {
   const [sendingResponse, setSendingResponse] = useState(false);
 
   const fetchPosts = useCallback(async () => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
     setLoading(true);
 
     let query = supabase
@@ -57,10 +58,10 @@ export default function BulletinPage() {
     const { data } = await query;
     setPosts((data as any) || []);
     setLoading(false);
-  }, [profile?.society_id, category, search]);
+  }, [effectiveSocietyId, category, search]);
 
   const fetchMostDiscussed = useCallback(async () => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
@@ -73,7 +74,7 @@ export default function BulletinPage() {
       .limit(5);
 
     setMostDiscussed(((data as any) || []).filter((p: any) => p.comment_count > 0));
-  }, [profile?.society_id]);
+  }, [effectiveSocietyId]);
 
   const fetchUserVotes = useCallback(async () => {
     if (!user) return;
@@ -86,13 +87,13 @@ export default function BulletinPage() {
   }, [user]);
 
   const fetchHelpRequests = useCallback(async () => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
     const { data } = await supabase
       .from('help_requests')
       .select('*, author:profiles!help_requests_author_id_fkey(name, block, flat_number)')
       .order('created_at', { ascending: false });
     setHelpRequests((data as any) || []);
-  }, [profile?.society_id]);
+  }, [effectiveSocietyId]);
 
   useEffect(() => {
     fetchPosts();
@@ -167,6 +168,7 @@ export default function BulletinPage() {
 
   return (
     <AppLayout headerTitle="Community" showLocation={false}>
+      <FeatureGate feature="bulletin">
       <div className="pt-2">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full grid grid-cols-2 mx-4 mb-3" style={{ width: 'calc(100% - 2rem)' }}>
@@ -279,6 +281,7 @@ export default function BulletinPage() {
           )}
         </SheetContent>
       </Sheet>
+      </FeatureGate>
     </AppLayout>
   );
 }

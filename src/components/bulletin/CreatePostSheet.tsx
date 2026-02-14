@@ -19,7 +19,7 @@ interface CreatePostSheetProps {
 }
 
 export function CreatePostSheet({ open, onOpenChange, onCreated }: CreatePostSheetProps) {
-  const { profile } = useAuth();
+  const { profile, viewAsSocietyId } = useAuth();
   const [category, setCategory] = useState<BulletinCategory>('alert');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -307,7 +307,7 @@ export function CreatePostSheet({ open, onOpenChange, onCreated }: CreatePostShe
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={loading || !title.trim()}
+            disabled={loading || !title.trim() || !!viewAsSocietyId}
           >
             {loading ? (
               <>
@@ -318,6 +318,9 @@ export function CreatePostSheet({ open, onOpenChange, onCreated }: CreatePostShe
               'Post to Community'
             )}
           </Button>
+          {viewAsSocietyId && (
+            <p className="text-xs text-muted-foreground text-center">You are viewing another society. Switch back to create content.</p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

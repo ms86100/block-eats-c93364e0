@@ -15,7 +15,7 @@ interface AskQuestionSheetProps {
 }
 
 export function AskQuestionSheet({ onAsked, existingQuestions }: AskQuestionSheetProps) {
-  const { user, profile } = useAuth();
+  const { user, profile, viewAsSocietyId } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [questionText, setQuestionText] = useState('');
@@ -102,10 +102,13 @@ export function AskQuestionSheet({ onAsked, existingQuestions }: AskQuestionShee
             </Card>
           )}
 
-          <Button onClick={handleSubmit} disabled={isSubmitting || !questionText.trim()} className="w-full">
+          <Button onClick={handleSubmit} disabled={isSubmitting || !questionText.trim() || !!viewAsSocietyId} className="w-full">
             {isSubmitting && <Loader2 className="animate-spin mr-2" size={16} />}
             Post Question
           </Button>
+          {viewAsSocietyId && (
+            <p className="text-xs text-muted-foreground text-center">You are viewing another society. Switch back to create content.</p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

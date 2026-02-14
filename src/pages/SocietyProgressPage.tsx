@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,29 +41,29 @@ interface Milestone {
 }
 
 export default function SocietyProgressPage() {
-  const { user, society, isAdmin } = useAuth();
+  const { user, isAdmin, effectiveSocietyId, effectiveSociety } = useAuth();
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [towers, setTowers] = useState<Tower[]>([]);
   const [selectedTowerId, setSelectedTowerId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchTowers = async () => {
-    if (!society?.id) return;
+    if (!effectiveSocietyId) return;
     const { data } = await supabase
       .from('project_towers')
       .select('*')
-      .eq('society_id', society.id)
+      .eq('society_id', effectiveSocietyId)
       .order('name');
     setTowers((data as any) || []);
   };
 
   const fetchMilestones = async () => {
-    if (!society?.id) return;
+    if (!effectiveSocietyId) return;
 
     let query = supabase
       .from('construction_milestones')
       .select('*')
-      .eq('society_id', society.id)
+      .eq('society_id', effectiveSocietyId)
       .order('created_at', { ascending: false });
 
     if (selectedTowerId) {
@@ -106,8 +107,8 @@ export default function SocietyProgressPage() {
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchTowers(); }, [society?.id]);
-  useEffect(() => { fetchMilestones(); }, [society?.id, selectedTowerId]);
+  useEffect(() => { fetchTowers(); }, [effectiveSocietyId]);
+  useEffect(() => { fetchMilestones(); }, [effectiveSocietyId, selectedTowerId]);
 
   // Compute progress - use tower data if available, otherwise milestones
   const overallPercentage = towers.length > 0
@@ -118,7 +119,7 @@ export default function SocietyProgressPage() {
     ? towers.find(t => t.id === selectedTowerId)?.current_stage || 'foundation'
     : towers.length > 0 ? towers[0].current_stage : (milestones.length > 0 ? milestones[0].stage : 'foundation');
 
-  const isUnderConstruction = (society as any)?.is_under_construction;
+  const isUnderConstruction = (effectiveSociety as any)?.is_under_construction;
 
   if (isLoading) {
     return (
@@ -147,12 +148,13 @@ export default function SocietyProgressPage() {
 
   return (
     <AppLayout headerTitle="Construction Progress" showLocation={false}>
+      <FeatureGate feature="construction_progress">
       <div className="p-4 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <HardHat className="text-primary" size={20} />
-            <h2 className="font-semibold text-sm">{society?.name}</h2>
+            <h2 className="font-semibold text-sm">{effectiveSociety?.name}</h2>
           </div>
           <TowerSelector towers={towers} selectedTowerId={selectedTowerId} onSelect={setSelectedTowerId} />
         </div>
@@ -216,6 +218,7 @@ export default function SocietyProgressPage() {
           </TabsContent>
         </Tabs>
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

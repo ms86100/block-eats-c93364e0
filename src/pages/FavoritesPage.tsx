@@ -9,7 +9,7 @@ import { SellerProfile } from '@/types/database';
 import { Heart, ArrowLeft } from 'lucide-react';
 
 export default function FavoritesPage() {
-  const { user, profile } = useAuth();
+  const { user, effectiveSocietyId } = useAuth();
   const [favorites, setFavorites] = useState<SellerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -38,7 +38,7 @@ export default function FavoritesPage() {
       
       const sellers = data
         ?.map((f: any) => f.seller)
-        .filter((s: any) => s && s.verification_status === 'approved' && (!profile?.society_id || s.society_id === profile.society_id)) || [];
+        .filter((s: any) => s && s.verification_status === 'approved' && (!effectiveSocietyId || s.society_id === effectiveSocietyId)) || [];
       
       setFavorites(sellers);
     } catch (error) {

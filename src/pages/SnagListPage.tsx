@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { SnagTicketCard } from '@/components/snags/SnagTicketCard';
@@ -28,13 +29,13 @@ interface SnagTicket {
 }
 
 export default function SnagListPage() {
-  const { society } = useAuth();
+  const { effectiveSocietyId } = useAuth();
   const [tickets, setTickets] = useState<SnagTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<SnagTicket | null>(null);
 
   const fetchTickets = async () => {
-    if (!society?.id) return;
+    if (!effectiveSocietyId) return;
     const { data } = await supabase
       .from('snag_tickets')
       .select('*')
@@ -44,7 +45,7 @@ export default function SnagListPage() {
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchTickets(); }, [society?.id]);
+  useEffect(() => { fetchTickets(); }, [effectiveSocietyId]);
 
   if (isLoading) {
     return (
@@ -59,6 +60,7 @@ export default function SnagListPage() {
 
   return (
     <AppLayout headerTitle="Snag Reports" showLocation={false}>
+      <FeatureGate feature="snag_management">
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -89,6 +91,7 @@ export default function SnagListPage() {
           onUpdated={() => { fetchTickets(); setSelectedTicket(null); }}
         />
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

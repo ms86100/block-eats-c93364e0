@@ -25,7 +25,7 @@ interface ReportData {
 }
 
 export default function SocietyReportPage() {
-  const { profile, society, isAdmin } = useAuth();
+  const { profile, isAdmin, effectiveSocietyId, effectiveSociety } = useAuth();
   const [monthOffset, setMonthOffset] = useState(0);
   const [report, setReport] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,13 +36,13 @@ export default function SocietyReportPage() {
   const monthLabel = format(targetMonth, 'MMMM yyyy');
 
   useEffect(() => {
-    if (!profile?.society_id) return;
+    if (!effectiveSocietyId) return;
     generateReport();
-  }, [profile?.society_id, monthOffset]);
+  }, [effectiveSocietyId, monthOffset]);
 
   const generateReport = async () => {
     setLoading(true);
-    const sid = profile!.society_id!;
+    const sid = effectiveSocietyId!;
 
     const [expenses, income, disputesOpened, disputesResolved, snagsOpened, snagsFixed, milestones, docs, qTotal, qAnswered, mCollected, mPending, ackedDisputes, ackedSnags] = await Promise.all([
       supabase.from('society_expenses').select('amount').eq('society_id', sid).gte('expense_date', monthStart).lte('expense_date', monthEnd),
@@ -114,7 +114,7 @@ export default function SocietyReportPage() {
           </Button>
           <div className="text-center">
             <p className="font-semibold">{monthLabel}</p>
-            <p className="text-xs text-muted-foreground">{society?.name}</p>
+            <p className="text-xs text-muted-foreground">{effectiveSociety?.name}</p>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setMonthOffset(o => Math.max(0, o - 1))} disabled={monthOffset === 0}>
             <ChevronRight size={18} />

@@ -29,16 +29,16 @@ const CATEGORIES = [
 ];
 
 export function DocumentVaultTab() {
-  const { society, isAdmin } = useAuth();
+  const { isAdmin, effectiveSocietyId } = useAuth();
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchDocuments = async () => {
-    if (!society?.id) return;
+    if (!effectiveSocietyId) return;
     const { data } = await supabase
       .from('project_documents')
       .select('*')
-      .eq('society_id', society.id)
+      .eq('society_id', effectiveSocietyId)
       .order('created_at', { ascending: false });
     setDocuments((data as any) || []);
     setIsLoading(false);
@@ -46,7 +46,7 @@ export function DocumentVaultTab() {
 
   useEffect(() => {
     fetchDocuments();
-  }, [society?.id]);
+  }, [effectiveSocietyId]);
 
   const grouped = CATEGORIES.map((cat) => ({
     ...cat,

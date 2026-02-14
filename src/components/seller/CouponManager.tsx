@@ -29,7 +29,7 @@ interface Coupon {
 }
 
 export function CouponManager() {
-  const { currentSellerId, profile } = useAuth();
+  const { currentSellerId, profile, viewAsSocietyId } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -117,7 +117,7 @@ export function CouponManager() {
           <Ticket className="text-primary" size={20} />
           Promotions & Coupons
         </h3>
-        <Button size="sm" onClick={() => setShowForm(!showForm)}>
+        <Button size="sm" onClick={() => setShowForm(!showForm)} disabled={!!viewAsSocietyId}>
           <Plus size={16} className="mr-1" />
           {showForm ? 'Cancel' : 'New Coupon'}
         </Button>
