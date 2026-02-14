@@ -92,6 +92,42 @@ export type Database = {
           },
         ]
       }
+      audit_log_archive: {
+        Row: {
+          action: string
+          actor_id: string | null
+          archived_at: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          society_id: string | null
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          archived_at?: string
+          created_at: string
+          id: string
+          metadata?: Json | null
+          society_id?: string | null
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          archived_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          society_id?: string | null
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       builder_members: {
         Row: {
           builder_id: string
@@ -1012,6 +1048,7 @@ export type Database = {
           is_active: boolean | null
           link_url: string | null
           reference_id: string
+          society_id: string | null
           title: string | null
           type: string
           updated_at: string | null
@@ -1024,6 +1061,7 @@ export type Database = {
           is_active?: boolean | null
           link_url?: string | null
           reference_id: string
+          society_id?: string | null
           title?: string | null
           type: string
           updated_at?: string | null
@@ -1036,11 +1074,20 @@ export type Database = {
           is_active?: boolean | null
           link_url?: string | null
           reference_id?: string
+          society_id?: string | null
           title?: string | null
           type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "featured_items_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       help_requests: {
         Row: {
@@ -1228,6 +1275,45 @@ export type Database = {
           },
         ]
       }
+      notification_queue: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          payload: Json | null
+          processed_at: string | null
+          reference_path: string | null
+          status: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          reference_path?: string | null
+          status?: string
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          reference_path?: string | null
+          status?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -1290,6 +1376,7 @@ export type Database = {
           deposit_refunded: boolean | null
           discount_amount: number | null
           id: string
+          idempotency_key: string | null
           notes: string | null
           order_type: string | null
           payment_status: string | null
@@ -1318,6 +1405,7 @@ export type Database = {
           deposit_refunded?: boolean | null
           discount_amount?: number | null
           id?: string
+          idempotency_key?: string | null
           notes?: string | null
           order_type?: string | null
           payment_status?: string | null
@@ -1346,6 +1434,7 @@ export type Database = {
           deposit_refunded?: boolean | null
           discount_amount?: number | null
           id?: string
+          idempotency_key?: string | null
           notes?: string | null
           order_type?: string | null
           payment_status?: string | null
@@ -1394,6 +1483,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      orders_archive: {
+        Row: {
+          archived_at: string
+          auto_cancel_at: string | null
+          buyer_id: string | null
+          coupon_id: string | null
+          created_at: string | null
+          delivery_address: string | null
+          deposit_paid: boolean | null
+          deposit_refunded: boolean | null
+          discount_amount: number | null
+          id: string
+          notes: string | null
+          order_type: string | null
+          payment_status: string | null
+          payment_type: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          rejection_reason: string | null
+          rental_end_date: string | null
+          rental_start_date: string | null
+          scheduled_date: string | null
+          scheduled_time_end: string | null
+          scheduled_time_start: string | null
+          seller_id: string | null
+          society_id: string | null
+          status: string | null
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          archived_at?: string
+          auto_cancel_at?: string | null
+          buyer_id?: string | null
+          coupon_id?: string | null
+          created_at?: string | null
+          delivery_address?: string | null
+          deposit_paid?: boolean | null
+          deposit_refunded?: boolean | null
+          discount_amount?: number | null
+          id: string
+          notes?: string | null
+          order_type?: string | null
+          payment_status?: string | null
+          payment_type?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          rejection_reason?: string | null
+          rental_end_date?: string | null
+          rental_start_date?: string | null
+          scheduled_date?: string | null
+          scheduled_time_end?: string | null
+          scheduled_time_start?: string | null
+          seller_id?: string | null
+          society_id?: string | null
+          status?: string | null
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          archived_at?: string
+          auto_cancel_at?: string | null
+          buyer_id?: string | null
+          coupon_id?: string | null
+          created_at?: string | null
+          delivery_address?: string | null
+          deposit_paid?: boolean | null
+          deposit_refunded?: boolean | null
+          discount_amount?: number | null
+          id?: string
+          notes?: string | null
+          order_type?: string | null
+          payment_status?: string | null
+          payment_type?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          rejection_reason?: string | null
+          rental_end_date?: string | null
+          rental_start_date?: string | null
+          scheduled_date?: string | null
+          scheduled_time_end?: string | null
+          scheduled_time_start?: string | null
+          seller_id?: string | null
+          society_id?: string | null
+          status?: string | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       parent_groups: {
         Row: {
@@ -1452,6 +1631,7 @@ export type Database = {
           buyer_id: string
           created_at: string | null
           id: string
+          idempotency_key: string | null
           net_amount: number | null
           order_id: string
           payment_method: string
@@ -1466,6 +1646,7 @@ export type Database = {
           buyer_id: string
           created_at?: string | null
           id?: string
+          idempotency_key?: string | null
           net_amount?: number | null
           order_id: string
           payment_method?: string
@@ -1480,6 +1661,7 @@ export type Database = {
           buyer_id?: string
           created_at?: string | null
           id?: string
+          idempotency_key?: string | null
           net_amount?: number | null
           order_id?: string
           payment_method?: string
@@ -1854,6 +2036,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limits: {
+        Row: {
+          count: number
+          id: string
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          id?: string
+          key: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          id?: string
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       reports: {
         Row: {

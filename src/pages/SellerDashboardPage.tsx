@@ -1,15 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { SellerProfile, Order } from '@/types/database';
-import { Package } from 'lucide-react';
+import { SellerProfile } from '@/types/database';
+import { Package, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAudit } from '@/lib/audit';
-import { startOfDay, startOfWeek, isAfter, parseISO } from 'date-fns';
 
 // Import refactored components
 import { StoreStatusCard } from '@/components/seller/StoreStatusCard';
@@ -19,117 +18,53 @@ import { QuickActions } from '@/components/seller/QuickActions';
 import { OrderFilters, OrderFilter } from '@/components/seller/OrderFilters';
 import { SellerOrderCard } from '@/components/seller/SellerOrderCard';
 import { CouponManager } from '@/components/seller/CouponManager';
-
-interface OrderItemWithStatus {
-  id: string;
-  product_name: string;
-  quantity: number;
-  unit_price: number;
-  status?: string;
-}
-
-interface OrderWithDetails {
-  id: string;
-  created_at: string;
-  total_amount: number;
-  status: string;
-  payment_status?: string | null;
-  payment_type?: string | null;
-  buyer_id?: string | null;
-  seller_id?: string | null;
-  notes?: string | null;
-  buyer?: { name: string; block: string; flat_number: string };
-  items?: OrderItemWithStatus[];
-}
+import { useSellerOrderStats, useSellerOrdersInfinite, useSellerOrderFilterCounts } from '@/hooks/queries/useSellerOrders';
 
 export default function SellerDashboardPage() {
   const { user, sellerProfiles, currentSellerId } = useAuth();
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
-  const [allOrders, setAllOrders] = useState<OrderWithDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('all');
 
-  // Fetch data when user or currentSellerId changes
+  const activeSellerId = currentSellerId || (sellerProfiles.length > 0 ? sellerProfiles[0].id : null);
+
+  // Fetch seller profile
   useEffect(() => {
-    if (user && currentSellerId) {
-      fetchSellerData(currentSellerId);
-    } else if (user && sellerProfiles.length > 0) {
-      fetchSellerData(sellerProfiles[0].id);
+    if (user && activeSellerId) {
+      fetchSellerProfile(activeSellerId);
     } else {
-      setIsLoading(false);
+      setIsLoadingProfile(false);
     }
-  }, [user, currentSellerId, sellerProfiles]);
+  }, [user, activeSellerId]);
 
-  const fetchSellerData = async (sellerId: string) => {
-    if (!user) return;
-    setIsLoading(true);
-
+  const fetchSellerProfile = async (sellerId: string) => {
+    setIsLoadingProfile(true);
     try {
-      // Fetch specific seller profile by ID
       const { data: profile } = await supabase
         .from('seller_profiles')
         .select('*')
         .eq('id', sellerId)
         .single();
 
-      if (!profile) {
-        setIsLoading(false);
-        setSellerProfile(null);
-        return;
-      }
-
-      setSellerProfile(profile as SellerProfile);
-
-      // Fetch all orders with items including item-level status
-      const { data: orders } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          buyer:profiles!orders_buyer_id_fkey(name, block, flat_number),
-          items:order_items(id, product_name, quantity, unit_price, status)
-        `)
-        .eq('seller_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      setAllOrders((orders as OrderWithDetails[]) || []);
+      setSellerProfile(profile ? (profile as SellerProfile) : null);
     } catch (error) {
-      console.error('Error fetching seller data:', error);
+      console.error('Error fetching seller profile:', error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingProfile(false);
     }
   };
 
-  // Calculate stats using useMemo for performance
-  const stats = useMemo(() => {
-    const today = startOfDay(new Date());
-    const weekStart = startOfWeek(new Date());
+  // Use React Query for stats and orders
+  const { data: stats } = useSellerOrderStats(activeSellerId);
+  const { data: filterCounts } = useSellerOrderFilterCounts(activeSellerId);
+  const {
+    data: ordersPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useSellerOrdersInfinite(activeSellerId, orderFilter);
 
-    const completedOrders = allOrders.filter((o) => o.status === 'completed');
-    const todayOrders = allOrders.filter((o) => isAfter(parseISO(o.created_at), today));
-    const todayCompletedOrders = completedOrders.filter((o) =>
-      isAfter(parseISO(o.created_at), today)
-    );
-    const weekCompletedOrders = completedOrders.filter((o) =>
-      isAfter(parseISO(o.created_at), weekStart)
-    );
-    const pendingOrders = allOrders.filter(
-      (o) => !['completed', 'cancelled'].includes(o.status)
-    );
-    const preparingOrders = allOrders.filter((o) => o.status === 'preparing');
-    const readyOrders = allOrders.filter((o) => o.status === 'ready');
-
-    return {
-      totalOrders: allOrders.length,
-      pendingOrders: pendingOrders.length,
-      totalEarnings: completedOrders.reduce((sum, o) => sum + Number(o.total_amount), 0),
-      todayEarnings: todayCompletedOrders.reduce((sum, o) => sum + Number(o.total_amount), 0),
-      weekEarnings: weekCompletedOrders.reduce((sum, o) => sum + Number(o.total_amount), 0),
-      todayOrders: todayOrders.length,
-      completedOrders: completedOrders.length,
-      preparingOrders: preparingOrders.length,
-      readyOrders: readyOrders.length,
-    };
-  }, [allOrders]);
+  const allOrders = ordersPages?.pages.flat() || [];
 
   const toggleAvailability = async () => {
     if (!sellerProfile) return;
@@ -151,7 +86,6 @@ export default function SellerDashboardPage() {
         sellerProfile.is_available ? 'Store is now closed' : 'Store is now open'
       );
 
-      // Audit log
       if ((sellerProfile as any).society_id) {
         logAudit(
           sellerProfile.is_available ? 'store_closed' : 'store_opened',
@@ -166,40 +100,7 @@ export default function SellerDashboardPage() {
     }
   };
 
-  // Get filtered orders based on selected filter
-  const filteredOrders = useMemo(() => {
-    const today = startOfDay(new Date());
-
-    switch (orderFilter) {
-      case 'today':
-        return allOrders.filter((o) => isAfter(parseISO(o.created_at), today));
-      case 'pending':
-        return allOrders.filter((o) => o.status === 'placed' || o.status === 'accepted');
-      case 'preparing':
-        return allOrders.filter((o) => o.status === 'preparing');
-      case 'ready':
-        return allOrders.filter((o) => o.status === 'ready');
-      case 'completed':
-        return allOrders.filter((o) => o.status === 'completed');
-      default:
-        return allOrders;
-    }
-  }, [allOrders, orderFilter]);
-
-  // Filter counts for the filter buttons
-  const filterCounts = useMemo(() => {
-    const today = startOfDay(new Date());
-    return {
-      all: allOrders.length,
-      today: allOrders.filter((o) => isAfter(parseISO(o.created_at), today)).length,
-      pending: allOrders.filter((o) => o.status === 'placed' || o.status === 'accepted').length,
-      preparing: allOrders.filter((o) => o.status === 'preparing').length,
-      ready: allOrders.filter((o) => o.status === 'ready').length,
-      completed: allOrders.filter((o) => o.status === 'completed').length,
-    };
-  }, [allOrders]);
-
-  if (isLoading) {
+  if (isLoadingProfile) {
     return (
       <AppLayout headerTitle="Seller Dashboard" showLocation={false}>
         <div className="p-4 space-y-4">
@@ -229,32 +130,26 @@ export default function SellerDashboardPage() {
   return (
     <AppLayout headerTitle="Seller Dashboard" showLocation={false}>
       <div className="p-4 space-y-4">
-        {/* Store Status */}
         <StoreStatusCard
           sellerProfile={sellerProfile}
           sellerProfiles={sellerProfiles}
           onToggleAvailability={toggleAvailability}
         />
 
-        {/* Earnings Summary */}
         <EarningsSummary
-          todayEarnings={stats.todayEarnings}
-          weekEarnings={stats.weekEarnings}
-          totalEarnings={stats.totalEarnings}
+          todayEarnings={stats?.todayEarnings || 0}
+          weekEarnings={stats?.weekEarnings || 0}
+          totalEarnings={stats?.totalEarnings || 0}
         />
 
-        {/* Stats */}
         <DashboardStats
-          totalOrders={stats.totalOrders}
-          pendingOrders={stats.pendingOrders}
-          todayOrders={stats.todayOrders}
-          completedOrders={stats.completedOrders}
+          totalOrders={stats?.totalOrders || 0}
+          pendingOrders={stats?.pendingOrders || 0}
+          todayOrders={stats?.todayOrders || 0}
+          completedOrders={stats?.completedOrders || 0}
         />
 
-        {/* Quick Actions */}
         <QuickActions />
-
-        {/* Promotions & Coupons */}
         <CouponManager />
 
         {/* Orders Section */}
@@ -263,25 +158,25 @@ export default function SellerDashboardPage() {
             <h3 className="font-semibold">Orders</h3>
           </div>
 
-          {/* Order Filters */}
           <div className="mb-4">
             <OrderFilters
               currentFilter={orderFilter}
               onFilterChange={setOrderFilter}
-              counts={filterCounts}
+              counts={filterCounts || { all: 0, today: 0, pending: 0, preparing: 0, ready: 0, completed: 0 }}
             />
           </div>
 
-          {/* Orders List */}
-          {filteredOrders.length > 0 ? (
+          {allOrders.length > 0 ? (
             <div className="space-y-3">
-              {filteredOrders.slice(0, 10).map((order) => (
+              {allOrders.map((order: any) => (
                 <SellerOrderCard key={order.id} order={order} />
               ))}
-              {filteredOrders.length > 10 && (
-                <Link to="/orders" className="block text-center text-sm text-primary py-2">
-                  View all {filteredOrders.length} orders
-                </Link>
+              {hasNextPage && (
+                <div className="flex justify-center py-2">
+                  <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                    {isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</> : 'Load More'}
+                  </Button>
+                </div>
               )}
             </div>
           ) : (

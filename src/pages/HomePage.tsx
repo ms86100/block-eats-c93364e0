@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CategoryGroupGrid } from '@/components/category/CategoryGroupGrid';
 import { SellerCard } from '@/components/seller/SellerCard';
@@ -11,88 +9,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { SellerProfile } from '@/types/database';
 import { Search, ChevronRight, Store, Clock, Heart, Award, MapPin, Utensils, Star, TrendingUp, Activity } from 'lucide-react';
 import heroBanner from '@/assets/hero-banner.jpg';
+import {
+  useOpenNowSellers,
+  useNearbyBlockSellers,
+  useTopRatedSellers,
+  useFeaturedSellers,
+  useFavoriteSellers,
+} from '@/hooks/queries/useHomeSellers';
 
 export default function HomePage() {
   const { user, profile, isApproved, isSeller, society } = useAuth();
   const { showOnboarding, hasChecked, completeOnboarding } = useOnboarding();
-  const [openNowSellers, setOpenNowSellers] = useState<SellerProfile[]>([]);
-  const [nearbyBlockSellers, setNearbyBlockSellers] = useState<SellerProfile[]>([]);
-  const [topRatedSellers, setTopRatedSellers] = useState<SellerProfile[]>([]);
-  const [featuredSellers, setFeaturedSellers] = useState<SellerProfile[]>([]);
-  const [favorites, setFavorites] = useState<SellerProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (isApproved) {
-      fetchData();
-    }
-  }, [user, isApproved, profile]);
+  const { data: openNowSellers = [], isLoading: loadingOpen } = useOpenNowSellers();
+  const { data: nearbyBlockSellers = [] } = useNearbyBlockSellers();
+  const { data: topRatedSellers = [], isLoading: loadingTop } = useTopRatedSellers();
+  const { data: featuredSellers = [] } = useFeaturedSellers();
+  const { data: favorites = [] } = useFavoriteSellers();
 
-  const fetchData = async () => {
-    try {
-      const currentHour = new Date().getHours();
-      const currentTime = `${String(currentHour).padStart(2, '0')}:00`;
-
-      // Fetch all approved sellers in the user's society
-      let query = supabase
-        .from('seller_profiles')
-        .select(`*, profile:profiles!seller_profiles_user_id_fkey(name, block)`)
-        .eq('verification_status', 'approved')
-        .order('rating', { ascending: false });
-
-      if (profile?.society_id) {
-        query = query.eq('society_id', profile.society_id);
-      }
-
-      const { data: allSellers } = await query;
-
-      const sellers = (allSellers as any) || [];
-
-      // Filter for Open Now (available and within hours)
-      const openNow = sellers.filter((s: any) => {
-        if (!s.is_available) return false;
-        if (!s.availability_start || !s.availability_end) return true;
-        return s.availability_start <= currentTime && s.availability_end >= currentTime;
-      }).slice(0, 6);
-      setOpenNowSellers(openNow);
-
-      // Filter for nearby block
-      if (profile?.block) {
-        const nearby = sellers.filter((s: any) => s.profile?.block === profile.block).slice(0, 5);
-        setNearbyBlockSellers(nearby);
-      }
-
-      // Top rated (4+ rating)
-      const topRated = sellers.filter((s: any) => s.rating >= 4).slice(0, 5);
-      setTopRatedSellers(topRated);
-
-      // Featured sellers
-      const featured = sellers.filter((s: any) => s.is_featured).slice(0, 5);
-      setFeaturedSellers(featured);
-
-      // Fetch user favorites
-      if (user) {
-        const { data: favData } = await supabase
-          .from('favorites')
-          .select(`seller:seller_profiles(*, profile:profiles!seller_profiles_user_id_fkey(name, block))`)
-          .eq('user_id', user.id)
-          .limit(5);
-
-        const favSellers = favData
-          ?.map((f: any) => f.seller)
-          .filter((s: any) => s && s.verification_status === 'approved') || [];
-        
-        setFavorites(favSellers);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const isLoading = loadingOpen || loadingTop;
 
   // Show onboarding for new users
   if (hasChecked && showOnboarding && isApproved) {
@@ -209,7 +146,7 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
-              {openNowSellers.map((seller) => (
+              {openNowSellers.map((seller: any) => (
                 <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-40">
                   <div className="bg-card rounded-xl overflow-hidden shadow-sm">
                     <div className="h-20 relative">
@@ -250,7 +187,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
-              {nearbyBlockSellers.map((seller) => (
+              {nearbyBlockSellers.map((seller: any) => (
                 <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-40">
                   <div className="bg-card rounded-xl overflow-hidden shadow-sm">
                     <div className="h-20 relative">
@@ -264,7 +201,7 @@ export default function HomePage() {
                     </div>
                     <div className="p-2">
                       <p className="font-medium text-sm truncate">{seller.business_name}</p>
-                      <p className="text-xs text-muted-foreground">Block {(seller as any).profile?.block}</p>
+                      <p className="text-xs text-muted-foreground">Block {seller.profile?.block}</p>
                     </div>
                   </div>
                 </Link>
@@ -286,7 +223,7 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
-              {favorites.map((seller) => (
+              {favorites.map((seller: any) => (
                 <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-48">
                   <div className="bg-card rounded-xl overflow-hidden shadow-sm">
                     <div className="h-24 relative">
@@ -321,8 +258,8 @@ export default function HomePage() {
               </div>
             </div>
             <div className="px-4 space-y-3">
-              {featuredSellers.map((seller) => (
-                <SellerCard key={seller.id} seller={seller as any} />
+              {featuredSellers.map((seller: any) => (
+                <SellerCard key={seller.id} seller={seller} />
               ))}
             </div>
           </div>
@@ -369,8 +306,8 @@ export default function HomePage() {
                   ))}
                 </>
               ) : (
-                topRatedSellers.map((seller) => (
-                  <SellerCard key={seller.id} seller={seller as any} />
+                topRatedSellers.map((seller: any) => (
+                  <SellerCard key={seller.id} seller={seller} />
                 ))
               )}
             </div>

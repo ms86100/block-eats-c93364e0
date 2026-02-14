@@ -1,58 +1,21 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import { Bell, Check, CheckCheck, Inbox } from 'lucide-react';
+import { Bell, CheckCheck, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface UserNotification {
-  id: string;
-  title: string;
-  body: string;
-  type: string;
-  reference_path: string | null;
-  is_read: boolean;
-  created_at: string;
-}
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/hooks/queries/useNotifications';
 
 export default function NotificationInboxPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<UserNotification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: notifications = [], isLoading } = useNotifications(user?.id);
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
 
-  useEffect(() => {
-    if (!user) return;
-    fetchNotifications();
-  }, [user]);
-
-  const fetchNotifications = async () => {
-    const { data } = await supabase
-      .from('user_notifications')
-      .select('*')
-      .eq('user_id', user!.id)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    setNotifications((data as any) || []);
-    setIsLoading(false);
-  };
-
-  const markAsRead = async (id: string) => {
-    await supabase.from('user_notifications').update({ is_read: true }).eq('id', id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-  };
-
-  const markAllRead = async () => {
-    if (!user) return;
-    await supabase.from('user_notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-  };
-
-  const handleTap = (n: UserNotification) => {
-    if (!n.is_read) markAsRead(n.id);
+  const handleTap = (n: typeof notifications[0]) => {
+    if (!n.is_read) markRead.mutate(n.id);
     if (n.reference_path) navigate(n.reference_path);
   };
 
@@ -63,7 +26,7 @@ export default function NotificationInboxPage() {
       <div className="p-4">
         {unreadCount > 0 && (
           <div className="flex justify-end mb-3">
-            <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={markAllRead}>
+            <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => user && markAllRead.mutate(user.id)}>
               <CheckCheck size={14} /> Mark all read
             </Button>
           </div>

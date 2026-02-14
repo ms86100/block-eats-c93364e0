@@ -38,6 +38,9 @@ export default function CartPage() {
   const createOrder = async (paymentStatus: 'pending' | 'paid', transactionRef?: string) => {
     if (!user || !profile || !currentSellerId) return null;
 
+    // Generate idempotency key to prevent duplicate orders
+    const idempotencyKey = crypto.randomUUID();
+
     // Calculate auto_cancel_at if any item is urgent (3 minutes from now)
     const autoCancelAt = hasUrgentItem 
       ? new Date(Date.now() + 3 * 60 * 1000).toISOString() 
@@ -56,7 +59,8 @@ export default function CartPage() {
         delivery_address: `Block ${profile.block}, Flat ${profile.flat_number}`,
         notes: notes || null,
         auto_cancel_at: autoCancelAt,
-      })
+        idempotency_key: idempotencyKey,
+      } as any)
       .select()
       .single();
 
