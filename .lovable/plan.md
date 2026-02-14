@@ -1,211 +1,165 @@
 
 
-# Multi-Tenant SaaS Product Readiness -- Implementation Plan
+# Multi-Tenant Context Switching -- 6-Point Verification Fix
 
-## Overview
+## Summary
 
-This plan addresses the three critical gaps preventing the platform from being a true SaaS product: (1) society context switching for platform admins and builders, (2) builder operational power, and (3) society-level feature autonomy. These are UX and product-layer changes -- not database changes.
-
----
-
-## Priority 1: Society Context Switching System
-
-### Problem
-Platform admins and builders are locked to their own `profile.society_id`. They cannot "view as" or operate within another society. At 100 societies, this makes admin operations impossible.
-
-### Solution
-Add `viewAsSocietyId` state to `AuthContext` that overrides the default `profile.society_id` for UI rendering only. RLS remains untouched -- admins already have cross-society SELECT access via `is_admin()` policies.
-
-### Changes
-
-**AuthContext.tsx**
-- Add `viewAsSocietyId: string | null` state
-- Add `setViewAsSociety(id: string | null)` function
-- Add computed `effectiveSocietyId` that returns `viewAsSocietyId || profile?.society_id`
-- Add `effectiveSociety: Society | null` that fetches the viewed society's data when switching
-- Expose all three in the context value
-
-**New component: `src/components/admin/SocietySwitcher.tsx`**
-- Dropdown component that lists all societies (fetched via admin-accessible query)
-- Shows current society name with a badge indicating "viewing as"
-- "Reset to my society" option to clear override
-- Only renders for platform admins and builder members
-
-**Header.tsx**
-- When `viewAsSocietyId` is set and user is admin/builder, show a colored banner below header: "Viewing: [Society Name]" with a dismiss button
-- Replace `society?.name` with `effectiveSociety?.name` in location display
-
-**AdminPage.tsx**
-- Add `SocietySwitcher` at the top of the page
-- Filter pending users, pending sellers, and all data by `effectiveSocietyId` when set (currently shows all globally -- add optional filter)
-
-**SocietyAdminPage.tsx**
-- Replace hardcoded `profile?.society_id` with `effectiveSocietyId`
-- Platform admins can now enter any society's admin panel via context switch
-- All queries already use `societyId` variable -- just change the source
-
-**SocietyDashboardPage.tsx, SocietyFinancesPage.tsx, SnagListPage.tsx, DisputesPage.tsx**
-- Replace `profile?.society_id` references with `effectiveSocietyId` from auth context
-- No query changes needed -- RLS allows admin access already
-
-### Security Note
-No RLS changes required. Platform admins already have `is_admin(auth.uid())` access across all societies. This change only affects which society's data the UI displays -- the database still enforces access rules independently.
+This plan fixes 5 audit failures across the context switching system: (1) migrate 20+ files from `profile.society_id` to `effectiveSocietyId` for reads, (2) fix React Query cache key pollution, (3) create a `FeatureGate` component for route-level guards, (4) add write-path visual guards, and (5) add a missing database index.
 
 ---
 
-## Priority 2: Builder Operational Dashboard
+## Phase 1: Cache Key Fix (CRITICAL)
 
-### Problem
-Builder dashboard (`BuilderDashboardPage.tsx`) is view-only. Clicking a society links to `/society` which shows the builder's own society, not the clicked one.
+**File: `src/hooks/queries/useHomeSellers.ts`**
 
-### Solution
-Make society cards actionable by integrating with the context switcher, and add inline operational capabilities.
+All 4 seller hooks use `profile?.society_id` in query keys and query functions. Replace with `effectiveSocietyId` from `useAuth()`.
 
-### Changes
-
-**BuilderDashboardPage.tsx**
-- On society card click: call `setViewAsSociety(society.id)` then navigate to `/society`
-- This makes the entire society ecosystem (dashboard, admin, finances, snags, disputes) work in the context of the clicked society
-- Add quick-action buttons per society card:
-  - "Pending Users" count as clickable badge -> navigates to `/society/admin` in that society context
-  - "Open Disputes" count as clickable badge -> navigates to `/disputes` in that society context
-- Add "View All" button per society that navigates to `/society` with context set
-
-**New: Builder-level aggregate metrics section**
-- Total revenue across all managed societies (query `orders` table filtered by society_ids in `builder_societies`)
-- Combined pending approval count
-- Combined dispute SLA status (breached vs on-track)
-- Uses a new React Query hook: `src/hooks/queries/useBuilderStats.ts`
+Changes:
+- Destructure `effectiveSocietyId` instead of `profile` (keep `profile` only for `block` in nearby sellers)
+- Replace all `profile?.society_id` in `queryKey` arrays with `effectiveSocietyId`
+- Replace all `profile.society_id` / `profile!.society_id!` in query functions with `effectiveSocietyId`
+- Replace `enabled` conditions: `!!profile?.society_id` becomes `!!effectiveSocietyId`
 
 ---
 
-## Priority 3: Society Feature Autonomy
+## Phase 2: Read Path Migration (11 Pages + 4 Components)
 
-### Problem
-There is no per-society feature configuration. All societies share the same global `category_config` and `parent_groups`. `featured_items` now has `society_id` but there is no UI to manage society-scoped featured items.
+Each change is mechanical: destructure `effectiveSocietyId` from `useAuth()`, replace society_id references in SELECT queries and `useEffect` dependencies.
 
-### Solution
+### Pages
 
-**Database migration: `society_features` table**
-
-| Column | Type | Default |
+| File | Current Reference | Change |
 |---|---|---|
-| id | uuid | gen_random_uuid() |
-| society_id | uuid (FK societies) | NOT NULL |
-| feature_key | text | NOT NULL |
-| is_enabled | boolean | true |
-| config | jsonb | '{}' |
-| created_at | timestamptz | now() |
+| `BulletinPage.tsx` (line 40, 60, 63) | `profile?.society_id` | Use `effectiveSocietyId` in fetchPosts, fetchMostDiscussed, fetchHelp guards and deps |
+| `CategoryPage.tsx` (lines 36-37, 25) | `profile?.society_id` / `profile.society_id` | Use `effectiveSocietyId` in query filter and useEffect dep |
+| `CategoryGroupPage.tsx` (lines 51-52) | `profile?.society_id` / `profile.society_id` | Use `effectiveSocietyId` in query filter |
+| `SearchPage.tsx` (lines 128, 165-166) | `profile?.society_id` | Use `effectiveSocietyId` in RPC call and query builder |
+| `MaintenancePage.tsx` (lines 37, 41) | `profile?.society_id` / `profile.society_id` | Use `effectiveSocietyId` for READ queries only; keep `profile.society_id` for bulk generate INSERT (line 72) |
+| `SocietyReportPage.tsx` (lines 39-41) | `profile?.society_id` | Use `effectiveSocietyId` in guard and deps |
+| `SocietyProgressPage.tsx` (lines 50, 60, 109-110) | `society?.id` | Use `effectiveSocietyId` instead of `society?.id` |
+| `SnagListPage.tsx` (lines 37, 47) | `society?.id` | Use `effectiveSocietyId` instead of `society?.id` |
+| `FavoritesPage.tsx` (line 41) | `profile?.society_id` | Use `effectiveSocietyId` in client-side filter |
+| `SellerDetailPage.tsx` (line 81) | `authProfile?.society_id` | Use `effectiveSocietyId` |
+| `TrustDirectoryPage.tsx` | `profile.society_id` used only on INSERT (line 73) | No read-path change needed; this is a write -- keep as-is |
 
-Unique constraint on `(society_id, feature_key)`. RLS: society admins can manage their own society's features, platform admins can manage all.
+### Components (Read Path Only)
 
-**Feature keys (initial set):**
-- `marketplace` -- enable/disable marketplace for society
-- `bulletin` -- enable/disable community bulletin
-- `disputes` -- enable/disable dispute system
-- `finances` -- enable/disable society finances
-- `construction_progress` -- enable/disable builder progress tracking
-- `snag_management` -- enable/disable snag tickets
-- `help_requests` -- enable/disable help request board
-
-**SocietyAdminPage.tsx -- new "Features" tab**
-- Toggle switches for each feature
-- Society admins can enable/disable features for their society
-- When a feature is disabled, the corresponding nav items and pages show a "Not available in your society" message
-
-**BottomNav.tsx and page-level guards**
-- Check `society_features` for the current society
-- If a feature is disabled, either hide the nav item or show a disabled state
-- Create a shared hook: `src/hooks/useSocietyFeatures.ts` that queries `society_features` for `effectiveSocietyId` with React Query caching (5 min staleTime)
+| File | Current Reference | Change |
+|---|---|---|
+| `ActivityFeed.tsx` (lines 15, 25, 32, 35, 39) | `profile?.society_id` / `profile.society_id` | Use `effectiveSocietyId` for fetch + realtime subscription filter + useEffect dep |
+| `SocietyTrustBadge.tsx` (lines 24, 31, 37, 39) | `profile?.society_id` / `profile.society_id!` | Use `effectiveSocietyId` for score fetch |
+| `DocumentVaultTab.tsx` (lines 37, 41) | `society?.id` | Use `effectiveSocietyId` |
+| `ProjectQATab.tsx` (lines 54, 59) | `society?.id` | Use `effectiveSocietyId` |
+| `TrustScoreDetailed.tsx` (lines 35, 37) | `profile?.society_id` | Use `effectiveSocietyId` |
+| `AdminDisputesTab.tsx` (line 31) | `profile?.society_id` | Use `effectiveSocietyId` |
+| `CouponInput.tsx` (lines 23, 32) | `profile?.society_id` / `profile.society_id` | Use `effectiveSocietyId` for coupon lookup (read); keep for validation guard |
 
 ---
 
-## Priority 4: Notification Society Labeling
+## Phase 3: Write Path Guards
 
-### Problem
-Notifications do not show which society they originate from. At 100 societies, platform admins cannot triage.
+**Design decision: INSERT operations keep `profile.society_id` (user's real society).**
 
-### Changes
+An admin "viewing as" Society B should NOT create content in Society B. They are viewing, not impersonating.
 
-**Database: Add `society_id` column to `user_notifications`**
-- Nullable UUID column (backward compatible with existing notifications)
-- No FK constraint needed (already have society_id pattern)
+### Components with INSERT operations (NO society_id change, but ADD visual guard)
 
-**NotificationInboxPage.tsx**
-- When `society_id` is present on a notification, show a small badge with the society name
-- For platform admins: add a filter dropdown to filter notifications by society
-- Fetch society names via a lightweight join or separate lookup
+These 10 components insert data with `profile.society_id` -- correct behavior. Add a guard that disables the create action when `viewAsSocietyId` is set:
 
-**Notification creation points (`src/lib/notifications.ts`)**
-- Include `society_id` when creating notifications that are society-scoped
-- General platform notifications leave `society_id` null
-
----
-
-## Priority 5: Featured Items Society Scoping UI
-
-### Problem
-`featured_items` table now has `society_id` column but the admin UI does not use it.
-
-### Changes
-
-**AdminPage.tsx -- Featured tab**
-- When `viewAsSocietyId` is set, filter featured items by that society
-- When creating featured items, auto-set `society_id` to `effectiveSocietyId`
-- Add a "Global" vs "This Society" toggle when creating featured items
-
----
-
-## Implementation Sequence
-
-### Phase 1: Context Switching Foundation (highest impact)
-1. Update `AuthContext.tsx` with `viewAsSocietyId` + `effectiveSocietyId` + `effectiveSociety`
-2. Create `SocietySwitcher` component
-3. Update `Header.tsx` with "Viewing as" banner
-4. Update `SocietyAdminPage.tsx` to use `effectiveSocietyId`
-5. Update `BuilderDashboardPage.tsx` with context-aware navigation
-
-### Phase 2: Society Features Table
-6. Database migration for `society_features` table
-7. Create `useSocietyFeatures` hook
-8. Add "Features" tab to `SocietyAdminPage.tsx`
-
-### Phase 3: Notification Labeling
-9. Database migration to add `society_id` to `user_notifications`
-10. Update `NotificationInboxPage.tsx` with society badges and filter
-11. Update notification creation to include `society_id`
-
-### Phase 4: Builder Dashboard Enhancement
-12. Create `useBuilderStats` hook
-13. Update `BuilderDashboardPage.tsx` with actionable cards and aggregate metrics
-
-### Phase 5: Featured Items Scoping
-14. Update AdminPage featured tab with society filtering
-
----
-
-## Files Modified
-
-| File | Change Type |
+| Component | Guard Logic |
 |---|---|
-| `src/contexts/AuthContext.tsx` | Add context switching state |
-| `src/components/admin/SocietySwitcher.tsx` | New component |
-| `src/components/layout/Header.tsx` | Add "viewing as" banner |
-| `src/pages/AdminPage.tsx` | Add society switcher + featured filtering |
-| `src/pages/SocietyAdminPage.tsx` | Use effectiveSocietyId + features tab |
-| `src/pages/BuilderDashboardPage.tsx` | Actionable cards + context navigation |
-| `src/pages/SocietyDashboardPage.tsx` | Use effectiveSocietyId |
-| `src/pages/NotificationInboxPage.tsx` | Society badges + filter |
-| `src/hooks/useSocietyFeatures.ts` | New hook |
-| `src/hooks/queries/useBuilderStats.ts` | New hook |
-| `src/lib/notifications.ts` | Add society_id to creation |
+| `CreatePostSheet.tsx` | Disable submit when `viewAsSocietyId` is set |
+| `CreateHelpSheet.tsx` | Disable submit when `viewAsSocietyId` is set |
+| `CreateDisputeSheet.tsx` | Disable submit when `viewAsSocietyId` is set |
+| `CreateSnagSheet.tsx` | Disable submit when `viewAsSocietyId` is set |
+| `AddMilestoneSheet.tsx` | Disable submit when `viewAsSocietyId` is set |
+| `AddExpenseSheet.tsx` | Disable submit when `viewAsSocietyId` is set |
+| `AddDocumentSheet.tsx` | Disable submit when `viewAsSocietyId` is set |
+| `AskQuestionSheet.tsx` | Disable submit when `viewAsSocietyId` is set |
+| `EmergencyBroadcastSheet.tsx` | Disable submit when `viewAsSocietyId` is set |
+| `CouponManager.tsx` | Disable create when `viewAsSocietyId` is set |
 
-## Database Migrations
+Implementation: Each component already uses `useAuth()`. Add `viewAsSocietyId` to destructure. Before the submit button, if `viewAsSocietyId` is set, show a small info banner: "You are viewing another society. Switch back to create content." and disable the submit button.
 
-| Migration | Tables |
+**Special cases:**
+- `MaintenancePage.tsx` bulk generate (line 72): Uses `profile.society_id` for INSERT -- correct, keep as-is, add guard
+- `TrustDirectoryPage.tsx` skill listing INSERT (line 73): Keep `profile.society_id`, add guard
+- `BecomeSellerPage.tsx` (line 157): Keep `profile?.society_id` -- user registers as seller in their OWN society only
+
+---
+
+## Phase 4: Feature Gate Component
+
+**New file: `src/components/ui/FeatureGate.tsx`**
+
+```text
+Props:
+  - feature: FeatureKey (from useSocietyFeatures)
+  - children: ReactNode
+  - fallback?: ReactNode (optional custom disabled message)
+
+Behavior:
+  - Loading -> show skeleton
+  - Feature disabled -> show "This feature is not available in your society" message
+  - Feature enabled -> render children
+```
+
+### Apply FeatureGate to pages
+
+Wrap the main content of these pages inside `<FeatureGate>`:
+
+| Page | Feature Key |
 |---|---|
-| Create society_features | New table with RLS |
-| Add society_id to user_notifications | ALTER TABLE add column |
+| `BulletinPage.tsx` | `bulletin` |
+| `DisputesPage.tsx` | `disputes` |
+| `SocietyFinancesPage.tsx` | `finances` |
+| `SocietyProgressPage.tsx` | `construction_progress` |
+| `SnagListPage.tsx` | `snag_management` |
+
+### Update BottomNav
+
+Modify `BottomNav.tsx` to:
+1. Import `useSocietyFeatures` hook
+2. Map nav items to feature keys: `{ '/community': 'bulletin', '/society': null }` (society always visible)
+3. Filter out nav items whose mapped feature is disabled
+4. Keep Home and Profile always visible
+
+---
+
+## Phase 5: Database Index
+
+**Migration SQL:**
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_user_notifications_society_id
+ON user_notifications(society_id) WHERE society_id IS NOT NULL;
+```
+
+---
+
+## Implementation Order
+
+1. Database migration (index) -- no code dependency
+2. `useHomeSellers.ts` cache key fix -- prevents data corruption
+3. Read path migration (11 pages + 6 components) -- all mechanical swaps
+4. `FeatureGate.tsx` component creation + page wrappers
+5. `BottomNav.tsx` feature flag integration
+6. Write path guards (10 components) -- add `viewAsSocietyId` check + info banner
+
+---
+
+## Files Summary
+
+| Category | Files | Count |
+|---|---|---|
+| Cache key fix | `useHomeSellers.ts` | 1 |
+| Read path pages | BulletinPage, CategoryPage, CategoryGroupPage, SearchPage, MaintenancePage, SocietyReportPage, SocietyProgressPage, SnagListPage, FavoritesPage, SellerDetailPage | 10 |
+| Read path components | ActivityFeed, SocietyTrustBadge, DocumentVaultTab, ProjectQATab, TrustScoreDetailed, AdminDisputesTab, CouponInput | 7 |
+| Write path guards | CreatePostSheet, CreateHelpSheet, CreateDisputeSheet, CreateSnagSheet, AddMilestoneSheet, AddExpenseSheet, AddDocumentSheet, AskQuestionSheet, EmergencyBroadcastSheet, CouponManager | 10 |
+| New component | `FeatureGate.tsx` | 1 |
+| Nav update | `BottomNav.tsx` | 1 |
+| Database migration | Index on `user_notifications(society_id)` | 1 |
+| **Total** | | **31 files** |
 
 ---
 
@@ -213,20 +167,9 @@ Notifications do not show which society they originate from. At 100 societies, p
 
 | Change | Risk | Mitigation |
 |---|---|---|
-| Context switching in AuthContext | MEDIUM -- affects all society-scoped views | `effectiveSocietyId` is a simple fallback chain; all existing behavior preserved when null |
-| society_features table | LOW -- new table, additive | Default all features to enabled; no feature breaks if table is empty |
-| Notification society_id | LOW -- nullable column | Existing notifications unaffected |
-| Builder dashboard actions | LOW -- uses existing context switcher | No new permissions needed |
-
----
-
-## Expected Maturity Score After Implementation
-
-| Dimension | Before | After |
-|---|---|---|
-| Context switching UX | 3 | 8 |
-| Builder support | 6 | 8 |
-| Society-level autonomy | 8 | 9 |
-| Operational automation | 7 | 8 |
-| Overall | 6.9 | 8.2 |
+| Read path migration (17 files) | MEDIUM -- many files | Each is a variable swap; no logic changes; RLS still enforces access |
+| Cache key fix | LOW | Fixes a bug; one-time re-fetch after deploy |
+| FeatureGate + BottomNav | LOW | Default is "enabled" when no record exists; no feature breaks |
+| Write path guards | LOW | UI-only; RLS still blocks unauthorized writes regardless |
+| DB index | NONE | Additive, non-blocking |
 
