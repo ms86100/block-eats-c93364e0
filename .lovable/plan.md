@@ -396,11 +396,18 @@ Create a `/health` edge function that returns:
 
 If designing for the next 10 years, these are the changes to make immediately:
 
-1. **Lazy load all routes** -- 30 minutes of work, 60% bundle reduction
+1. ~~**Lazy load all routes**~~ ✅ DONE (2026-02-14) -- All 30+ routes lazy-loaded with Suspense
 2. **Stop downloading all sellers on HomePage** -- 1 hour of work, prevents the first scalability wall
-3. **Add cursor pagination to orders** -- 2 hours, prevents seller dashboard collapse at 1K+ orders
+3. ~~**Add cursor pagination to orders**~~ ✅ DONE (2026-02-14) -- OrdersPage refactored with cursor-based pagination (20 per page)
 4. **Migrate all data fetching to React Query** -- 1-2 days, eliminates redundant requests and adds caching
-5. **Add `statement_timeout` to SECURITY DEFINER functions** -- 30 minutes, prevents query pile-up
+5. ~~**Add `statement_timeout` to SECURITY DEFINER functions**~~ ✅ DONE (2026-02-14) -- 5s timeout on 4 high-risk functions
 
-Everything else can wait until you're approaching 10K users. The architecture is sound. The gaps are implementation-level, not structural.
+## Completed Implementations
+
+### 2026-02-14: Phase 1+2 Partial
+- **Lazy loading**: All 30+ routes converted to `React.lazy()` with `Suspense` + skeleton fallback
+- **Composite indexes**: 14 new indexes on orders, chat_messages, user_notifications, products, society_activity, bulletin_posts, audit_log, reviews, seller_profiles, dispute_tickets, snag_tickets
+- **Statement timeouts**: 5s timeout added to `calculate_society_trust_score`, `search_marketplace`, `get_user_auth_context`, `get_builder_dashboard`
+- **Health endpoint**: `/health` edge function returning DB status, trigger errors, orphaned societies, table counts
+- **Cursor pagination**: OrdersPage refactored with cursor-based "Load More" (20 orders per page)
 

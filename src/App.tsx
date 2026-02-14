@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,47 +11,60 @@ import { PushNotificationProvider } from "@/components/notifications/PushNotific
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { initializeMedianBridge } from "@/lib/median";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Pages
-import AuthPage from "./pages/AuthPage";
-import HomePage from "./pages/HomePage";
-import LandingPage from "./pages/LandingPage";
-import SearchPage from "./pages/SearchPage";
-import CategoryPage from "./pages/CategoryPage";
-import SellerDetailPage from "./pages/SellerDetailPage";
-import CartPage from "./pages/CartPage";
-import OrdersPage from "./pages/OrdersPage";
-import OrderDetailPage from "./pages/OrderDetailPage";
-import ProfilePage from "./pages/ProfilePage";
-import FavoritesPage from "./pages/FavoritesPage";
-import BecomeSellerPage from "./pages/BecomeSellerPage";
-import SellerDashboardPage from "./pages/SellerDashboardPage";
-import SellerProductsPage from "./pages/SellerProductsPage";
-import SellerSettingsPage from "./pages/SellerSettingsPage";
-import SellerEarningsPage from "./pages/SellerEarningsPage";
-import AdminPage from "./pages/AdminPage";
-import NotFound from "./pages/NotFound";
-import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
-import TermsPage from "./pages/TermsPage";
-import CategoryGroupPage from "./pages/CategoryGroupPage";
-import PricingPage from "./pages/PricingPage";
-import HelpPage from "./pages/HelpPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import CommunityRulesPage from "./pages/CommunityRulesPage";
-import BulletinPage from "./pages/BulletinPage";
-import MySubscriptionsPage from "./pages/MySubscriptionsPage";
-import TrustDirectoryPage from "./pages/TrustDirectoryPage";
-import DisputesPage from "./pages/DisputesPage";
-import SocietyFinancesPage from "./pages/SocietyFinancesPage";
-import SocietyProgressPage from "./pages/SocietyProgressPage";
-import SnagListPage from "./pages/SnagListPage";
-import SocietyDashboardPage from "./pages/SocietyDashboardPage";
-import NotificationInboxPage from "./pages/NotificationInboxPage";
-import MaintenancePage from "./pages/MaintenancePage";
-import SocietyReportPage from "./pages/SocietyReportPage";
-import SocietyAdminPage from "./pages/SocietyAdminPage";
-import BuilderDashboardPage from "./pages/BuilderDashboardPage";
+// Lazy-loaded pages for code splitting
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const HomePage = lazy(() => import("./pages/HomePage"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const CategoryPage = lazy(() => import("./pages/CategoryPage"));
+const SellerDetailPage = lazy(() => import("./pages/SellerDetailPage"));
+const CartPage = lazy(() => import("./pages/CartPage"));
+const OrdersPage = lazy(() => import("./pages/OrdersPage"));
+const OrderDetailPage = lazy(() => import("./pages/OrderDetailPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
+const BecomeSellerPage = lazy(() => import("./pages/BecomeSellerPage"));
+const SellerDashboardPage = lazy(() => import("./pages/SellerDashboardPage"));
+const SellerProductsPage = lazy(() => import("./pages/SellerProductsPage"));
+const SellerSettingsPage = lazy(() => import("./pages/SellerSettingsPage"));
+const SellerEarningsPage = lazy(() => import("./pages/SellerEarningsPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const CategoryGroupPage = lazy(() => import("./pages/CategoryGroupPage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
+const HelpPage = lazy(() => import("./pages/HelpPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const CommunityRulesPage = lazy(() => import("./pages/CommunityRulesPage"));
+const BulletinPage = lazy(() => import("./pages/BulletinPage"));
+const MySubscriptionsPage = lazy(() => import("./pages/MySubscriptionsPage"));
+const TrustDirectoryPage = lazy(() => import("./pages/TrustDirectoryPage"));
+const DisputesPage = lazy(() => import("./pages/DisputesPage"));
+const SocietyFinancesPage = lazy(() => import("./pages/SocietyFinancesPage"));
+const SocietyProgressPage = lazy(() => import("./pages/SocietyProgressPage"));
+const SnagListPage = lazy(() => import("./pages/SnagListPage"));
+const SocietyDashboardPage = lazy(() => import("./pages/SocietyDashboardPage"));
+const NotificationInboxPage = lazy(() => import("./pages/NotificationInboxPage"));
+const MaintenancePage = lazy(() => import("./pages/MaintenancePage"));
+const SocietyReportPage = lazy(() => import("./pages/SocietyReportPage"));
+const SocietyAdminPage = lazy(() => import("./pages/SocietyAdminPage"));
+const BuilderDashboardPage = lazy(() => import("./pages/BuilderDashboardPage"));
+
 const queryClient = new QueryClient();
+
+function PageLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-background p-4 space-y-4">
+      <Skeleton className="h-14 w-full rounded-xl" />
+      <Skeleton className="h-40 w-full rounded-xl" />
+      <Skeleton className="h-24 w-full rounded-xl" />
+      <Skeleton className="h-24 w-full rounded-xl" />
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -107,46 +120,48 @@ function AppRoutes() {
   const { user, profile } = useAuth();
   
   return (
-    <Routes>
-      {/* Landing page for unauthenticated users */}
-      <Route path="/welcome" element={user && profile ? <Navigate to="/" replace /> : <LandingPage />} />
-      <Route path="/auth" element={user && profile ? <Navigate to="/" replace /> : <AuthPage />} />
-      <Route path="/" element={user ? <ProtectedRoute><HomePage /></ProtectedRoute> : <Navigate to="/welcome" replace />} />
-      <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
-      <Route path="/community" element={<ProtectedRoute><BulletinPage /></ProtectedRoute>} />
-      <Route path="/category/:category" element={<ProtectedRoute><CategoryGroupPage /></ProtectedRoute>} />
-      <Route path="/seller/:id" element={<ProtectedRoute><SellerDetailPage /></ProtectedRoute>} />
-      <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
-      <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
-      <Route path="/orders/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
-      <Route path="/subscriptions" element={<ProtectedRoute><MySubscriptionsPage /></ProtectedRoute>} />
-      <Route path="/directory" element={<ProtectedRoute><TrustDirectoryPage /></ProtectedRoute>} />
-      <Route path="/disputes" element={<ProtectedRoute><DisputesPage /></ProtectedRoute>} />
-      <Route path="/society/finances" element={<ProtectedRoute><SocietyFinancesPage /></ProtectedRoute>} />
-      <Route path="/society/progress" element={<ProtectedRoute><SocietyProgressPage /></ProtectedRoute>} />
-      <Route path="/society/snags" element={<ProtectedRoute><SnagListPage /></ProtectedRoute>} />
-      <Route path="/society" element={<ProtectedRoute><SocietyDashboardPage /></ProtectedRoute>} />
-      <Route path="/notifications/inbox" element={<ProtectedRoute><NotificationInboxPage /></ProtectedRoute>} />
-      <Route path="/maintenance" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
-      <Route path="/society/reports" element={<ProtectedRoute><SocietyReportPage /></ProtectedRoute>} />
-      <Route path="/society/admin" element={<ProtectedRoute><SocietyAdminPage /></ProtectedRoute>} />
-      <Route path="/builder" element={<ProtectedRoute><BuilderDashboardPage /></ProtectedRoute>} />
-      <Route path="/become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
-      <Route path="/seller" element={<ProtectedRoute><SellerDashboardPage /></ProtectedRoute>} />
-      <Route path="/seller/products" element={<ProtectedRoute><SellerProductsPage /></ProtectedRoute>} />
-      <Route path="/seller/settings" element={<ProtectedRoute><SellerSettingsPage /></ProtectedRoute>} />
-      <Route path="/seller/earnings" element={<ProtectedRoute><SellerEarningsPage /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminPage /></AdminRoute></ProtectedRoute>} />
-      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-      <Route path="/terms" element={<TermsPage />} />
-      <Route path="/pricing" element={<PricingPage />} />
-      <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
-      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-      <Route path="/community-rules" element={<CommunityRulesPage />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<PageLoadingFallback />}>
+      <Routes>
+        {/* Landing page for unauthenticated users */}
+        <Route path="/welcome" element={user && profile ? <Navigate to="/" replace /> : <LandingPage />} />
+        <Route path="/auth" element={user && profile ? <Navigate to="/" replace /> : <AuthPage />} />
+        <Route path="/" element={user ? <ProtectedRoute><HomePage /></ProtectedRoute> : <Navigate to="/welcome" replace />} />
+        <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+        <Route path="/community" element={<ProtectedRoute><BulletinPage /></ProtectedRoute>} />
+        <Route path="/category/:category" element={<ProtectedRoute><CategoryGroupPage /></ProtectedRoute>} />
+        <Route path="/seller/:id" element={<ProtectedRoute><SellerDetailPage /></ProtectedRoute>} />
+        <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+        <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+        <Route path="/orders/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
+        <Route path="/subscriptions" element={<ProtectedRoute><MySubscriptionsPage /></ProtectedRoute>} />
+        <Route path="/directory" element={<ProtectedRoute><TrustDirectoryPage /></ProtectedRoute>} />
+        <Route path="/disputes" element={<ProtectedRoute><DisputesPage /></ProtectedRoute>} />
+        <Route path="/society/finances" element={<ProtectedRoute><SocietyFinancesPage /></ProtectedRoute>} />
+        <Route path="/society/progress" element={<ProtectedRoute><SocietyProgressPage /></ProtectedRoute>} />
+        <Route path="/society/snags" element={<ProtectedRoute><SnagListPage /></ProtectedRoute>} />
+        <Route path="/society" element={<ProtectedRoute><SocietyDashboardPage /></ProtectedRoute>} />
+        <Route path="/notifications/inbox" element={<ProtectedRoute><NotificationInboxPage /></ProtectedRoute>} />
+        <Route path="/maintenance" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
+        <Route path="/society/reports" element={<ProtectedRoute><SocietyReportPage /></ProtectedRoute>} />
+        <Route path="/society/admin" element={<ProtectedRoute><SocietyAdminPage /></ProtectedRoute>} />
+        <Route path="/builder" element={<ProtectedRoute><BuilderDashboardPage /></ProtectedRoute>} />
+        <Route path="/become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
+        <Route path="/seller" element={<ProtectedRoute><SellerDashboardPage /></ProtectedRoute>} />
+        <Route path="/seller/products" element={<ProtectedRoute><SellerProductsPage /></ProtectedRoute>} />
+        <Route path="/seller/settings" element={<ProtectedRoute><SellerSettingsPage /></ProtectedRoute>} />
+        <Route path="/seller/earnings" element={<ProtectedRoute><SellerEarningsPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminPage /></AdminRoute></ProtectedRoute>} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+        <Route path="/community-rules" element={<CommunityRulesPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 }
 
