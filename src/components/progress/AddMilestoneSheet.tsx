@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { notifySocietyMembers } from '@/lib/society-notifications';
 
 interface Tower {
   id: string;
@@ -48,6 +49,17 @@ export function AddMilestoneSheet({ onAdded, towers = [] }: AddMilestoneSheetPro
         });
 
       if (error) throw error;
+
+      // Notify society members
+      if (profile.society_id) {
+        notifySocietyMembers(
+          profile.society_id,
+          '🏗 Construction Update',
+          `${title.trim()} — ${completion[0]}% complete`,
+          { type: 'milestone' },
+          user.id
+        );
+      }
 
       toast.success('Milestone added');
       setTitle('');

@@ -30,6 +30,7 @@ import { ApiKeySettings } from '@/components/admin/ApiKeySettings';
 import { CategoryManager } from '@/components/admin/CategoryManager';
 import { LicenseManager } from '@/components/admin/LicenseManager';
 import { AdminDisputesTab } from '@/components/admin/AdminDisputesTab';
+import { EmergencyBroadcastSheet } from '@/components/admin/EmergencyBroadcastSheet';
 
 interface Report {
   id: string;
@@ -277,6 +278,9 @@ export default function AdminPage() {
   return (
     <AppLayout headerTitle="Admin Panel" showLocation={false}>
       <div className="p-4 space-y-4">
+        {/* Emergency Broadcast */}
+        <EmergencyBroadcastSheet />
+
         {/* Stats */}
         <div className="grid grid-cols-7 gap-2">
           <Card><CardContent className="p-2 text-center"><Users className="mx-auto text-primary" size={14} /><p className="text-sm font-bold">{stats.users}</p><p className="text-[8px] text-muted-foreground">Users</p></CardContent></Card>

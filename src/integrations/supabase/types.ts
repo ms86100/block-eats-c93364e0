@@ -690,6 +690,51 @@ export type Database = {
           },
         ]
       }
+      emergency_broadcasts: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          id: string
+          sent_by: string
+          society_id: string
+          title: string
+        }
+        Insert: {
+          body: string
+          category?: string
+          created_at?: string
+          id?: string
+          sent_by: string
+          society_id: string
+          title: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          sent_by?: string
+          society_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_broadcasts_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_broadcasts_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_flags: {
         Row: {
           admin_response: string | null

@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, ShieldAlert } from 'lucide-react';
+import { notifySocietyAdmins } from '@/lib/society-notifications';
 
 const CATEGORIES = [
   { value: 'noise', label: 'Noise' },
@@ -44,6 +45,17 @@ export function CreateDisputeSheet({ open, onOpenChange, onCreated }: Props) {
         is_anonymous: isAnonymous,
       } as any);
       if (error) throw error;
+
+      // Notify admins
+      if (profile?.society_id) {
+        notifySocietyAdmins(
+          profile.society_id,
+          '⚖️ New Dispute Filed',
+          `${category} concern: ${description.trim().substring(0, 80)}`,
+          { type: 'dispute' }
+        );
+      }
+
       toast({ title: 'Concern submitted', description: 'The committee will review within 48 hours.' });
       setDescription('');
       setCategory('other');

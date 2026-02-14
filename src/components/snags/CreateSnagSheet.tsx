@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { notifySocietyAdmins } from '@/lib/society-notifications';
 
 export function CreateSnagSheet({ onCreated }: { onCreated: () => void }) {
   const { user, profile } = useAuth();
@@ -31,6 +32,16 @@ export function CreateSnagSheet({ onCreated }: { onCreated: () => void }) {
         photo_urls: photoUrl ? [photoUrl] : [],
       });
       if (error) throw error;
+
+      // Notify admins
+      if (profile.society_id) {
+        notifySocietyAdmins(
+          profile.society_id,
+          '🔧 New Snag Reported',
+          `${category} defect in Flat ${profile.flat_number}: ${description.trim().substring(0, 80)}`,
+          { type: 'snag' }
+        );
+      }
 
       toast.success('Snag reported');
       setDescription(''); setCategory('other'); setPhotoUrl(null);
