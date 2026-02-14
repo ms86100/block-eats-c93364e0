@@ -41,6 +41,7 @@ import CommunityRulesPage from "./pages/CommunityRulesPage";
 import BulletinPage from "./pages/BulletinPage";
 import MySubscriptionsPage from "./pages/MySubscriptionsPage";
 import TrustDirectoryPage from "./pages/TrustDirectoryPage";
+import DisputesPage from "./pages/DisputesPage";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -113,6 +114,7 @@ function AppRoutes() {
       <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
       <Route path="/subscriptions" element={<ProtectedRoute><MySubscriptionsPage /></ProtectedRoute>} />
       <Route path="/directory" element={<ProtectedRoute><TrustDirectoryPage /></ProtectedRoute>} />
+      <Route path="/disputes" element={<ProtectedRoute><DisputesPage /></ProtectedRoute>} />
       <Route path="/become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
       <Route path="/seller" element={<ProtectedRoute><SellerDashboardPage /></ProtectedRoute>} />
       <Route path="/seller/products" element={<ProtectedRoute><SellerProductsPage /></ProtectedRoute>} />

@@ -25,6 +25,7 @@ import {
   Camera,
   Repeat,
   Award,
+  ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -90,6 +91,7 @@ export default function ProfilePage() {
     { icon: Heart, label: 'Favorites', to: '/favorites' },
     { icon: Repeat, label: 'My Subscriptions', to: '/subscriptions' },
     { icon: Award, label: 'Community Directory', to: '/directory' },
+    { icon: ShieldAlert, label: 'My Concerns', to: '/disputes' },
     ...(isSeller
       ? [{ icon: Store, label: 'Seller Dashboard', to: '/seller' }]
       : [{ icon: Store, label: 'Become a Seller', to: '/become-seller' }]),

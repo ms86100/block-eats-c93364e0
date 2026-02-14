@@ -527,6 +527,108 @@ export type Database = {
           },
         ]
       }
+      dispute_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          is_committee_note: boolean
+          ticket_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          is_committee_note?: boolean
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          is_committee_note?: boolean
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_comments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "dispute_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispute_tickets: {
+        Row: {
+          acknowledged_at: string | null
+          category: string
+          created_at: string
+          description: string
+          id: string
+          is_anonymous: boolean
+          photo_urls: string[] | null
+          resolved_at: string | null
+          sla_deadline: string
+          society_id: string
+          status: string
+          submitted_by: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          category?: string
+          created_at?: string
+          description: string
+          id?: string
+          is_anonymous?: boolean
+          photo_urls?: string[] | null
+          resolved_at?: string | null
+          sla_deadline?: string
+          society_id: string
+          status?: string
+          submitted_by: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_anonymous?: boolean
+          photo_urls?: string[] | null
+          resolved_at?: string | null
+          sla_deadline?: string
+          society_id?: string
+          status?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_tickets_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_tickets_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string | null

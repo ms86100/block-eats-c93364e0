@@ -29,6 +29,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ApiKeySettings } from '@/components/admin/ApiKeySettings';
 import { CategoryManager } from '@/components/admin/CategoryManager';
 import { LicenseManager } from '@/components/admin/LicenseManager';
+import { AdminDisputesTab } from '@/components/admin/AdminDisputesTab';
 
 interface Report {
   id: string;
@@ -288,10 +289,11 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="users">
-          <TabsList className="w-full grid grid-cols-8">
+          <TabsList className="w-full grid grid-cols-9">
             <TabsTrigger value="users" className="text-[10px]">Users</TabsTrigger>
             <TabsTrigger value="sellers" className="text-[10px]">Sellers</TabsTrigger>
             <TabsTrigger value="societies" className="text-[10px]">Societies</TabsTrigger>
+            <TabsTrigger value="disputes" className="text-[10px]">Disputes</TabsTrigger>
             <TabsTrigger value="reports" className="text-[10px]">Reports</TabsTrigger>
             <TabsTrigger value="payments" className="text-[10px]">Payments</TabsTrigger>
             <TabsTrigger value="reviews" className="text-[10px]">Reviews</TabsTrigger>
@@ -348,6 +350,10 @@ export default function AdminPage() {
                 </div>
               </CardContent></Card>
             )) : <p className="text-center text-muted-foreground py-8 text-sm">No pending sellers</p>}
+          </TabsContent>
+
+          <TabsContent value="disputes" className="mt-4">
+            <AdminDisputesTab />
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-2 mt-4">
