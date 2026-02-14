@@ -1,0 +1,325 @@
+import { useState } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { CATEGORY_CONFIG, type BulletinCategory } from './CategoryFilter';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+import { Loader2, Plus, X, ImagePlus } from 'lucide-react';
+
+interface CreatePostSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: () => void;
+}
+
+export function CreatePostSheet({ open, onOpenChange, onCreated }: CreatePostSheetProps) {
+  const { profile } = useAuth();
+  const [category, setCategory] = useState<BulletinCategory>('alert');
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Event fields
+  const [eventDate, setEventDate] = useState('');
+  const [eventLocation, setEventLocation] = useState('');
+  const [rsvpEnabled, setRsvpEnabled] = useState(false);
+
+  // Poll fields
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+  const [pollDeadline, setPollDeadline] = useState('');
+
+  // Attachments
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const resetForm = () => {
+    setCategory('alert');
+    setTitle('');
+    setBody('');
+    setEventDate('');
+    setEventLocation('');
+    setRsvpEnabled(false);
+    setPollOptions(['', '']);
+    setPollDeadline('');
+    setAttachments([]);
+  };
+
+  const handleAttachmentPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (attachments.length + files.length > 4) {
+      toast({ title: 'Max 4 images allowed', variant: 'destructive' });
+      return;
+    }
+    setAttachments(prev => [...prev, ...files]);
+  };
+
+  const uploadAttachments = async (): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const file of attachments) {
+      const ext = file.name.split('.').pop();
+      const path = `bulletin/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('app-images').upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('app-images').getPublicUrl(path);
+      urls.push(urlData.publicUrl);
+    }
+    return urls;
+  };
+
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      toast({ title: 'Title is required', variant: 'destructive' });
+      return;
+    }
+    if (!profile?.society_id) {
+      toast({ title: 'You must belong to a society', variant: 'destructive' });
+      return;
+    }
+    if (category === 'poll') {
+      const validOptions = pollOptions.filter(o => o.trim());
+      if (validOptions.length < 2) {
+        toast({ title: 'At least 2 poll options required', variant: 'destructive' });
+        return;
+      }
+    }
+
+    setLoading(true);
+    try {
+      let attachment_urls: string[] = [];
+      if (attachments.length > 0) {
+        setUploading(true);
+        attachment_urls = await uploadAttachments();
+        setUploading(false);
+      }
+
+      const postData: any = {
+        society_id: profile.society_id,
+        author_id: profile.id,
+        category: category === 'all' ? 'alert' : category,
+        title: title.trim(),
+        body: body.trim() || null,
+        attachment_urls,
+      };
+
+      if (category === 'event') {
+        postData.event_date = eventDate || null;
+        postData.event_location = eventLocation.trim() || null;
+        postData.rsvp_enabled = rsvpEnabled;
+      }
+
+      if (category === 'poll') {
+        const validOptions = pollOptions.filter(o => o.trim());
+        postData.poll_options = validOptions.map((text, i) => ({
+          id: `opt_${i}`,
+          text,
+          votes: 0,
+        }));
+        postData.poll_deadline = pollDeadline || null;
+      }
+
+      const { error } = await supabase.from('bulletin_posts').insert(postData);
+      if (error) throw error;
+
+      toast({ title: 'Post created!' });
+      resetForm();
+      onOpenChange(false);
+      onCreated();
+    } catch (err: any) {
+      toast({ title: 'Failed to create post', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const catKeys = Object.keys(CATEGORY_CONFIG) as BulletinCategory[];
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="h-[85vh] overflow-y-auto rounded-t-2xl">
+        <SheetHeader>
+          <SheetTitle>New Post</SheetTitle>
+        </SheetHeader>
+
+        <div className="space-y-4 mt-4">
+          {/* Category picker */}
+          <div className="flex gap-2 flex-wrap">
+            {catKeys.map((key) => {
+              const c = CATEGORY_CONFIG[key];
+              const Icon = c.icon;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setCategory(key)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                    category === key
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-card border-border text-muted-foreground'
+                  )}
+                >
+                  <Icon size={12} />
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Title */}
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="What's this about?"
+              maxLength={200}
+            />
+          </div>
+
+          {/* Body */}
+          <div>
+            <Label htmlFor="body">Description (optional)</Label>
+            <Textarea
+              id="body"
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              placeholder="Share more details..."
+              rows={4}
+            />
+          </div>
+
+          {/* Attachments */}
+          <div>
+            <Label>Images (max 4)</Label>
+            <div className="flex gap-2 mt-1 flex-wrap">
+              {attachments.map((file, i) => (
+                <div key={i} className="relative w-16 h-16">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt=""
+                    className="w-full h-full rounded-lg object-cover border border-border"
+                  />
+                  <button
+                    onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+              {attachments.length < 4 && (
+                <label className="w-16 h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors">
+                  <ImagePlus size={18} className="text-muted-foreground" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAttachmentPick}
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
+          {/* Event fields */}
+          {category === 'event' && (
+            <div className="space-y-3 p-3 rounded-lg bg-muted/50 border border-border">
+              <div>
+                <Label htmlFor="eventDate">Event Date & Time</Label>
+                <Input
+                  id="eventDate"
+                  type="datetime-local"
+                  value={eventDate}
+                  onChange={e => setEventDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="eventLocation">Location</Label>
+                <Input
+                  id="eventLocation"
+                  value={eventLocation}
+                  onChange={e => setEventLocation(e.target.value)}
+                  placeholder="e.g. Clubhouse, Garden"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="rsvp">Enable RSVP</Label>
+                <Switch id="rsvp" checked={rsvpEnabled} onCheckedChange={setRsvpEnabled} />
+              </div>
+            </div>
+          )}
+
+          {/* Poll fields */}
+          {category === 'poll' && (
+            <div className="space-y-3 p-3 rounded-lg bg-muted/50 border border-border">
+              <Label>Poll Options</Label>
+              {pollOptions.map((opt, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    value={opt}
+                    onChange={e => {
+                      const next = [...pollOptions];
+                      next[i] = e.target.value;
+                      setPollOptions(next);
+                    }}
+                    placeholder={`Option ${i + 1}`}
+                  />
+                  {pollOptions.length > 2 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => setPollOptions(prev => prev.filter((_, j) => j !== i))}
+                    >
+                      <X size={14} />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {pollOptions.length < 6 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPollOptions(prev => [...prev, ''])}
+                  className="w-full gap-1"
+                >
+                  <Plus size={14} /> Add Option
+                </Button>
+              )}
+              <div>
+                <Label htmlFor="deadline">Voting Deadline (optional)</Label>
+                <Input
+                  id="deadline"
+                  type="datetime-local"
+                  value={pollDeadline}
+                  onChange={e => setPollDeadline(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={loading || !title.trim()}
+          >
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin mr-2" />
+                {uploading ? 'Uploading...' : 'Posting...'}
+              </>
+            ) : (
+              'Post to Community'
+            )}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}

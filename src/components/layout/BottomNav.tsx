@@ -1,4 +1,4 @@
-import { Home, Search, ShoppingBag, User, Store } from 'lucide-react';
+import { Home, Search, ShoppingBag, User, Store, Users } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const navItems = [
   { to: '/', icon: Home, label: 'Home' },
   { to: '/search', icon: Search, label: 'Search' },
+  { to: '/community', icon: Users, label: 'Community' },
   { to: '/orders', icon: ShoppingBag, label: 'Orders' },
   { to: '/profile', icon: User, label: 'Profile' },
 ];

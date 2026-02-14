@@ -38,6 +38,7 @@ import PricingPage from "./pages/PricingPage";
 import HelpPage from "./pages/HelpPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import CommunityRulesPage from "./pages/CommunityRulesPage";
+import BulletinPage from "./pages/BulletinPage";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -100,6 +101,7 @@ function AppRoutes() {
       <Route path="/auth" element={user && profile ? <Navigate to="/" replace /> : <AuthPage />} />
       <Route path="/" element={user ? <ProtectedRoute><HomePage /></ProtectedRoute> : <Navigate to="/welcome" replace />} />
       <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+      <Route path="/community" element={<ProtectedRoute><BulletinPage /></ProtectedRoute>} />
       <Route path="/category/:category" element={<ProtectedRoute><CategoryGroupPage /></ProtectedRoute>} />
       <Route path="/seller/:id" element={<ProtectedRoute><SellerDetailPage /></ProtectedRoute>} />
       <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />

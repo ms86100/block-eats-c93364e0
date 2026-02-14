@@ -44,6 +44,193 @@ export type Database = {
         }
         Relationships: []
       }
+      bulletin_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulletin_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulletin_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "bulletin_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bulletin_posts: {
+        Row: {
+          ai_summary: string | null
+          attachment_urls: string[] | null
+          author_id: string
+          body: string | null
+          category: string
+          comment_count: number
+          created_at: string
+          event_date: string | null
+          event_location: string | null
+          id: string
+          is_archived: boolean
+          is_pinned: boolean
+          poll_deadline: string | null
+          poll_options: Json | null
+          rsvp_enabled: boolean
+          society_id: string
+          title: string
+          updated_at: string
+          vote_count: number
+        }
+        Insert: {
+          ai_summary?: string | null
+          attachment_urls?: string[] | null
+          author_id: string
+          body?: string | null
+          category?: string
+          comment_count?: number
+          created_at?: string
+          event_date?: string | null
+          event_location?: string | null
+          id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
+          poll_deadline?: string | null
+          poll_options?: Json | null
+          rsvp_enabled?: boolean
+          society_id: string
+          title: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Update: {
+          ai_summary?: string | null
+          attachment_urls?: string[] | null
+          author_id?: string
+          body?: string | null
+          category?: string
+          comment_count?: number
+          created_at?: string
+          event_date?: string | null
+          event_location?: string | null
+          id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
+          poll_deadline?: string | null
+          poll_options?: Json | null
+          rsvp_enabled?: boolean
+          society_id?: string
+          title?: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulletin_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulletin_posts_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bulletin_rsvps: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulletin_rsvps_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "bulletin_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bulletin_votes: {
+        Row: {
+          created_at: string
+          id: string
+          poll_option_id: string | null
+          post_id: string
+          user_id: string
+          vote_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          poll_option_id?: string | null
+          post_id: string
+          user_id: string
+          vote_type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          poll_option_id?: string | null
+          post_id?: string
+          user_id?: string
+          vote_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulletin_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "bulletin_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart_items: {
         Row: {
           created_at: string | null
