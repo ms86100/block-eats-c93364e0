@@ -1,7 +1,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import { 
   Milestone, DollarSign, AlertTriangle, Bug, FileText, 
-  Radio, MessageCircle, Activity 
+  Radio, MessageCircle, Activity, Building2 
 } from 'lucide-react';
 
 const ACTIVITY_ICONS: Record<string, typeof Activity> = {
@@ -34,6 +34,8 @@ interface ActivityItemProps {
     description?: string | null;
     created_at: string;
     is_system: boolean;
+    tower_id?: string | null;
+    tower?: { name: string } | null;
   };
 }
 
@@ -48,9 +50,16 @@ export function ActivityItem({ activity }: ActivityItemProps) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium leading-tight truncate">{activity.title}</p>
-        {activity.description && (
-          <p className="text-xs text-muted-foreground truncate mt-0.5">{activity.description}</p>
-        )}
+        <div className="flex items-center gap-1.5 mt-0.5">
+          {activity.tower?.name && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded">
+              <Building2 size={8} /> {activity.tower.name}
+            </span>
+          )}
+          {activity.description && (
+            <p className="text-xs text-muted-foreground truncate">{activity.description}</p>
+          )}
+        </div>
         <p className="text-[10px] text-muted-foreground mt-0.5">
           {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
         </p>

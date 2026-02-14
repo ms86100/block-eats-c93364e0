@@ -22,6 +22,7 @@ interface SnagTicket {
   acknowledged_at: string | null;
   fixed_at: string | null;
   verified_at: string | null;
+  resolution_note: string | null;
   created_at: string;
   reported_by: string;
 }
@@ -47,6 +48,7 @@ export function SnagDetailSheet({
   const { user, isAdmin } = useAuth();
   const [assignee, setAssignee] = useState('');
   const [newStatus, setNewStatus] = useState('');
+  const [resolutionNote, setResolutionNote] = useState('');
 
   if (!ticket) return null;
 
@@ -56,7 +58,10 @@ export function SnagDetailSheet({
   const handleStatusUpdate = async (status: string) => {
     const updates: any = { status };
     if (status === 'acknowledged') updates.acknowledged_at = new Date().toISOString();
-    if (status === 'fixed') updates.fixed_at = new Date().toISOString();
+    if (status === 'fixed') {
+      updates.fixed_at = new Date().toISOString();
+      if (resolutionNote.trim()) updates.resolution_note = resolutionNote.trim();
+    }
     if (status === 'verified') updates.verified_at = new Date().toISOString();
     if (status === 'contractor_assigned' && assignee) updates.assigned_to_name = assignee;
 
@@ -133,6 +138,14 @@ export function SnagDetailSheet({
             <p className="text-xs"><span className="text-muted-foreground">Assigned to:</span> {ticket.assigned_to_name}</p>
           )}
 
+          {/* Resolution Outcome */}
+          {ticket.resolution_note && ['fixed', 'verified', 'closed'].includes(ticket.status) && (
+            <div className="px-3 py-2.5 rounded-lg bg-success/10 border border-success/20">
+              <p className="text-[10px] font-semibold text-success mb-0.5">Fix details:</p>
+              <p className="text-xs text-foreground">{ticket.resolution_note}</p>
+            </div>
+          )}
+
           {/* Admin Controls */}
           {isAdmin && !['verified', 'closed'].includes(ticket.status) && (
             <div className="space-y-2 border-t border-border pt-3">
@@ -156,13 +169,21 @@ export function SnagDetailSheet({
                 </div>
               )}
               {['contractor_assigned', 'in_progress'].includes(ticket.status) && (
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1" onClick={() => handleStatusUpdate('in_progress')}>
-                    Mark In Progress
-                  </Button>
-                  <Button size="sm" className="flex-1" onClick={() => handleStatusUpdate('fixed')}>
-                    Mark Fixed
-                  </Button>
+                <div className="space-y-2">
+                  <Input
+                    value={resolutionNote}
+                    onChange={(e) => setResolutionNote(e.target.value)}
+                    placeholder="Fix details (shown to resident)..."
+                    className="text-xs h-8"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => handleStatusUpdate('in_progress')}>
+                      Mark In Progress
+                    </Button>
+                    <Button size="sm" className="flex-1" onClick={() => handleStatusUpdate('fixed')}>
+                      Mark Fixed
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

@@ -7,7 +7,7 @@ import { SocietyTrustBadge } from '@/components/trust/SocietyTrustBadge';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   IndianRupee, Building2, Bug, ShieldAlert, FileText, 
-  MessageCircle, Radio, ChevronRight, CreditCard
+  MessageCircle, Radio, ChevronRight, CreditCard, Clock, BarChart3
 } from 'lucide-react';
 
 interface DashboardStat {
@@ -30,10 +30,12 @@ export default function SocietyDashboardPage() {
     unansweredQs: 0,
     pendingDues: 0,
   });
+  const [avgResponseHours, setAvgResponseHours] = useState<number | null>(null);
 
   useEffect(() => {
     if (!profile?.society_id) return;
     fetchStats();
+    fetchCommitteeResponseTime();
   }, [profile?.society_id]);
 
   const fetchStats = async () => {
@@ -59,6 +61,38 @@ export default function SocietyDashboardPage() {
     });
   };
 
+  const fetchCommitteeResponseTime = async () => {
+    const sid = profile!.society_id!;
+    // Get disputes that have been acknowledged (within last 90 days)
+    const { data: disputes } = await supabase
+      .from('dispute_tickets')
+      .select('created_at, acknowledged_at')
+      .eq('society_id', sid)
+      .not('acknowledged_at', 'is', null)
+      .gte('created_at', new Date(Date.now() - 90 * 86400000).toISOString());
+
+    const { data: snags } = await supabase
+      .from('snag_tickets')
+      .select('created_at, acknowledged_at')
+      .eq('society_id', sid)
+      .not('acknowledged_at', 'is', null)
+      .gte('created_at', new Date(Date.now() - 90 * 86400000).toISOString());
+
+    const allItems = [...(disputes || []), ...(snags || [])];
+    if (allItems.length === 0) {
+      setAvgResponseHours(null);
+      return;
+    }
+
+    const totalHours = allItems.reduce((sum, item) => {
+      const created = new Date(item.created_at).getTime();
+      const acked = new Date(item.acknowledged_at!).getTime();
+      return sum + (acked - created) / 3600000;
+    }, 0);
+
+    setAvgResponseHours(Math.round(totalHours / allItems.length));
+  };
+
   const cards: DashboardStat[] = [
     { icon: IndianRupee, label: 'Finances', to: '/society/finances', stat: `${stats.recentExpenses} this month`, color: 'text-warning' },
     { icon: Building2, label: 'Construction', to: '/society/progress', stat: `${stats.recentMilestones} updates this week`, color: 'text-primary' },
@@ -75,6 +109,23 @@ export default function SocietyDashboardPage() {
       <div className="p-4 space-y-4">
         {/* Trust Badge */}
         <SocietyTrustBadge />
+
+        {/* Committee Response Time */}
+        {avgResponseHours !== null && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <Clock size={20} />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Avg. committee response time</p>
+                <p className="text-lg font-bold text-primary">
+                  {avgResponseHours < 1 ? '<1 hour' : `${avgResponseHours} hour${avgResponseHours !== 1 ? 's' : ''}`}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Action Cards Grid */}
         <div className="grid grid-cols-2 gap-3">
@@ -95,6 +146,22 @@ export default function SocietyDashboardPage() {
             </Link>
           ))}
         </div>
+
+        {/* Monthly Report Link */}
+        <Link to="/society/reports">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-primary">
+                <BarChart3 size={20} />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm">Monthly Report Card</p>
+                <p className="text-[11px] text-muted-foreground">Auto-generated transparency report</p>
+              </div>
+              <ChevronRight size={14} className="text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </AppLayout>
   );

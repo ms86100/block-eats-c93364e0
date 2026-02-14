@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Flag, ExternalLink } from 'lucide-react';
+import { Flag, ExternalLink, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Expense {
   id: string;
@@ -31,6 +34,38 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export function ExpenseList({ expenses, onFlag, showFlag = true }: Props) {
+  const { user } = useAuth();
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (expenses.length === 0 || !user) return;
+    recordViews();
+    fetchViewCounts();
+  }, [expenses, user]);
+
+  const recordViews = async () => {
+    if (!user) return;
+    // Record that user viewed these expenses (upsert, ignore conflicts)
+    const inserts = expenses.map(e => ({ expense_id: e.id, user_id: user.id }));
+    await supabase.from('expense_views').upsert(inserts as any, { onConflict: 'expense_id,user_id', ignoreDuplicates: true });
+  };
+
+  const fetchViewCounts = async () => {
+    const ids = expenses.map(e => e.id);
+    const { data } = await supabase
+      .from('expense_views')
+      .select('expense_id')
+      .in('expense_id', ids);
+    
+    if (data) {
+      const counts: Record<string, number> = {};
+      data.forEach((v: any) => {
+        counts[v.expense_id] = (counts[v.expense_id] || 0) + 1;
+      });
+      setViewCounts(counts);
+    }
+  };
+
   if (expenses.length === 0) {
     return <p className="text-center text-sm text-muted-foreground py-6">No expenses in this category</p>;
   }
@@ -54,6 +89,11 @@ export function ExpenseList({ expenses, onFlag, showFlag = true }: Props) {
               <a href={exp.invoice_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1">
                 <ExternalLink size={10} /> Invoice
               </a>
+            )}
+            {viewCounts[exp.id] && (
+              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                <Eye size={10} /> {viewCounts[exp.id]} resident{viewCounts[exp.id] !== 1 ? 's' : ''} viewed
+              </span>
             )}
             {showFlag && onFlag && (
               <Button variant="ghost" size="sm" className="h-6 text-[10px] text-muted-foreground gap-1 ml-auto" onClick={() => onFlag(exp.id)}>

@@ -639,6 +639,7 @@ export type Database = {
           id: string
           is_anonymous: boolean
           photo_urls: string[] | null
+          resolution_note: string | null
           resolved_at: string | null
           sla_deadline: string
           society_id: string
@@ -653,6 +654,7 @@ export type Database = {
           id?: string
           is_anonymous?: boolean
           photo_urls?: string[] | null
+          resolution_note?: string | null
           resolved_at?: string | null
           sla_deadline?: string
           society_id: string
@@ -667,6 +669,7 @@ export type Database = {
           id?: string
           is_anonymous?: boolean
           photo_urls?: string[] | null
+          resolution_note?: string | null
           resolved_at?: string | null
           sla_deadline?: string
           society_id?: string
@@ -776,6 +779,35 @@ export type Database = {
             columns: ["flagged_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_views: {
+        Row: {
+          expense_id: string
+          id: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          expense_id: string
+          id?: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          expense_id?: string
+          id?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_views_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "society_expenses"
             referencedColumns: ["id"]
           },
         ]
@@ -2038,6 +2070,7 @@ export type Database = {
           id: string
           photo_urls: string[] | null
           reported_by: string
+          resolution_note: string | null
           sla_deadline: string
           society_id: string
           status: string
@@ -2055,6 +2088,7 @@ export type Database = {
           id?: string
           photo_urls?: string[] | null
           reported_by: string
+          resolution_note?: string | null
           sla_deadline?: string
           society_id: string
           status?: string
@@ -2072,6 +2106,7 @@ export type Database = {
           id?: string
           photo_urls?: string[] | null
           reported_by?: string
+          resolution_note?: string | null
           sla_deadline?: string
           society_id?: string
           status?: string
@@ -2194,6 +2229,7 @@ export type Database = {
           reference_type: string | null
           society_id: string
           title: string
+          tower_id: string | null
         }
         Insert: {
           activity_type: string
@@ -2206,6 +2242,7 @@ export type Database = {
           reference_type?: string | null
           society_id: string
           title: string
+          tower_id?: string | null
         }
         Update: {
           activity_type?: string
@@ -2218,6 +2255,7 @@ export type Database = {
           reference_type?: string | null
           society_id?: string
           title?: string
+          tower_id?: string | null
         }
         Relationships: [
           {
@@ -2232,6 +2270,13 @@ export type Database = {
             columns: ["society_id"]
             isOneToOne: false
             referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "society_activity_tower_id_fkey"
+            columns: ["tower_id"]
+            isOneToOne: false
+            referencedRelation: "project_towers"
             referencedColumns: ["id"]
           },
         ]
@@ -2331,6 +2376,38 @@ export type Database = {
           },
           {
             foreignKeyName: "society_income_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      society_report_cards: {
+        Row: {
+          generated_at: string
+          id: string
+          month: string
+          report_data: Json
+          society_id: string
+        }
+        Insert: {
+          generated_at?: string
+          id?: string
+          month: string
+          report_data?: Json
+          society_id: string
+        }
+        Update: {
+          generated_at?: string
+          id?: string
+          month?: string
+          report_data?: Json
+          society_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_report_cards_society_id_fkey"
             columns: ["society_id"]
             isOneToOne: false
             referencedRelation: "societies"

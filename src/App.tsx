@@ -48,6 +48,7 @@ import SnagListPage from "./pages/SnagListPage";
 import SocietyDashboardPage from "./pages/SocietyDashboardPage";
 import NotificationInboxPage from "./pages/NotificationInboxPage";
 import MaintenancePage from "./pages/MaintenancePage";
+import SocietyReportPage from "./pages/SocietyReportPage";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -127,6 +128,7 @@ function AppRoutes() {
       <Route path="/society" element={<ProtectedRoute><SocietyDashboardPage /></ProtectedRoute>} />
       <Route path="/notifications/inbox" element={<ProtectedRoute><NotificationInboxPage /></ProtectedRoute>} />
       <Route path="/maintenance" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
+      <Route path="/society/reports" element={<ProtectedRoute><SocietyReportPage /></ProtectedRoute>} />
       <Route path="/become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
       <Route path="/seller" element={<ProtectedRoute><SellerDashboardPage /></ProtectedRoute>} />
       <Route path="/seller/products" element={<ProtectedRoute><SellerProductsPage /></ProtectedRoute>} />

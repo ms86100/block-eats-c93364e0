@@ -20,6 +20,7 @@ interface SnagTicket {
   acknowledged_at: string | null;
   fixed_at: string | null;
   verified_at: string | null;
+  resolution_note: string | null;
   created_at: string;
   reported_by: string;
   society_id: string;

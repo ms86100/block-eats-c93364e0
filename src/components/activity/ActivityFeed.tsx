@@ -35,7 +35,7 @@ export function ActivityFeed() {
     if (!profile?.society_id) return;
     const { data } = await supabase
       .from('society_activity')
-      .select('*')
+      .select('*, tower:project_towers!society_activity_tower_id_fkey(name)')
       .eq('society_id', profile.society_id)
       .order('created_at', { ascending: false })
       .limit(5);

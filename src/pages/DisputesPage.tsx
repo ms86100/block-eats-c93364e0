@@ -18,6 +18,7 @@ interface Ticket {
   sla_deadline: string;
   acknowledged_at: string | null;
   resolved_at: string | null;
+  resolution_note: string | null;
   created_at: string;
   submitted_by: string;
   submitter?: { name: string } | null;

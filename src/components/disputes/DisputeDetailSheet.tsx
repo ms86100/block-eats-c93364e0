@@ -28,6 +28,7 @@ interface Ticket {
   sla_deadline: string;
   acknowledged_at: string | null;
   resolved_at: string | null;
+  resolution_note: string | null;
   created_at: string;
   submitted_by: string;
   submitter?: { name: string } | null;
@@ -82,6 +83,8 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
     }
   };
 
+  const [resolutionNote, setResolutionNote] = useState('');
+
   const handleStatusChange = async (newStatus: string) => {
     if (!ticket) return;
     setUpdating(true);
@@ -92,6 +95,9 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
       }
       if (newStatus === 'resolved' || newStatus === 'closed') {
         updates.resolved_at = new Date().toISOString();
+        if (resolutionNote.trim()) {
+          updates.resolution_note = resolutionNote.trim();
+        }
       }
       const { error } = await supabase
         .from('dispute_tickets')
@@ -99,6 +105,7 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
         .eq('id', ticket.id);
       if (error) throw error;
       toast({ title: `Ticket ${newStatus}` });
+      setResolutionNote('');
       onUpdated();
     } catch (err: any) {
       toast({ title: 'Failed', description: err.message, variant: 'destructive' });
@@ -156,9 +163,26 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
             )}
           </div>
 
+          {/* Resolution Outcome */}
+          {ticket.resolution_note && (ticket.status === 'resolved' || ticket.status === 'closed') && (
+            <div className="px-3 py-2.5 rounded-lg bg-success/10 border border-success/20">
+              <p className="text-[10px] font-semibold text-success mb-0.5">Resolved as:</p>
+              <p className="text-xs text-foreground">{ticket.resolution_note}</p>
+            </div>
+          )}
+
           {/* Admin Actions */}
           {isAdmin && (
-            <div className="flex gap-2">
+            <div className="space-y-2">
+              {!['resolved', 'closed'].includes(ticket.status) && (
+                <Textarea
+                  value={resolutionNote}
+                  onChange={e => setResolutionNote(e.target.value)}
+                  placeholder="Resolution note (shown to resident)..."
+                  rows={2}
+                  className="text-xs"
+                />
+              )}
               <Select onValueChange={handleStatusChange} disabled={updating}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="Update Status" />
