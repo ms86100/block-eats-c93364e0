@@ -31,6 +31,7 @@ import { CategoryManager } from '@/components/admin/CategoryManager';
 import { LicenseManager } from '@/components/admin/LicenseManager';
 import { AdminDisputesTab } from '@/components/admin/AdminDisputesTab';
 import { EmergencyBroadcastSheet } from '@/components/admin/EmergencyBroadcastSheet';
+import { logAudit } from '@/lib/audit';
 
 interface Report {
   id: string;
@@ -147,6 +148,7 @@ export default function AdminPage() {
   const updateUserStatus = async (id: string, status: VerificationStatus) => {
     try {
       await supabase.from('profiles').update({ verification_status: status }).eq('id', id);
+      await logAudit(`user_${status}`, 'profile', id, '', { status });
       toast.success(`User ${status}`);
       fetchData();
     } catch (error) {
@@ -167,6 +169,7 @@ export default function AdminPage() {
 
       // Update seller status
       await supabase.from('seller_profiles').update({ verification_status: status }).eq('id', id);
+      await logAudit(`seller_${status}`, 'seller_profile', id, '', { status });
 
       if (status === 'approved') {
         // Grant seller role when approved
@@ -205,6 +208,7 @@ export default function AdminPage() {
         is_hidden: hide, 
         hidden_reason: hide ? hideReason : null 
       }).eq('id', review.id);
+      await logAudit(hide ? 'review_hidden' : 'review_restored', 'review', review.id, '', { reason: hideReason });
       toast.success(hide ? 'Review hidden' : 'Review restored');
       setSelectedReview(null);
       setHideReason('');
@@ -220,6 +224,7 @@ export default function AdminPage() {
         status, 
         admin_notes: adminNotes || null 
       }).eq('id', report.id);
+      await logAudit(`report_${status}`, 'report', report.id, '', { admin_notes: adminNotes });
       toast.success(`Report ${status}`);
       setSelectedReport(null);
       setAdminNotes('');
@@ -240,6 +245,7 @@ export default function AdminPage() {
         reason: warningReason,
         severity: warningSeverity,
       });
+      await logAudit('warning_issued', 'profile', userId, '', { reason: warningReason, severity: warningSeverity });
       
       toast.success('Warning issued');
       setSelectedUserForWarning(null);
@@ -254,6 +260,7 @@ export default function AdminPage() {
   const updateSocietyStatus = async (id: string, is_verified: boolean, is_active: boolean) => {
     try {
       await supabase.from('societies').update({ is_verified, is_active }).eq('id', id);
+      await logAudit('society_status_changed', 'society', id, '', { is_verified, is_active });
       toast.success(is_verified ? 'Society approved' : 'Society updated');
       fetchData();
     } catch (error) {
