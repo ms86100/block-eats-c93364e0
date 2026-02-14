@@ -1,16 +1,16 @@
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { SocietyHealthDashboard } from '@/components/dashboard/SocietyHealthDashboard';
 import { CategoryGroupGrid } from '@/components/category/CategoryGroupGrid';
 import { SellerCard } from '@/components/seller/SellerCard';
 import { OnboardingWalkthrough, useOnboarding } from '@/components/onboarding/OnboardingWalkthrough';
-import { TrustScoreDetailed } from '@/components/trust/TrustScoreDetailed';
 import { ActivityFeed } from '@/components/activity/ActivityFeed';
+import { VerificationPendingScreen } from '@/components/onboarding/VerificationPendingScreen';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, ChevronRight, Store, Clock, Heart, Award, MapPin, Utensils, Star, TrendingUp, Activity } from 'lucide-react';
-import heroBanner from '@/assets/hero-banner.jpg';
+import { Search, ChevronRight, Store, Heart, Award, MapPin, Utensils, Star, TrendingUp, Activity, ShoppingBag } from 'lucide-react';
 import {
   useOpenNowSellers,
   useNearbyBlockSellers,
@@ -31,39 +31,14 @@ export default function HomePage() {
 
   const isLoading = loadingOpen || loadingTop;
 
-  // Show onboarding for new users
   if (hasChecked && showOnboarding && isApproved) {
     return <OnboardingWalkthrough onComplete={completeOnboarding} />;
   }
 
-  // Only show verification pending if we have profile data (not during initial load)
   if (!isApproved && profile) {
-    return (
-      <AppLayout showCart={false}>
-        <div className="px-4 py-8">
-          <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-warning/20 flex items-center justify-center">
-              <Clock className="text-warning" size={40} />
-            </div>
-            <h2 className="text-xl font-bold mb-2">Verification Pending</h2>
-            <p className="text-muted-foreground mb-6">
-              Your profile is being verified by the community admin. You'll be able to browse and order once approved.
-            </p>
-            <div className="bg-muted rounded-lg p-4 text-left">
-              <h3 className="font-semibold mb-2">Your Details</h3>
-              <p className="text-sm text-muted-foreground">
-                Name: {profile.name}<br />
-                Block: {profile.block}<br />
-                Flat: {profile.flat_number}
-              </p>
-            </div>
-          </div>
-        </div>
-      </AppLayout>
-    );
+    return <VerificationPendingScreen />;
   }
   
-  // Show loading while profile is being fetched
   if (!profile) {
     return (
       <AppLayout>
@@ -77,44 +52,34 @@ export default function HomePage() {
   return (
     <AppLayout>
       <div className="pb-4">
-        {/* Hero Banner with Primary CTA */}
-        <div className="relative h-44 mx-4 mt-4 rounded-2xl overflow-hidden">
-          <img
-            src={heroBanner}
-            alt="Community marketplace"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/30" />
-          <div className="absolute inset-0 flex flex-col justify-center px-4">
-            <h2 className="text-white text-xl font-bold">Fresh from your neighbors</h2>
-            <p className="text-white/80 text-sm mt-1 mb-4">
-              Homemade food & local goods
-            </p>
-            <Link to="/search">
-              <Button className="w-fit">
-                <Utensils size={16} className="mr-2" />
-                Order Food Now
-              </Button>
-            </Link>
-          </div>
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* SECTION 1: SOCIETY HEALTH DASHBOARD (Trust-First)     */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        <div className="px-4 pt-4">
+          <SocietyHealthDashboard />
         </div>
 
         {/* Society Activity Feed */}
         <div className="px-4 mt-4">
           <div className="flex items-center gap-2 mb-2">
             <Activity className="text-primary" size={18} />
-            <h3 className="font-semibold">Recent in your society</h3>
+            <h3 className="font-semibold text-sm">Recent Activity</h3>
           </div>
           <ActivityFeed />
         </div>
 
-        {/* Trust Score */}
-        <div className="px-4 mt-4">
-          <TrustScoreDetailed />
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* SECTION 2: MARKETPLACE (Secondary)                    */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        <div className="mt-6 px-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ShoppingBag className="text-muted-foreground" size={16} />
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Marketplace</h3>
+          </div>
         </div>
 
         {/* Search Bar */}
-        <div className="px-4 mt-4">
+        <div className="px-4">
           <Link to="/search">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
@@ -128,8 +93,8 @@ export default function HomePage() {
         </div>
 
         {/* Categories */}
-        <div className="mt-6 px-4">
-          <h3 className="font-semibold mb-3">What are you looking for?</h3>
+        <div className="mt-4 px-4">
+          <h3 className="font-semibold text-sm mb-3">What are you looking for?</h3>
           <CategoryGroupGrid variant="compact" excludeGroups={['services']} />
         </div>
 
@@ -139,7 +104,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between px-4 mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                <h3 className="font-semibold">Open Now</h3>
+                <h3 className="font-semibold text-sm">Open Now</h3>
               </div>
               <Link to="/search?filter=open" className="text-sm text-primary font-medium">
                 See all
@@ -183,7 +148,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between px-4 mb-3">
               <div className="flex items-center gap-2">
                 <MapPin className="text-info" size={18} />
-                <h3 className="font-semibold">Near Block {profile?.block}</h3>
+                <h3 className="font-semibold text-sm">Near Block {profile?.block}</h3>
               </div>
             </div>
             <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
@@ -216,7 +181,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between px-4 mb-3">
               <div className="flex items-center gap-2">
                 <Heart className="text-primary" size={18} />
-                <h3 className="font-semibold">Your Favorites</h3>
+                <h3 className="font-semibold text-sm">Your Favorites</h3>
               </div>
               <Link to="/favorites" className="text-sm text-primary font-medium">
                 See all
@@ -254,7 +219,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between px-4 mb-3">
               <div className="flex items-center gap-2">
                 <Award className="text-warning" size={18} />
-                <h3 className="font-semibold">Featured Sellers</h3>
+                <h3 className="font-semibold text-sm">Featured Sellers</h3>
               </div>
             </div>
             <div className="px-4 space-y-3">
@@ -291,7 +256,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between px-4 mb-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="text-primary" size={18} />
-                <h3 className="font-semibold">Top Rated</h3>
+                <h3 className="font-semibold text-sm">Top Rated</h3>
               </div>
               <Link to="/search?sort=rating" className="text-sm text-primary font-medium">
                 See all

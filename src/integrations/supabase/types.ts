@@ -576,6 +576,60 @@ export type Database = {
           },
         ]
       }
+      collective_escalations: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          resident_count: number
+          resolved_at: string | null
+          sample_photos: string[] | null
+          snag_count: number
+          society_id: string
+          status: string
+          tower_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          resident_count?: number
+          resolved_at?: string | null
+          sample_photos?: string[] | null
+          snag_count?: number
+          society_id: string
+          status?: string
+          tower_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          resident_count?: number
+          resolved_at?: string | null
+          sample_photos?: string[] | null
+          snag_count?: number
+          society_id?: string
+          status?: string
+          tower_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collective_escalations_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_escalations_tower_id_fkey"
+            columns: ["tower_id"]
+            isOneToOne: false
+            referencedRelation: "project_towers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       construction_milestones: {
         Row: {
           completion_percentage: number
@@ -2889,6 +2943,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "society_report_cards_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      society_reports: {
+        Row: {
+          created_at: string
+          id: string
+          report_data: Json
+          report_month: string
+          society_id: string
+          trust_score: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          report_data?: Json
+          report_month: string
+          society_id: string
+          trust_score?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          report_data?: Json
+          report_month?: string
+          society_id?: string
+          trust_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_reports_society_id_fkey"
             columns: ["society_id"]
             isOneToOne: false
             referencedRelation: "societies"
