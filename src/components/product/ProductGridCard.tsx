@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Minus, MessageCircle, Calendar, Phone, ShoppingBag, Send, Home, Handshake, Store } from 'lucide-react';
+import { Plus, Minus, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { VegBadge } from '@/components/ui/veg-badge';
@@ -8,6 +8,7 @@ import { useCart } from '@/hooks/useCart';
 import { Product, ProductActionType } from '@/types/database';
 import { CategoryBehavior } from '@/types/categories';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
+import { ACTION_CONFIG } from '@/lib/marketplace-constants';
 import { ContactSellerModal } from './ContactSellerModal';
 import { cn } from '@/lib/utils';
 
@@ -27,17 +28,6 @@ interface ProductGridCardProps {
   /** When true, shows "View" button that navigates to seller page instead of ADD */
   viewOnly?: boolean;
 }
-
-const ACTION_CONFIG: Record<ProductActionType, { label: string; icon: typeof Plus; isCart: boolean }> = {
-  add_to_cart: { label: 'ADD', icon: Plus, isCart: true },
-  buy_now: { label: 'BUY', icon: ShoppingBag, isCart: true },
-  book: { label: 'Book', icon: Calendar, isCart: false },
-  request_service: { label: 'Request', icon: Send, isCart: false },
-  request_quote: { label: 'Quote', icon: MessageCircle, isCart: false },
-  contact_seller: { label: 'Contact', icon: Phone, isCart: false },
-  schedule_visit: { label: 'Visit', icon: Home, isCart: false },
-  make_offer: { label: 'Offer', icon: Handshake, isCart: false },
-};
 
 export function ProductGridCard({ product, behavior, onTap, className, viewOnly = false }: ProductGridCardProps) {
   const navigate = useNavigate();

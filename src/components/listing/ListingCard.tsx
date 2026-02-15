@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useCategoryBehavior } from '@/hooks/useCategoryBehavior';
 import { ServiceCategory, ITEM_CONDITION_LABELS, RENTAL_PERIOD_LABELS, ItemCondition, RentalPeriodType } from '@/types/categories';
+import { ProductActionType } from '@/types/database';
+import { ACTION_CONFIG } from '@/lib/marketplace-constants';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Plus, Minus, Clock, MessageCircle, Calendar, Star, Zap } from 'lucide-react';
+import { Plus, Minus, Clock, Star, Zap } from 'lucide-react';
 
 export interface Listing {
   id: string;
@@ -26,6 +28,7 @@ export interface Listing {
   rental_period_type?: RentalPeriodType;
   condition?: ItemCondition;
   is_negotiable?: boolean;
+  action_type?: string;
   seller?: {
     business_name: string;
     rating?: number;
@@ -59,9 +62,14 @@ export function ListingCard({
   const { behavior, listingType, supportsCart, requiresTimeSlot, hasDateRange, enquiryOnly, isNegotiable, hasDuration } = 
     useCategoryBehavior(listing.category);
 
+  // Use action_type from the listing (set by DB trigger), fallback to deriving from behavior
+  const actionType: ProductActionType = (listing.action_type as ProductActionType) || 'add_to_cart';
+  const actionConfig = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
+  const ActionIcon = actionConfig.icon;
+
   const renderActionButton = () => {
-    // Food/Products with cart support
-    if (supportsCart) {
+    // Cart-compatible items
+    if (actionConfig.isCart && supportsCart) {
       if (quantity > 0) {
         return (
           <div className="flex items-center gap-2">
@@ -100,75 +108,32 @@ export function ListingCard({
           }}
         >
           <Plus size={14} className="mr-1" />
-          Add
+          {actionConfig.shortLabel}
         </Button>
       );
     }
 
-    // Services/Classes with time slot booking
-    if (requiresTimeSlot || hasDuration) {
-      return (
-        <Button
-          size="sm"
-          className="rounded-full"
-          onClick={(e) => {
-            e.preventDefault();
-            onBook?.();
-          }}
-        >
-          <Calendar size={14} className="mr-1" />
-          Book
-        </Button>
-      );
-    }
+    // Non-cart actions: use the appropriate callback based on action type
+    const handleNonCartAction = (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (actionType === 'contact_seller' || enquiryOnly) {
+        onEnquire?.();
+      } else if (hasDateRange) {
+        onRent?.();
+      } else {
+        onBook?.();
+      }
+    };
 
-    // Rentals with date range
-    if (hasDateRange) {
-      return (
-        <Button
-          size="sm"
-          className="rounded-full"
-          onClick={(e) => {
-            e.preventDefault();
-            onRent?.();
-          }}
-        >
-          <Calendar size={14} className="mr-1" />
-          Rent
-        </Button>
-      );
-    }
-
-    // Enquiry-based (resale, property, professional services)
-    if (enquiryOnly) {
-      return (
-        <Button
-          size="sm"
-          variant="secondary"
-          className="rounded-full"
-          onClick={(e) => {
-            e.preventDefault();
-            onEnquire?.();
-          }}
-        >
-          <MessageCircle size={14} className="mr-1" />
-          Contact
-        </Button>
-      );
-    }
-
-    // Fallback
     return (
       <Button
         size="sm"
+        variant={enquiryOnly ? 'secondary' : 'default'}
         className="rounded-full"
-        onClick={(e) => {
-          e.preventDefault();
-          onAdd?.();
-        }}
+        onClick={handleNonCartAction}
       >
-        <Plus size={14} className="mr-1" />
-        Add
+        <ActionIcon size={14} className="mr-1" />
+        {actionConfig.shortLabel}
       </Button>
     );
   };

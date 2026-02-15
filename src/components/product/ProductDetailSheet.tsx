@@ -9,7 +9,8 @@ import { useSellerTrustSnapshot } from '@/hooks/queries/useProductTrustMetrics';
 import { ContactSellerModal } from './ContactSellerModal';
 import { ProductEnquirySheet } from './ProductEnquirySheet';
 import { ProductActionType } from '@/types/database';
-import { Plus, Minus, Store, MapPin, Home, Clock, Truck, Users, Zap, RotateCcw, ChevronRight, Phone, Calendar, Send, MessageCircle, ShoppingBag, Handshake } from 'lucide-react';
+import { ACTION_CONFIG } from '@/lib/marketplace-constants';
+import { Plus, Minus, Store, MapPin, Home, Clock, Truck, Users, Zap, RotateCcw, ChevronRight } from 'lucide-react';
 
 interface ProductDetail {
   product_id: string;
@@ -40,17 +41,6 @@ interface ProductDetailSheetProps {
   categoryIcon?: string;
   categoryName?: string;
 }
-
-const ACTION_CONFIG: Record<ProductActionType, { label: string; icon: typeof Plus; isCart: boolean }> = {
-  add_to_cart: { label: 'Add to Cart', icon: Plus, isCart: true },
-  buy_now: { label: 'Buy Now', icon: ShoppingBag, isCart: true },
-  book: { label: 'Book Now', icon: Calendar, isCart: false },
-  request_service: { label: 'Request Service', icon: Send, isCart: false },
-  request_quote: { label: 'Request Quote', icon: MessageCircle, isCart: false },
-  contact_seller: { label: 'Contact Seller', icon: Phone, isCart: false },
-  schedule_visit: { label: 'Schedule Visit', icon: Home, isCart: false },
-  make_offer: { label: 'Make an Offer', icon: Handshake, isCart: false },
-};
 
 export function ProductDetailSheet({
   product,

@@ -131,7 +131,7 @@ export function useCategoryBehavior(category: ServiceCategory | null) {
     listingType,
     orderType,
     // Convenience accessors
-    supportsCart: behavior?.supportsCart ?? true,
+    supportsCart: behavior?.supportsCart ?? false,
     requiresTimeSlot: behavior?.requiresTimeSlot ?? false,
     hasDateRange: behavior?.hasDateRange ?? false,
     enquiryOnly: behavior?.enquiryOnly ?? false,

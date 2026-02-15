@@ -79,7 +79,7 @@ export default function SearchPage() {
         icon: c.icon,
         displayName: c.displayName,
         color: c.color,
-        supportsCart: c.behavior?.supportsCart ?? true,
+        supportsCart: c.behavior?.supportsCart ?? false,
         enquiryOnly: c.behavior?.enquiryOnly ?? false,
         requiresTimeSlot: c.behavior?.requiresTimeSlot ?? false,
       };

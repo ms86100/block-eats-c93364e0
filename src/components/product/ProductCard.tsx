@@ -1,11 +1,12 @@
-import { Plus, Minus, Star, Award, MessageCircle, Calendar } from 'lucide-react';
+import { Plus, Minus, Star, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { Badge } from '@/components/ui/badge';
-import { Product } from '@/types/database';
+import { Product, ProductActionType } from '@/types/database';
 import { useCart } from '@/hooks/useCart';
 import { useCategoryBehavior } from '@/hooks/useCategoryBehavior';
+import { ACTION_CONFIG } from '@/lib/marketplace-constants';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
@@ -16,14 +17,22 @@ interface ProductCardProps {
 
 export function ProductCard({ product, variant = 'horizontal', onTap }: ProductCardProps) {
   const { items, addItem, updateQuantity } = useCart();
-  const { supportsCart, enquiryOnly, requiresTimeSlot } = useCategoryBehavior(product.category as any);
+  const { supportsCart } = useCategoryBehavior(product.category as any);
   const cartItem = items.find((item) => item.product_id === product.id);
   const quantity = cartItem?.quantity || 0;
 
-  // Only allow cart add if the category supports it
-  const canAddToCart = supportsCart;
+  // Derive action from product's action_type (set by DB trigger from category_config)
+  const actionType: ProductActionType = (product as any).action_type || 'add_to_cart';
+  const config = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
+  const canAddToCart = config.isCart && supportsCart;
+  const ActionIcon = config.icon;
+  const actionLabel = config.shortLabel;
 
   const handleAdd = () => {
+    if (!canAddToCart) {
+      onTap?.(product);
+      return;
+    }
     addItem(product);
   };
 
@@ -34,9 +43,6 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
   const handleDecrement = () => {
     updateQuantity(product.id, quantity - 1);
   };
-
-  const actionLabel = enquiryOnly ? 'Contact' : requiresTimeSlot ? 'Book' : 'Add';
-  const ActionIcon = enquiryOnly ? MessageCircle : requiresTimeSlot ? Calendar : Plus;
 
   if (variant === 'vertical') {
     return (
