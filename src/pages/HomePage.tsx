@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { ProductGridCard, ProductWithSeller } from '@/components/product/ProductGridCard';
+import { ProductCarousel } from '@/components/product/ProductCarousel';
 import { SellerCard } from '@/components/seller/SellerCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +31,7 @@ import {
 } from '@/hooks/queries/useHomeSellers';
 import { useNearbySellers } from '@/hooks/queries/useNearbySellers';
 import { usePopularProducts } from '@/hooks/queries/usePopularProducts';
+import { useProductsByCategory } from '@/hooks/queries/useProductsByCategory';
 
 export default function HomePage() {
   const { user, profile, isApproved, isSeller, society } = useAuth();
@@ -63,6 +65,7 @@ export default function HomePage() {
   const { data: favorites = [] } = useFavoriteSellers();
   const { data: nearbySellers = [] } = useNearbySellers(searchRadius, browseBeyond);
   const { data: popularProducts = [] } = usePopularProducts(20);
+  const { data: categoryGroups = [] } = useProductsByCategory(100);
 
   const isLoading = loadingOpen || loadingTop;
 
@@ -148,35 +151,19 @@ export default function HomePage() {
             <CategoryGroupGrid variant="compact" excludeGroups={['services']} />
           </div>
 
-          {/* ─── Product Grid: Popular in Your Society ─── */}
-          {popularProducts.length > 0 && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between px-4 mb-3">
-                <h3 className="font-bold text-base text-foreground">Popular nearby</h3>
-                <Link to="/search" className="text-sm text-primary font-semibold flex items-center gap-0.5 hover:underline">
-                  see all <ChevronRight size={16} />
-                </Link>
-              </div>
-              <div className="px-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {popularProducts.slice(0, 8).map((product) => (
-                  <ProductGridCard
-                    key={product.id}
-                    product={product}
-                    behavior={getBehavior(product.category)}
-                  />
-                ))}
-              </div>
-              {popularProducts.length > 8 && (
-                <div className="px-4 mt-3">
-                  <Link to="/search" className="block">
-                    <Button variant="outline" className="w-full h-9 text-xs font-medium border-border text-muted-foreground">
-                      View all {popularProducts.length} items
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
+          {/* ─── Products Grouped by Category — Blinkit-style horizontal carousels ─── */}
+          {categoryGroups.map((group) => (
+            <ProductCarousel
+              key={group.category}
+              title={group.displayName}
+              emoji={group.icon}
+              itemCount={group.products.length}
+              products={group.products}
+              behavior={getBehavior(group.category)}
+              onSeeAll={() => window.location.href = `/category/${group.category}`}
+              className="mb-5"
+            />
+          ))}
 
           {/* ─── Open Now sellers (compact horizontal) ─── */}
           {openNowSellers.length > 0 && (
