@@ -1925,14 +1925,17 @@ export type Database = {
         Row: {
           auto_cancel_at: string | null
           buyer_id: string | null
+          buyer_society_id: string | null
           coupon_id: string | null
           created_at: string | null
           delivery_address: string | null
           deposit_paid: boolean | null
           deposit_refunded: boolean | null
           discount_amount: number | null
+          distance_km: number | null
           id: string
           idempotency_key: string | null
+          is_cross_society: boolean
           notes: string | null
           order_type: string | null
           payment_status: string | null
@@ -1946,6 +1949,7 @@ export type Database = {
           scheduled_time_end: string | null
           scheduled_time_start: string | null
           seller_id: string | null
+          seller_society_id: string | null
           society_id: string | null
           status: Database["public"]["Enums"]["order_status"] | null
           total_amount: number
@@ -1954,14 +1958,17 @@ export type Database = {
         Insert: {
           auto_cancel_at?: string | null
           buyer_id?: string | null
+          buyer_society_id?: string | null
           coupon_id?: string | null
           created_at?: string | null
           delivery_address?: string | null
           deposit_paid?: boolean | null
           deposit_refunded?: boolean | null
           discount_amount?: number | null
+          distance_km?: number | null
           id?: string
           idempotency_key?: string | null
+          is_cross_society?: boolean
           notes?: string | null
           order_type?: string | null
           payment_status?: string | null
@@ -1975,6 +1982,7 @@ export type Database = {
           scheduled_time_end?: string | null
           scheduled_time_start?: string | null
           seller_id?: string | null
+          seller_society_id?: string | null
           society_id?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
           total_amount: number
@@ -1983,14 +1991,17 @@ export type Database = {
         Update: {
           auto_cancel_at?: string | null
           buyer_id?: string | null
+          buyer_society_id?: string | null
           coupon_id?: string | null
           created_at?: string | null
           delivery_address?: string | null
           deposit_paid?: boolean | null
           deposit_refunded?: boolean | null
           discount_amount?: number | null
+          distance_km?: number | null
           id?: string
           idempotency_key?: string | null
+          is_cross_society?: boolean
           notes?: string | null
           order_type?: string | null
           payment_status?: string | null
@@ -2004,6 +2015,7 @@ export type Database = {
           scheduled_time_end?: string | null
           scheduled_time_start?: string | null
           seller_id?: string | null
+          seller_society_id?: string | null
           society_id?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
           total_amount?: number
@@ -2018,6 +2030,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_buyer_society_id_fkey"
+            columns: ["buyer_society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_coupon_id_fkey"
             columns: ["coupon_id"]
             isOneToOne: false
@@ -2029,6 +2048,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_seller_society_id_fkey"
+            columns: ["seller_society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
             referencedColumns: ["id"]
           },
           {
@@ -4802,6 +4828,22 @@ export type Database = {
       }
       complete_worker_job: {
         Args: { _job_id: string; _worker_id: string }
+        Returns: Json
+      }
+      create_multi_vendor_orders: {
+        Args: {
+          _buyer_id: string
+          _cart_total?: number
+          _coupon_code?: string
+          _coupon_discount?: number
+          _coupon_id?: string
+          _delivery_address: string
+          _has_urgent?: boolean
+          _notes?: string
+          _payment_method?: string
+          _payment_status?: string
+          _seller_groups?: Json
+        }
         Returns: Json
       }
       get_builder_dashboard: { Args: { _builder_id: string }; Returns: Json }

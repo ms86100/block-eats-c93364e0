@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 export default function CartPage() {
   const navigate = useNavigate();
   const { user, profile, society } = useAuth();
-  const { items, totalAmount, sellerGroups, updateQuantity, removeItem, clearCart } = useCart();
+  const { items, totalAmount, sellerGroups, updateQuantity, removeItem, clearCart, refresh } = useCart();
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -38,87 +38,52 @@ export default function CartPage() {
   const createOrdersForAllSellers = async (paymentStatus: 'pending' | 'paid', transactionRef?: string) => {
     if (!user || !profile || sellerGroups.length === 0) return [];
 
-    const autoCancelAt = hasUrgentItem
-      ? new Date(Date.now() + 3 * 60 * 1000).toISOString()
-      : null;
-
-    const createdOrderIds: string[] = [];
-
-    // Distribute coupon discount proportionally across sellers
-    const couponTotal = appliedCoupon?.discountAmount || 0;
-
-    for (const group of sellerGroups) {
-      const proportionalDiscount = totalAmount > 0
-        ? Math.round((group.subtotal / totalAmount) * couponTotal)
-        : 0;
-      const sellerFinalAmount = Math.max(0, group.subtotal - proportionalDiscount);
-
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          buyer_id: user.id,
-          seller_id: group.sellerId,
-          total_amount: sellerFinalAmount,
-          coupon_id: appliedCoupon?.id || null,
-          discount_amount: proportionalDiscount,
-          payment_type: paymentMethod,
-          payment_status: paymentStatus,
-          delivery_address: `Block ${profile.block}, Flat ${profile.flat_number}`,
-          notes: notes || null,
-          auto_cancel_at: autoCancelAt,
-          idempotency_key: crypto.randomUUID(),
-        } as any)
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-      createdOrderIds.push(order.id);
-
-      // Create order items for this seller
-      const orderItems = group.items.map((item) => ({
-        order_id: order.id,
+    // Build seller_groups payload for the atomic RPC
+    const sellerGroupsPayload = sellerGroups.map((group) => ({
+      seller_id: group.sellerId,
+      subtotal: group.subtotal,
+      items: group.items.map((item) => ({
         product_id: item.product_id,
         product_name: item.product?.name || 'Unknown',
         quantity: item.quantity,
         unit_price: item.product?.price || 0,
-      }));
+      })),
+    }));
 
-      const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-      if (itemsError) throw itemsError;
+    const { data, error } = await supabase.rpc('create_multi_vendor_orders', {
+      _buyer_id: user.id,
+      _delivery_address: `Block ${profile.block}, Flat ${profile.flat_number}`,
+      _notes: notes || null,
+      _payment_method: paymentMethod,
+      _payment_status: paymentStatus,
+      _coupon_id: appliedCoupon?.id || null,
+      _coupon_code: appliedCoupon?.code || null,
+      _coupon_discount: appliedCoupon?.discountAmount || 0,
+      _cart_total: totalAmount,
+      _has_urgent: hasUrgentItem,
+      _seller_groups: sellerGroupsPayload,
+    });
 
-      // Create payment record per seller
-      const { error: paymentError } = await supabase.from('payment_records').insert({
-        order_id: order.id,
-        buyer_id: user.id,
-        seller_id: group.sellerId,
-        amount: sellerFinalAmount,
-        payment_method: paymentMethod,
-        payment_status: paymentStatus,
-        transaction_reference: transactionRef || null,
-        platform_fee: 0,
-        net_amount: sellerFinalAmount,
-      });
-      if (paymentError) throw paymentError;
+    if (error) throw error;
 
-      // Notify each seller
+    const result = data as { success: boolean; order_ids: string[]; order_count: number };
+    if (!result?.success) throw new Error('Failed to create orders');
+
+    const createdOrderIds = result.order_ids;
+
+    // Send notifications (non-critical, fire-and-forget)
+    for (const group of sellerGroups) {
       const sellerProfile = group.items[0]?.product?.seller;
       if (sellerProfile?.user_id) {
-        sendOrderStatusNotification(
-          order.id, 'placed', user.id, group.sellerId,
-          sellerProfile.user_id,
-          sellerProfile.business_name || 'Seller',
-          profile.name
-        );
-      }
-
-      // Record coupon redemption for first order only
-      if (appliedCoupon && createdOrderIds.length === 1) {
-        await supabase.from('coupon_redemptions').insert({
-          coupon_id: appliedCoupon.id,
-          user_id: user.id,
-          order_id: order.id,
-          discount_applied: appliedCoupon.discountAmount,
-        });
+        const orderId = createdOrderIds[sellerGroups.indexOf(group)];
+        if (orderId) {
+          sendOrderStatusNotification(
+            orderId, 'placed', user.id, group.sellerId,
+            sellerProfile.user_id,
+            sellerProfile.business_name || 'Seller',
+            profile.name
+          );
+        }
       }
     }
 
@@ -154,7 +119,8 @@ export default function CartPage() {
       const orderIds = await createOrdersForAllSellers('pending');
       if (orderIds.length === 0) throw new Error('Failed to create orders');
 
-      await clearCart();
+      // Cart already cleared by RPC, just refresh local state
+      await refresh();
       if (orderIds.length === 1) {
         toast.success('Order placed successfully!');
         navigate(`/orders/${orderIds[0]}`);
@@ -178,7 +144,7 @@ export default function CartPage() {
       await supabase.from('payment_records').update({ payment_status: 'paid', transaction_reference: paymentId }).eq('order_id', orderId);
     }
 
-    await clearCart();
+    await refresh();
     toast.success('Payment successful! Order placed.');
     navigate(pendingOrderIds.length === 1 ? `/orders/${pendingOrderIds[0]}` : '/orders');
     setPendingOrderIds([]);
