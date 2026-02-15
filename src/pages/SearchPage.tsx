@@ -16,7 +16,9 @@ import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
 import { ProductCarousel } from '@/components/product/ProductCarousel';
 import { ProductGridCard, ProductWithSeller } from '@/components/product/ProductGridCard';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
-import { ArrowLeft, Search as SearchIcon, X, Globe, Star, MapPin, Home, Tag, ShoppingBag, Plus, Minus, Clock, MessageCircle, Calendar } from 'lucide-react';
+import { ArrowLeft, Search as SearchIcon, X, Globe, Star, MapPin, Home, Tag, ShoppingBag, Plus, Minus, Clock, MessageCircle, Calendar, Phone, Send, Handshake } from 'lucide-react';
+import { ContactSellerModal } from '@/components/product/ContactSellerModal';
+import { ProductActionType } from '@/types/database';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -33,6 +35,8 @@ interface ProductSearchResult {
   prep_time_minutes?: number | null;
   fulfillment_mode?: string | null;
   delivery_note?: string | null;
+  action_type?: string | null;
+  contact_phone?: string | null;
   seller_id: string;
   seller_name: string;
   seller_rating: number;
@@ -143,7 +147,7 @@ export default function SearchPage() {
     try {
       let query = supabase
         .from('products')
-        .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
+        .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, action_type, contact_phone, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
         .eq('is_available', true)
         .eq('seller.verification_status', 'approved')
         .order('created_at', { ascending: false })
@@ -166,6 +170,8 @@ export default function SearchPage() {
           prep_time_minutes: p.prep_time_minutes,
           fulfillment_mode: p.seller?.fulfillment_mode || null,
           delivery_note: p.seller?.delivery_note || null,
+          action_type: p.action_type || null,
+          contact_phone: p.contact_phone || null,
           seller_id: p.seller?.id || p.seller_id,
           seller_name: p.seller?.business_name || '',
           seller_rating: p.seller?.rating || 0,
@@ -259,7 +265,7 @@ export default function SearchPage() {
         // Category-only browse (no search term) - direct query
         let q = supabase
           .from('products')
-          .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
+          .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, action_type, contact_phone, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
           .eq('is_available', true)
           .eq('seller.verification_status', 'approved')
           .order('created_at', { ascending: false })
@@ -288,6 +294,8 @@ export default function SearchPage() {
               prep_time_minutes: p.prep_time_minutes,
               fulfillment_mode: p.seller?.fulfillment_mode || null,
               delivery_note: p.seller?.delivery_note || null,
+              action_type: p.action_type || null,
+              contact_phone: p.contact_phone || null,
               seller_id: p.seller?.id || p.seller_id,
               seller_name: p.seller?.business_name || '',
               seller_rating: p.seller?.rating || 0,
@@ -618,22 +626,35 @@ function ProductResultCard({
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onProductTap: (p: ProductSearchResult) => void;
 }) {
+  const [contactOpen, setContactOpen] = useState(false);
   const catInfo = p.category ? categoryMap[p.category] : null;
   const cartItem = cartItems.find((item) => item.product_id === p.product_id);
   const quantity = cartItem?.quantity || 0;
   const isNewSeller = p.seller_reviews === 0 || p.seller_rating === 0;
 
-  const supportsCart = catInfo?.supportsCart ?? true;
-  const enquiryOnly = catInfo?.enquiryOnly ?? false;
-  const requiresTimeSlot = catInfo?.requiresTimeSlot ?? false;
-  const isService = requiresTimeSlot || enquiryOnly;
-  const canAddToCart = supportsCart && !isService;
+  // Product-level action_type overrides category behavior
+  const ACTION_CONFIG: Record<string, { label: string; icon: typeof Plus; isCart: boolean }> = {
+    add_to_cart: { label: 'Add +', icon: Plus, isCart: true },
+    buy_now: { label: 'Buy', icon: ShoppingBag, isCart: true },
+    book: { label: 'Book', icon: Calendar, isCart: false },
+    request_service: { label: 'Request', icon: Send, isCart: false },
+    request_quote: { label: 'Quote', icon: MessageCircle, isCart: false },
+    contact_seller: { label: 'Contact', icon: Phone, isCart: false },
+    schedule_visit: { label: 'Visit', icon: Home, isCart: false },
+    make_offer: { label: 'Offer', icon: Handshake, isCart: false },
+  };
 
-  const actionLabel = enquiryOnly ? 'Contact' : requiresTimeSlot ? 'Book' : 'Add +';
-  const ActionIcon = enquiryOnly ? MessageCircle : requiresTimeSlot ? Calendar : Plus;
+  const actionType: ProductActionType = (p.action_type as ProductActionType) || 'add_to_cart';
+  const config = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
+  const canAddToCart = config.isCart;
+  const ActionIcon = config.icon;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (actionType === 'contact_seller' && p.contact_phone) {
+      setContactOpen(true);
+      return;
+    }
     if (!canAddToCart) {
       onProductTap(p);
       return;
@@ -657,6 +678,7 @@ function ProductResultCard({
   };
 
   return (
+    <>
     <div
       onClick={() => onProductTap(p)}
       className="flex gap-3 bg-card border border-border/50 rounded-xl p-3 hover:shadow-sm transition-all cursor-pointer"
@@ -736,7 +758,7 @@ function ProductResultCard({
                 className="h-7 px-4 text-xs font-semibold"
                 onClick={handleAdd}
               >
-                <Plus size={12} className="mr-1" /> Add +
+                <ActionIcon size={12} className="mr-1" /> {config.label}
               </Button>
             ) : (
               <div className="flex items-center gap-1 bg-primary rounded-lg px-1.5">
@@ -766,12 +788,23 @@ function ProductResultCard({
               className="h-7 px-4 text-xs font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               onClick={handleAdd}
             >
-              <ActionIcon size={12} className="mr-1" /> {actionLabel}
+              <ActionIcon size={12} className="mr-1" /> {config.label}
             </Button>
           )}
         </div>
       </div>
     </div>
+
+      {/* Contact Seller Modal */}
+      {actionType === 'contact_seller' && (
+        <ContactSellerModal
+          open={contactOpen}
+          onOpenChange={setContactOpen}
+          sellerName={p.seller_name}
+          phone={p.contact_phone || ''}
+        />
+      )}
+    </>
   );
 }
 
@@ -820,7 +853,9 @@ function PopularCarousels({
     seller_rating: p.seller_rating,
     fulfillment_mode: p.fulfillment_mode || null,
     delivery_note: p.delivery_note || null,
-  });
+    action_type: p.action_type || null,
+    contact_phone: p.contact_phone || null,
+  } as ProductWithSeller);
 
   const handleProductTap = (pw: ProductWithSeller) => {
     const original = products.find((p) => p.product_id === pw.id);
