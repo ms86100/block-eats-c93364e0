@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +11,7 @@ import { ShopByStore } from '@/components/home/ShopByStore';
 import { ProductListingCard, ProductWithSeller } from '@/components/product/ProductListingCard';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Store, X } from 'lucide-react';
+import { Search, Store, X, ChevronRight } from 'lucide-react';
 import { escapeIlike } from '@/lib/query-utils';
 
 export function MarketplaceSection() {
@@ -93,7 +93,7 @@ export function MarketplaceSection() {
   }, [searchQuery, effectiveSocietyId]);
 
   return (
-    <div className="space-y-5 pb-2">
+    <div className="space-y-1 pb-2">
       {/* ━━━ Hero gradient wash ━━━ */}
       <div
         className="pt-3 pb-5 -mt-1"
@@ -120,7 +120,7 @@ export function MarketplaceSection() {
           </div>
         </div>
 
-        {/* ━━━ Parent Group Tabs ━━━ */}
+        {/* ━━━ Parent Group Pill Tabs ━━━ */}
         {searchResults === null && (
           <ParentGroupTabs activeGroup={activeGroup} onGroupChange={setActiveGroup} />
         )}
@@ -135,8 +135,8 @@ export function MarketplaceSection() {
         />
       ) : (
         <>
-          {/* ━━━ Category Image Sections ━━━ */}
-          {activeParentGroups.slice(0, 4).map(group => (
+          {/* ━━━ Category Image Sections with alternating tints ━━━ */}
+          {activeParentGroups.slice(0, 4).map((group, idx) => (
             <CategoryImageGrid
               key={group.value}
               parentGroup={group.value}
@@ -144,14 +144,29 @@ export function MarketplaceSection() {
             />
           ))}
 
+          {/* ━━━ Section Divider ━━━ */}
+          <div className="flex justify-center py-2">
+            <div className="w-12 h-1 rounded-full bg-border/60" />
+          </div>
+
           {/* ━━━ Featured Banners ━━━ */}
           <FeaturedBanners />
+
+          {/* ━━━ Section Divider ━━━ */}
+          <div className="flex justify-center py-2">
+            <div className="w-12 h-1 rounded-full bg-border/60" />
+          </div>
 
           {/* ━━━ Product Listings ━━━ */}
           <ProductListings
             categories={filteredCategories}
             isLoading={loadingLocal}
           />
+
+          {/* ━━━ Section Divider ━━━ */}
+          <div className="flex justify-center py-2">
+            <div className="w-12 h-1 rounded-full bg-border/60" />
+          </div>
 
           {/* ━━━ Shop by Store ━━━ */}
           <ShopByStore />
@@ -238,17 +253,22 @@ function ProductListings({
             </h3>
             <a
               href={`#/category/${cat.parentGroup}?sub=${cat.category}`}
-              className="text-xs font-semibold text-primary hover:underline"
+              className="flex items-center gap-0.5 bg-card/80 border border-border/40 text-[10px] font-semibold text-primary px-2.5 py-1 rounded-full hover:bg-card transition-colors"
             >
-              see all →
+              see all <ChevronRight size={10} />
             </a>
           </div>
-          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide px-4 pb-1">
-            {cat.products.slice(0, 8).map(product => (
-              <div key={product.id} className="w-[140px] shrink-0">
-                <ProductListingCard product={product} />
-              </div>
-            ))}
+          {/* Carousel with peek/fade effect */}
+          <div className="relative">
+            <div className="flex gap-2.5 overflow-x-auto scrollbar-hide px-4 pb-1">
+              {cat.products.slice(0, 8).map(product => (
+                <div key={product.id} className="w-[140px] shrink-0">
+                  <ProductListingCard product={product} />
+                </div>
+              ))}
+            </div>
+            {/* Right fade mask for peek effect */}
+            <div className="absolute right-0 top-0 bottom-1 w-8 pointer-events-none bg-gradient-to-l from-background to-transparent" />
           </div>
         </div>
       ))}

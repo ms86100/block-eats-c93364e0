@@ -278,7 +278,7 @@ export function ProductListingCard({
             quantity === 0 ? (
               <button
                 onClick={handleAdd}
-                className="border border-success text-success font-bold text-[10px] px-3 py-1 rounded-md hover:bg-success hover:text-white transition-colors shrink-0 uppercase"
+                className="border border-success text-success font-bold text-[10px] px-3.5 py-1.5 rounded-lg hover:bg-success hover:text-white transition-all duration-150 shrink-0 uppercase shadow-sm active:scale-90"
               >
                 ADD
               </button>

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Star, Store } from 'lucide-react';
+import { Star, Store, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STORE_TINTS = [
@@ -56,48 +56,59 @@ export function ShopByStore() {
 
   return (
     <div className="animate-fade-in">
-      <h3 className="font-bold text-base text-foreground px-4 mb-3">Shop by store</h3>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1">
-        {sellers.map((seller: any, idx: number) => (
-          <div
-            key={seller.id}
-            onClick={() => navigate(`/seller/${seller.id}`)}
-            className={cn(
-              'shrink-0 w-28 rounded-2xl overflow-hidden cursor-pointer',
-              'border border-border/20 transition-all duration-200 hover:shadow-lg hover:scale-[1.03] active:scale-95',
-              'bg-gradient-to-b',
-              STORE_TINTS[idx % STORE_TINTS.length]
-            )}
-          >
-            <div className="h-20 flex items-center justify-center p-2">
-              {seller.profile_image_url || seller.cover_image_url ? (
-                <img
-                  src={seller.profile_image_url || seller.cover_image_url}
-                  alt={seller.business_name}
-                  className="w-14 h-14 rounded-xl object-cover shadow-sm"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-xl bg-muted/50 flex items-center justify-center">
-                  <Store className="text-muted-foreground" size={24} />
-                </div>
+      <div className="flex items-center justify-between px-4 mb-3">
+        <h3 className="font-bold text-base text-foreground">Shop by store</h3>
+        <button className="flex items-center gap-0.5 bg-card/80 border border-border/40 text-[10px] font-semibold text-primary px-2.5 py-1 rounded-full hover:bg-card transition-colors">
+          see all <ChevronRight size={10} />
+        </button>
+      </div>
+
+      {/* Carousel with peek effect */}
+      <div className="relative">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1">
+          {sellers.map((seller: any, idx: number) => (
+            <div
+              key={seller.id}
+              onClick={() => navigate(`/seller/${seller.id}`)}
+              className={cn(
+                'shrink-0 w-28 rounded-2xl overflow-hidden cursor-pointer',
+                'border border-white/30 transition-all duration-200 hover:shadow-lg hover:scale-[1.03] active:scale-95',
+                'bg-gradient-to-b shadow-sm',
+                STORE_TINTS[idx % STORE_TINTS.length]
               )}
+            >
+              <div className="h-20 flex items-center justify-center p-2">
+                {seller.profile_image_url || seller.cover_image_url ? (
+                  <img
+                    src={seller.profile_image_url || seller.cover_image_url}
+                    alt={seller.business_name}
+                    className="w-14 h-14 rounded-xl object-cover shadow-sm"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl bg-muted/50 flex items-center justify-center">
+                    <Store className="text-muted-foreground" size={24} />
+                  </div>
+                )}
+              </div>
+              <div className="px-2 pb-2.5 text-center">
+                <p className="text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
+                  {seller.business_name}
+                </p>
+                {seller.rating > 0 && (
+                  <div className="flex items-center justify-center gap-0.5 mt-1">
+                    <Star size={9} className="text-accent fill-accent" />
+                    <span className="text-[9px] font-bold text-muted-foreground">
+                      {seller.rating}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="px-2 pb-2.5 text-center">
-              <p className="text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
-                {seller.business_name}
-              </p>
-              {seller.rating > 0 && (
-                <div className="flex items-center justify-center gap-0.5 mt-1">
-                  <Star size={9} className="text-accent fill-accent" />
-                  <span className="text-[9px] font-bold text-muted-foreground">
-                    {seller.rating}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        {/* Right fade for peek effect */}
+        <div className="absolute right-0 top-0 bottom-1 w-8 pointer-events-none bg-gradient-to-l from-background to-transparent" />
       </div>
     </div>
   );

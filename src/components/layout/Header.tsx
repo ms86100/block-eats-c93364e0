@@ -58,34 +58,37 @@ export function Header({
 
   return (
     <>
-      <header className={cn('sticky top-0 z-40 glass border-b border-border safe-top', className)}>
+      <header className={cn(
+        'sticky top-0 z-40 safe-top border-b border-primary/10',
+        className
+      )} style={{ background: 'var(--gradient-primary)' }}>
         <div className="flex items-center justify-between px-4 py-3">
         {showLocation && profile ? (
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <MapPin className="text-primary shrink-0" size={20} />
+              <MapPin className="text-primary-foreground shrink-0" size={20} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">
+                <p className="text-sm font-semibold truncate text-primary-foreground">
                   {profile.block}, {profile.flat_number}
                 </p>
-                <p className="text-xs text-muted-foreground">{displaySociety?.name || 'Community Market'}</p>
+                <p className="text-xs text-primary-foreground/70">{displaySociety?.name || 'Community Market'}</p>
               </div>
             </div>
           ) : title ? (
-            <h1 className="text-lg font-bold">{title}</h1>
+            <h1 className="text-lg font-bold text-primary-foreground">{title}</h1>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-primary">Sociva</span>
+              <span className="text-xl font-bold text-primary-foreground">Sociva</span>
             </div>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {isApproved && (
               <>
                 <Link to="/notifications/inbox">
-                  <Button variant="ghost" size="icon" className="relative">
+                  <Button variant="ghost" size="icon" className="relative text-primary-foreground hover:bg-white/15">
                     <Bell size={20} />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                      <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
@@ -93,10 +96,10 @@ export function Header({
                 </Link>
                 {showCart && (
                   <Link to="/cart">
-                    <Button variant="ghost" size="icon" className="relative">
+                    <Button variant="ghost" size="icon" className="relative text-primary-foreground hover:bg-white/15">
                       <ShoppingCart size={20} />
                       {itemCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
                           {itemCount > 9 ? '9+' : itemCount}
                         </span>
                       )}
