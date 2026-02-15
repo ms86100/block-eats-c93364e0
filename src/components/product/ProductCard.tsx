@@ -20,8 +20,8 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
   const cartItem = items.find((item) => item.product_id === product.id);
   const quantity = cartItem?.quantity || 0;
 
-  // All products are directly addable to cart
-  const canAddToCart = true;
+  // Only allow cart add if the category supports it
+  const canAddToCart = supportsCart;
 
   const handleAdd = () => {
     addItem(product);
