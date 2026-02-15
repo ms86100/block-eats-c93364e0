@@ -13,6 +13,8 @@ import { FilterPresets } from '@/components/search/FilterPresets';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
+import { ProductCarousel } from '@/components/product/ProductCarousel';
+import { ProductGridCard, ProductWithSeller } from '@/components/product/ProductGridCard';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { ArrowLeft, Search as SearchIcon, X, Globe, Star, MapPin, Home, Tag, ShoppingBag, Plus, Minus, Clock } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -474,14 +476,6 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* ─── Section Title ─── */}
-        {!isSearchActive && !showLoading && displayProducts.length > 0 && (
-          <div className="flex items-center gap-2 mt-2 mb-2 px-1">
-            <ShoppingBag size={14} className="text-primary" />
-            <span className="text-sm font-semibold">Popular in your community</span>
-          </div>
-        )}
-
         {/* ─── Results ─── */}
         {showLoading ? (
           <div className="space-y-3 mt-2">
@@ -489,6 +483,14 @@ export default function SearchPage() {
               <Skeleton key={i} className="h-24 w-full rounded-xl" />
             ))}
           </div>
+        ) : !isSearchActive && displayProducts.length > 0 ? (
+          /* Carousel view for browsing mode */
+          <PopularCarousels
+            products={displayProducts}
+            categoryMap={categoryMap}
+            categoryConfigs={categoryConfigs}
+            onProductTap={handleProductTap}
+          />
         ) : displayProducts.length > 0 ? (
           <div className="space-y-2 mt-2">
             {isSearchActive && (
@@ -728,6 +730,79 @@ function ProductResultCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Popular Carousels (browse mode) ───────────────────
+function PopularCarousels({
+  products,
+  categoryMap,
+  categoryConfigs,
+  onProductTap,
+}: {
+  products: ProductSearchResult[];
+  categoryMap: Record<string, { icon: string; displayName: string; color: string }>;
+  categoryConfigs: { category: string; displayName: string; icon: string; behavior?: any }[];
+  onProductTap: (p: ProductSearchResult) => void;
+}) {
+  // Group products by category
+  const grouped = useMemo(() => {
+    const g: Record<string, ProductSearchResult[]> = {};
+    products.forEach((p) => {
+      const cat = p.category || 'other';
+      if (!g[cat]) g[cat] = [];
+      g[cat].push(p);
+    });
+    return g;
+  }, [products]);
+
+  const categories = Object.keys(grouped);
+
+  // Convert ProductSearchResult to ProductWithSeller for the carousel
+  const toProductWithSeller = (p: ProductSearchResult): ProductWithSeller => ({
+    id: p.product_id,
+    seller_id: p.seller_id,
+    name: p.product_name,
+    price: p.price,
+    image_url: p.image_url,
+    is_veg: p.is_veg ?? true,
+    is_available: true,
+    is_bestseller: false,
+    is_recommended: false,
+    is_urgent: false,
+    category: p.category || '',
+    description: null,
+    created_at: '',
+    updated_at: '',
+    seller_name: p.seller_name,
+    seller_rating: p.seller_rating,
+  });
+
+  const handleProductTap = (pw: ProductWithSeller) => {
+    const original = products.find((p) => p.product_id === pw.id);
+    if (original) onProductTap(original);
+  };
+
+  return (
+    <div className="mt-2 -mx-4 space-y-4">
+      {categories.map((cat) => {
+        const items = grouped[cat];
+        const catInfo = categoryMap[cat];
+        const config = categoryConfigs.find((c) => c.category === cat);
+        return (
+          <ProductCarousel
+            key={cat}
+            title={catInfo?.displayName || cat}
+            emoji={catInfo?.icon}
+            itemCount={items.length}
+            products={items.map(toProductWithSeller)}
+            behavior={config?.behavior || null}
+            onProductTap={handleProductTap}
+            variant="compact"
+          />
+        );
+      })}
     </div>
   );
 }
