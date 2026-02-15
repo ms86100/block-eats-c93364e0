@@ -54,19 +54,19 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Society Health Dashboard */}
-        <div className="px-4 pt-4">
+        {/* Society Health Dashboard - hidden for now */}
+        {/* <div className="px-4 pt-4">
           <SocietyHealthDashboard />
-        </div>
+        </div> */}
 
-        {/* Society Activity Feed */}
-        <div className="px-4 mt-4">
+        {/* Society Activity Feed - hidden for now */}
+        {/* <div className="px-4 mt-4">
           <div className="flex items-center gap-2 mb-2">
             <Activity className="text-primary" size={18} />
             <h3 className="font-semibold text-sm">Recent Activity</h3>
           </div>
           <ActivityFeed />
-        </div>
+        </div> */}
 
         {/* ═══ UNIFIED MARKETPLACE ═══ */}
         <MarketplaceSection />
