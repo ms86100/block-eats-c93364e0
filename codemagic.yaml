@@ -78,6 +78,9 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        cancel_previous_submissions: true
+        apple_id: app.sociva.community
+        max_build_wait_time: 30
 
   android-release:
     name: Android Release
@@ -210,6 +213,9 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        cancel_previous_submissions: true
+        apple_id: app.sociva.community
+        max_build_wait_time: 30
       google_play:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
         track: internal
