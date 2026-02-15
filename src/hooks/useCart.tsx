@@ -97,7 +97,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Client-side guard: check product-level action_type first, then category
     const actionType = (product as any).action_type || 'add_to_cart';
     if (actionType !== 'add_to_cart' && actionType !== 'buy_now') {
-      toast.error('This item uses a different flow — tap to view details.');
+      // Silently ignore — the UI routes these to their proper flow
       return;
     }
 
@@ -105,7 +105,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (productCategory && categoryConfigs.length > 0) {
       const catConfig = categoryConfigs.find(c => c.category === productCategory);
       if (catConfig && !catConfig.behavior?.supportsCart) {
-        toast.error('This item uses a booking or enquiry flow — tap to view details.');
+        // Silently ignore — non-cart items open detail/enquiry sheets instead
         return;
       }
     }
