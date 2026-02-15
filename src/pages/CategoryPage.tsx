@@ -34,6 +34,7 @@ export default function CategoryPage() {
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [products, setProducts] = useState<ProductWithSeller[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('relevance');
 
@@ -70,6 +71,7 @@ export default function CategoryPage() {
   };
 
   const fetchProducts = async () => {
+    setIsLoadingProducts(true);
     try {
       let q = supabase
         .from('products')
@@ -95,6 +97,8 @@ export default function CategoryPage() {
       setProducts(enriched);
     } catch (error) {
       console.error('Error fetching products:', error);
+    } finally {
+      setIsLoadingProducts(false);
     }
   };
 
@@ -181,7 +185,7 @@ export default function CategoryPage() {
 
       {/* Content */}
       <div className="p-4 pb-6">
-        {isLoading ? (
+        {isLoading || isLoadingProducts ? (
           <div className="grid grid-cols-3 gap-2.5">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Skeleton key={i} className="h-44 w-full rounded-xl" />

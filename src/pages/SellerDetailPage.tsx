@@ -78,8 +78,15 @@ export default function SellerDetailPage() {
       if (sellerRes.error) throw sellerRes.error;
       if (productsRes.error) throw productsRes.error;
 
-      // Society scoping: allow same-society or cross-society based on seller's sell_beyond flag
       const sellerData = sellerRes.data as any;
+
+      // Don't show non-approved sellers
+      if (sellerData.verification_status !== 'approved') {
+        setSeller(null);
+        return;
+      }
+
+      // Society scoping: allow same-society or cross-society based on seller's sell_beyond flag
       if (effectiveSocietyId && sellerData.society_id && sellerData.society_id !== effectiveSocietyId && !sellerData.sell_beyond_community) {
         setSeller(null);
         return;

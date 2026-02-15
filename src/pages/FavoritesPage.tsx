@@ -38,7 +38,7 @@ export default function FavoritesPage() {
       
       const sellers = data
         ?.map((f: any) => f.seller)
-        .filter((s: any) => s && s.verification_status === 'approved' && (!effectiveSocietyId || s.society_id === effectiveSocietyId)) || [];
+        .filter((s: any) => s && s.verification_status === 'approved' && s.is_available !== false && (!effectiveSocietyId || s.society_id === effectiveSocietyId)) || [];
       
       setFavorites(sellers);
     } catch (error) {

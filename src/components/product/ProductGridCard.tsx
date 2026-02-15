@@ -100,7 +100,7 @@ export function ProductGridCard({ product, behavior, onTap, className }: Product
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-3xl">{isCartAction ? '🍽️' : '🛠️'}</span>
+              <span className="text-3xl">{isCartAction ? '🛍️' : '🛠️'}</span>
             </div>
           )}
 

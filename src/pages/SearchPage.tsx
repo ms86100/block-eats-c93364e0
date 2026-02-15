@@ -217,6 +217,11 @@ export default function SearchPage() {
   // Abort controller ref for cancelling stale searches
   const abortRef = useRef<AbortController | null>(null);
 
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
+
   // ── Core search ──
   const runSearch = async (term: string) => {
     // Cancel any in-flight search

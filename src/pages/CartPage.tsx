@@ -243,13 +243,13 @@ export default function CartPage() {
                       <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <span className="text-xl">🍽️</span>
+                        <span className="text-xl">🛍️</span>
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2">
-                      <VegBadge isVeg={item.product?.is_veg || true} size="sm" />
+                      <VegBadge isVeg={item.product?.is_veg ?? true} size="sm" />
                       <div className="min-w-0">
                         <h4 className="font-medium text-sm truncate">{item.product?.name}</h4>
                         <p className="text-sm font-semibold mt-0.5">₹{item.product?.price}</p>
@@ -320,7 +320,7 @@ export default function CartPage() {
             )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Delivery Fee</span>
-              <span className="text-success">FREE</span>
+              <span className="text-primary font-medium">FREE</span>
             </div>
             <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
               <span>To Pay</span>

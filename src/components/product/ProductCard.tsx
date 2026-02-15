@@ -20,8 +20,11 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
   const cartItem = items.find((item) => item.product_id === product.id);
   const quantity = cartItem?.quantity || 0;
 
+  // Product-level action_type overrides category-level behavior
+  const actionType = (product as any).action_type as string | null;
+  const isCartActionByType = !actionType || actionType === 'add_to_cart' || actionType === 'buy_now';
   const isService = requiresTimeSlot || enquiryOnly;
-  const canAddToCart = supportsCart && !isService;
+  const canAddToCart = isCartActionByType && supportsCart && !isService;
 
   const handleAdd = () => {
     if (!canAddToCart) {
@@ -54,7 +57,7 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
-              <span className="text-3xl">🍽️</span>
+              <span className="text-3xl">🛍️</span>
             </div>
           )}
           {!product.is_available && (
@@ -167,7 +170,7 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
-              <span className="text-2xl">🍽️</span>
+              <span className="text-2xl">🛍️</span>
             </div>
           )}
         </div>
