@@ -11,14 +11,15 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { ProductCarousel } from '@/components/product/ProductCarousel';
+import { ProductGridCard, ProductWithSeller } from '@/components/product/ProductGridCard';
 import { SellerCard } from '@/components/seller/SellerCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffectiveFeatures } from '@/hooks/useEffectiveFeatures';
+import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import {
-  Search, ChevronRight, Store, Heart, Award, MapPin, Star, TrendingUp,
-  Activity, ShoppingBag, Shield, Globe, Zap, Users
+  Search, ChevronRight, Store, Heart, Award, MapPin, TrendingUp,
+  Activity, Shield, Globe, Users
 } from 'lucide-react';
 import {
   useOpenNowSellers,
@@ -34,6 +35,7 @@ export default function HomePage() {
   const { user, profile, isApproved, isSeller, society } = useAuth();
   const { showOnboarding, hasChecked, completeOnboarding } = useOnboarding();
   const { isFeatureEnabled } = useEffectiveFeatures();
+  const { configs } = useCategoryConfigs();
 
   // Cross-society browsing state
   const [browseBeyond, setBrowseBeyondLocal] = useState((profile as any)?.browse_beyond_community ?? false);
@@ -60,9 +62,15 @@ export default function HomePage() {
   const { data: featuredSellers = [] } = useFeaturedSellers();
   const { data: favorites = [] } = useFavoriteSellers();
   const { data: nearbySellers = [] } = useNearbySellers(searchRadius, browseBeyond);
-  const { data: popularProducts = [] } = usePopularProducts(12);
+  const { data: popularProducts = [] } = usePopularProducts(20);
 
   const isLoading = loadingOpen || loadingTop;
+
+  // Get behavior for a product
+  const getBehavior = (category: string) => {
+    const config = configs.find((c) => c.category === category);
+    return config?.behavior || null;
+  };
 
   if (hasChecked && showOnboarding && isApproved) {
     return <OnboardingWalkthrough onComplete={completeOnboarding} />;
@@ -118,52 +126,57 @@ export default function HomePage() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* MARKETPLACE SECTION                                    */}
+        {/* MARKETPLACE — BLINKIT-INSPIRED PRODUCT-FIRST LAYOUT    */}
         {/* ═══════════════════════════════════════════════════════ */}
-        <div className="mt-8">
-          {/* Marketplace Header */}
-          <div className="px-4 mb-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-foreground">Marketplace</h2>
-              <Link to="/search" className="text-sm text-primary font-medium flex items-center gap-1">
-                Explore <ChevronRight size={14} />
-              </Link>
-            </div>
-          </div>
-
-          {/* Sticky Search Bar */}
+        <div className="mt-6">
+          {/* ─── Prominent Search Bar ─── */}
           <div className="px-4 mb-4">
             <Link to="/search">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                 <Input
-                  placeholder="Search food, plumber, yoga class…"
-                  className="pl-10 bg-muted border-0 h-11 rounded-xl text-sm"
+                  placeholder="Search for groceries, food, services…"
+                  className="pl-10 bg-muted border-0 h-12 rounded-xl text-sm font-medium"
                   readOnly
                 />
               </div>
             </Link>
           </div>
 
-          {/* Category Chips - horizontal scroll, max 8 visible */}
-          <div className="px-4 mb-4">
+          {/* ─── Category Strip — horizontal scroll ─── */}
+          <div className="px-4 mb-5">
             <CategoryGroupGrid variant="compact" excludeGroups={['services']} />
           </div>
 
-          {/* ─── Popular in Your Society ─── */}
+          {/* ─── Product Grid: Popular in Your Society ─── */}
           {popularProducts.length > 0 && (
-            <div className="mb-6">
-              <ProductCarousel
-                title="Popular in Your Society"
-                emoji="🔥"
-                products={popularProducts}
-                variant="compact"
-                onSeeAll={() => window.location.href = '/search'}
-              />
+            <div className="px-4 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-base text-foreground">Popular nearby</h3>
+                <Link to="/search" className="text-xs text-primary font-medium flex items-center gap-0.5">
+                  See all <ChevronRight size={14} />
+                </Link>
+              </div>
+              <div className="grid grid-cols-3 gap-2.5">
+                {popularProducts.slice(0, 9).map((product) => (
+                  <ProductGridCard
+                    key={product.id}
+                    product={product}
+                    behavior={getBehavior(product.category)}
+                  />
+                ))}
+              </div>
+              {popularProducts.length > 9 && (
+                <Link to="/search" className="block mt-3">
+                  <Button variant="outline" className="w-full h-9 text-xs font-medium border-border text-muted-foreground">
+                    View all {popularProducts.length} items
+                  </Button>
+                </Link>
+              )}
             </div>
           )}
 
-          {/* ─── Open Now ─── */}
+          {/* ─── Open Now sellers (compact horizontal) ─── */}
           {openNowSellers.length > 0 && (
             <OpenNowSection sellers={openNowSellers} />
           )}
@@ -338,7 +351,7 @@ function OpenNowSection({ sellers }: { sellers: any[] }) {
       </div>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
         {sellers.map((seller: any) => (
-          <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-40">
+          <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-36">
             <div className="bg-card rounded-xl overflow-hidden border border-border/50">
               <div className="h-20 relative">
                 {seller.cover_image_url ? (
@@ -353,7 +366,7 @@ function OpenNowSection({ sellers }: { sellers: any[] }) {
                 </div>
               </div>
               <div className="p-2">
-                <p className="font-semibold text-sm truncate">{seller.business_name}</p>
+                <p className="font-semibold text-xs truncate">{seller.business_name}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   {(seller as any).completed_order_count > 0 ? (
                     <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
@@ -384,7 +397,7 @@ function NearBlockSection({ sellers, block }: { sellers: any[]; block?: string }
       </div>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
         {sellers.map((seller: any) => (
-          <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-40">
+          <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-36">
             <div className="bg-card rounded-xl overflow-hidden border border-border/50">
               <div className="h-20 relative">
                 {seller.cover_image_url ? (
@@ -396,7 +409,7 @@ function NearBlockSection({ sellers, block }: { sellers: any[]; block?: string }
                 )}
               </div>
               <div className="p-2">
-                <p className="font-semibold text-sm truncate">{seller.business_name}</p>
+                <p className="font-semibold text-xs truncate">{seller.business_name}</p>
                 <p className="text-[10px] text-muted-foreground">Block {seller.profile?.block}</p>
               </div>
             </div>
@@ -421,7 +434,7 @@ function FavoritesSection({ sellers }: { sellers: any[] }) {
       </div>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
         {sellers.map((seller: any) => (
-          <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-44">
+          <Link key={seller.id} to={`/seller/${seller.id}`} className="shrink-0 w-40">
             <div className="bg-card rounded-xl overflow-hidden border border-border/50">
               <div className="h-24 relative">
                 {seller.cover_image_url ? (
