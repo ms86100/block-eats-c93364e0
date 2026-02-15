@@ -531,12 +531,16 @@ export type Database = {
           name_placeholder: string | null
           parent_group: string
           price_label: string | null
+          primary_button_label: string
+          requires_availability: boolean
           requires_delivery: boolean | null
           requires_preparation: boolean | null
+          requires_price: boolean
           requires_time_slot: boolean | null
           show_duration_field: boolean | null
           show_veg_toggle: boolean | null
           supports_cart: boolean | null
+          transaction_type: string
           updated_at: string | null
         }
         Insert: {
@@ -559,12 +563,16 @@ export type Database = {
           name_placeholder?: string | null
           parent_group: string
           price_label?: string | null
+          primary_button_label?: string
+          requires_availability?: boolean
           requires_delivery?: boolean | null
           requires_preparation?: boolean | null
+          requires_price?: boolean
           requires_time_slot?: boolean | null
           show_duration_field?: boolean | null
           show_veg_toggle?: boolean | null
           supports_cart?: boolean | null
+          transaction_type?: string
           updated_at?: string | null
         }
         Update: {
@@ -587,12 +595,16 @@ export type Database = {
           name_placeholder?: string | null
           parent_group?: string
           price_label?: string | null
+          primary_button_label?: string
+          requires_availability?: boolean
           requires_delivery?: boolean | null
           requires_preparation?: boolean | null
+          requires_price?: boolean
           requires_time_slot?: boolean | null
           show_duration_field?: boolean | null
           show_veg_toggle?: boolean | null
           supports_cart?: boolean | null
+          transaction_type?: string
           updated_at?: string | null
         }
         Relationships: [
