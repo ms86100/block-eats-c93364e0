@@ -9,7 +9,7 @@ import { Slider } from '@/components/ui/slider';
 import { SearchFilters, FilterState, defaultFilters } from '@/components/search/SearchFilters';
 import { FilterPresets } from '@/components/search/FilterPresets';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
+
 import { ProductListingCard, ProductWithSeller } from '@/components/product/ProductListingCard';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { ArrowLeft, Search as SearchIcon, X, Globe, ShoppingBag } from 'lucide-react';
@@ -67,8 +67,6 @@ export default function SearchPage() {
   const { user, effectiveSocietyId, profile } = useAuth();
   const { items: cartItems, addItem, updateQuantity } = useCart();
   const [searchParams] = useSearchParams();
-  const [selectedProduct, setSelectedProduct] = useState<ProductSearchResult | null>(null);
-  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const { configs: categoryConfigs, isLoading: categoriesLoading } = useCategoryConfigs();
 
   // Build a lookup map: category slug -> { icon, displayName, supportsCart, etc. }
@@ -436,10 +434,6 @@ export default function SearchPage() {
   const displayProducts = isSearchActive ? results : popularProducts;
   const showLoading = isSearchActive ? isLoading : isLoadingPopular;
 
-  const handleProductTap = (p: ProductSearchResult) => {
-    setSelectedProduct(p);
-    setDetailSheetOpen(true);
-  };
 
   // ── Render ───────────────────────────────────────────
   return (
@@ -534,7 +528,7 @@ export default function SearchPage() {
             products={displayProducts}
             categoryMap={categoryMap}
             categoryConfigs={categoryConfigs}
-            onProductTap={handleProductTap}
+            
             showCount={isSearchActive}
           />
         ) : isSearchActive ? (
@@ -544,14 +538,6 @@ export default function SearchPage() {
         )}
       </div>
 
-      {/* Product Detail Sheet */}
-      <ProductDetailSheet
-        product={selectedProduct}
-        open={detailSheetOpen}
-        onOpenChange={setDetailSheetOpen}
-        categoryIcon={selectedProduct?.category ? categoryMap[selectedProduct.category]?.icon : undefined}
-        categoryName={selectedProduct?.category ? categoryMap[selectedProduct.category]?.displayName : undefined}
-      />
     </AppLayout>
   );
 }
@@ -613,13 +599,11 @@ function ProductGridByCategory({
   products,
   categoryMap,
   categoryConfigs,
-  onProductTap,
   showCount,
 }: {
   products: ProductSearchResult[];
   categoryMap: Record<string, { icon: string; displayName: string; color: string }>;
   categoryConfigs: { category: string; displayName: string; icon: string; behavior?: any }[];
-  onProductTap: (p: ProductSearchResult) => void;
   showCount?: boolean;
 }) {
   const grouped = useMemo(() => {
@@ -657,11 +641,6 @@ function ProductGridByCategory({
     contact_phone: p.contact_phone || null,
   } as ProductWithSeller);
 
-  const handleGridProductTap = (pw: ProductWithSeller) => {
-    const original = products.find((p) => p.product_id === pw.id);
-    if (original) onProductTap(original);
-  };
-
   const totalCount = products.length;
 
   return (
@@ -692,7 +671,7 @@ function ProductGridByCategory({
                 <ProductListingCard
                   key={p.product_id}
                   product={toProductWithSeller(p)}
-                  onTap={handleGridProductTap}
+                  
                   viewOnly
                 />
               ))}

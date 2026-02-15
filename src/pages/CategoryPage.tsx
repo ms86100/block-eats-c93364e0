@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProductListingCard, ProductWithSeller } from '@/components/product/ProductListingCard';
-import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
+
 import { SellerCard } from '@/components/seller/SellerCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -38,8 +38,6 @@ export default function CategoryPage() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('relevance');
-  const [selectedProduct, setSelectedProduct] = useState<ProductWithSeller | null>(null);
-  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
 
   const categoryInfo = configs.find((c) => c.category === category);
 
@@ -116,10 +114,6 @@ export default function CategoryPage() {
     return sorted;
   }, [products, searchQuery, sortBy]);
 
-  const handleProductTap = (product: ProductWithSeller) => {
-    setSelectedProduct(product);
-    setDetailSheetOpen(true);
-  };
 
   return (
     <AppLayout showHeader={false}>
@@ -188,7 +182,7 @@ export default function CategoryPage() {
                 <ProductListingCard
                   key={product.id}
                   product={product as any}
-                  onTap={handleProductTap}
+                  
                 />
               ))}
             </div>
@@ -226,31 +220,6 @@ export default function CategoryPage() {
         )}
       </div>
 
-      {/* Product Detail Sheet */}
-      <ProductDetailSheet
-        product={selectedProduct ? {
-          product_id: selectedProduct.id,
-          product_name: selectedProduct.name,
-          price: selectedProduct.price,
-          image_url: selectedProduct.image_url,
-          is_veg: selectedProduct.is_veg,
-          category: selectedProduct.category,
-          description: selectedProduct.description || null,
-          action_type: (selectedProduct as any).action_type || null,
-          contact_phone: (selectedProduct as any).contact_phone || null,
-          seller_id: selectedProduct.seller_id,
-          seller_name: selectedProduct.seller_name || '',
-          seller_rating: selectedProduct.seller_rating || 0,
-          seller_reviews: 0,
-          society_name: null,
-          distance_km: null,
-          is_same_society: true,
-        } : null}
-        open={detailSheetOpen}
-        onOpenChange={setDetailSheetOpen}
-        categoryIcon={categoryInfo?.icon}
-        categoryName={categoryInfo?.displayName}
-      />
     </AppLayout>
   );
 }
