@@ -671,8 +671,6 @@ function ProductGridByCategory({
                 <ProductListingCard
                   key={p.product_id}
                   product={toProductWithSeller(p)}
-                  
-                  viewOnly
                 />
               ))}
             </div>
