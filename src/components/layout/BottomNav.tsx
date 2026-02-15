@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { useEffectiveFeatures } from '@/hooks/useEffectiveFeatures';
 import { useSecurityOfficer } from '@/hooks/useSecurityOfficer';
 import { useWorkerRole } from '@/hooks/useWorkerRole';
+import { useCart } from '@/hooks/useCart';
 import type { FeatureKey } from '@/hooks/useEffectiveFeatures';
 
 const residentNavItems: { to: string; icon: typeof Home; label: string; featureKey?: FeatureKey }[] = [
@@ -31,6 +32,7 @@ export function BottomNav() {
   const { isFeatureEnabled, isLoading } = useEffectiveFeatures();
   const { isSecurityOfficer } = useSecurityOfficer();
   const { isWorker } = useWorkerRole();
+  const { itemCount } = useCart();
 
   // Role-based navigation: security officers and workers get restricted nav
   const navItems = isSecurityOfficer ? securityNavItems : isWorker ? workerNavItems : residentNavItems;
@@ -45,19 +47,27 @@ export function BottomNav() {
         {visibleItems.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to || 
             (to !== '/' && location.pathname.startsWith(to));
+          const showCartBadge = to === '/search' && itemCount > 0;
           
           return (
             <NavLink
               key={to}
               to={to}
               className={cn(
-                'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[60px]',
+                'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[60px] relative',
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              <div className="relative">
+                <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                {showCartBadge && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">
+                    {itemCount > 9 ? '9+' : itemCount}
+                  </span>
+                )}
+              </div>
               <span className={cn('text-[10px]', isActive && 'font-medium')}>
                 {label}
               </span>

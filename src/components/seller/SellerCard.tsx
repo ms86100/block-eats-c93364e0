@@ -3,12 +3,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { RatingStars } from '@/components/ui/rating-stars';
 import { FavoriteButton } from '@/components/favorite/FavoriteButton';
+import { Badge } from '@/components/ui/badge';
 import { SellerProfile, Product } from '@/types/database';
-import { Clock, MapPin, Star, Award } from 'lucide-react';
+import { Clock, MapPin, Star, Award, Zap, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SellerCardProps {
-  seller: SellerProfile & { profile?: { name: string; block: string } };
+  seller: SellerProfile & { profile?: { name: string; block: string }; avg_response_minutes?: number | null; completed_order_count?: number; last_active_at?: string | null; cancellation_rate?: number };
   featuredProduct?: Product;
   showFavorite?: boolean;
 }
@@ -98,6 +99,28 @@ export function SellerCard({ seller, featuredProduct, showFavorite = true }: Sel
             )}
           </div>
 
+          {/* Real trust signals */}
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {(seller as any).completed_order_count > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-0.5">
+                <Users size={9} />
+                {(seller as any).completed_order_count} orders fulfilled
+              </span>
+            )}
+            {(seller as any).avg_response_minutes != null && (seller as any).avg_response_minutes > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-success/10 text-success flex items-center gap-0.5">
+                <Zap size={9} />
+                ~{(seller as any).avg_response_minutes} min response
+              </span>
+            )}
+            {(seller as any).last_active_at && isRecentlyActive((seller as any).last_active_at) && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-success/10 text-success flex items-center gap-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                Active
+              </span>
+            )}
+          </div>
+
           {seller.categories.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {seller.categories.slice(0, 3).map((cat) => (
@@ -114,4 +137,9 @@ export function SellerCard({ seller, featuredProduct, showFavorite = true }: Sel
       </Card>
     </Link>
   );
+}
+
+function isRecentlyActive(lastActive: string): boolean {
+  const diff = Date.now() - new Date(lastActive).getTime();
+  return diff < 24 * 60 * 60 * 1000; // active in last 24 hours
 }

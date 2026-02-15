@@ -28,7 +28,8 @@ import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { SellerProfile, Product, DAYS_OF_WEEK } from '@/types/database';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
-import { ArrowLeft, Clock, MapPin, Phone, ShoppingCart, Star, Calendar, Flag } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Phone, ShoppingCart, Star, Calendar, Flag, Zap, Users, ShieldCheck } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 export default function SellerDetailPage() {
@@ -288,6 +289,34 @@ export default function SellerDetailPage() {
                 <Clock size={14} />
                 {seller.availability_start.slice(0, 5)} - {seller.availability_end.slice(0, 5)}
               </span>
+            )}
+          </div>
+
+          {/* Real trust signals */}
+          <div className="flex flex-wrap gap-2 mt-3">
+            {(seller as any).completed_order_count > 0 && (
+              <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-0">
+                <Users size={10} className="mr-1" />
+                {(seller as any).completed_order_count} orders fulfilled
+              </Badge>
+            )}
+            {(seller as any).avg_response_minutes != null && (seller as any).avg_response_minutes > 0 && (
+              <Badge variant="secondary" className="text-[10px] bg-success/10 text-success border-0">
+                <Zap size={10} className="mr-1" />
+                Responds in ~{(seller as any).avg_response_minutes} min
+              </Badge>
+            )}
+            {(seller as any).cancellation_rate !== undefined && (seller as any).cancellation_rate === 0 && (seller as any).completed_order_count > 2 && (
+              <Badge variant="secondary" className="text-[10px] bg-success/10 text-success border-0">
+                <ShieldCheck size={10} className="mr-1" />
+                0% cancellation
+              </Badge>
+            )}
+            {(seller as any).last_active_at && (Date.now() - new Date((seller as any).last_active_at).getTime()) < 24 * 60 * 60 * 1000 && (
+              <Badge variant="secondary" className="text-[10px] bg-success/10 text-success border-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse mr-1" />
+                Active today
+              </Badge>
             )}
           </div>
 

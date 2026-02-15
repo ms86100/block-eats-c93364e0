@@ -3256,11 +3256,14 @@ export type Database = {
           accepts_upi: boolean | null
           availability_end: string | null
           availability_start: string | null
+          avg_response_minutes: number | null
           bank_account_holder: string | null
           bank_account_number: string | null
           bank_ifsc_code: string | null
           business_name: string
+          cancellation_rate: number | null
           categories: string[]
+          completed_order_count: number | null
           cover_image_url: string | null
           created_at: string | null
           delivery_radius_km: number
@@ -3273,6 +3276,7 @@ export type Database = {
           id: string
           is_available: boolean | null
           is_featured: boolean | null
+          last_active_at: string | null
           operating_days: string[] | null
           primary_group: string | null
           profile_image_url: string | null
@@ -3294,11 +3298,14 @@ export type Database = {
           accepts_upi?: boolean | null
           availability_end?: string | null
           availability_start?: string | null
+          avg_response_minutes?: number | null
           bank_account_holder?: string | null
           bank_account_number?: string | null
           bank_ifsc_code?: string | null
           business_name: string
+          cancellation_rate?: number | null
           categories?: string[]
+          completed_order_count?: number | null
           cover_image_url?: string | null
           created_at?: string | null
           delivery_radius_km?: number
@@ -3311,6 +3318,7 @@ export type Database = {
           id?: string
           is_available?: boolean | null
           is_featured?: boolean | null
+          last_active_at?: string | null
           operating_days?: string[] | null
           primary_group?: string | null
           profile_image_url?: string | null
@@ -3332,11 +3340,14 @@ export type Database = {
           accepts_upi?: boolean | null
           availability_end?: string | null
           availability_start?: string | null
+          avg_response_minutes?: number | null
           bank_account_holder?: string | null
           bank_account_number?: string | null
           bank_ifsc_code?: string | null
           business_name?: string
+          cancellation_rate?: number | null
           categories?: string[]
+          completed_order_count?: number | null
           cover_image_url?: string | null
           created_at?: string | null
           delivery_radius_km?: number
@@ -3349,6 +3360,7 @@ export type Database = {
           id?: string
           is_available?: boolean | null
           is_featured?: boolean | null
+          last_active_at?: string | null
           operating_days?: string[] | null
           primary_group?: string | null
           profile_image_url?: string | null
@@ -4893,6 +4905,10 @@ export type Database = {
       rate_worker_job: {
         Args: { _job_id: string; _rating: number; _review?: string }
         Returns: Json
+      }
+      recompute_seller_stats: {
+        Args: { _seller_id: string }
+        Returns: undefined
       }
       refresh_all_trust_scores: { Args: never; Returns: undefined }
       search_marketplace:

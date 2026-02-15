@@ -671,6 +671,7 @@ function ProductResultCard({
               <span className="flex items-center gap-0.5 bg-success/10 text-success px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0">
                 <Star size={9} className="fill-success" />
                 {Number(p.seller_rating).toFixed(1)}
+                {p.seller_reviews > 0 && <span className="opacity-70">({p.seller_reviews})</span>}
               </span>
             ) : null}
           </div>
