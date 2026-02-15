@@ -150,15 +150,15 @@ export default function HomePage() {
 
           {/* ─── Product Grid: Popular in Your Society ─── */}
           {popularProducts.length > 0 && (
-            <div className="px-4 mb-6">
-              <div className="flex items-center justify-between mb-3">
+            <div className="mb-6">
+              <div className="flex items-center justify-between px-4 mb-3">
                 <h3 className="font-bold text-base text-foreground">Popular nearby</h3>
-                <Link to="/search" className="text-xs text-primary font-medium flex items-center gap-0.5">
-                  See all <ChevronRight size={14} />
+                <Link to="/search" className="text-sm text-primary font-semibold flex items-center gap-0.5 hover:underline">
+                  see all <ChevronRight size={16} />
                 </Link>
               </div>
-              <div className="grid grid-cols-3 gap-2.5">
-                {popularProducts.slice(0, 9).map((product) => (
+              <div className="px-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {popularProducts.slice(0, 8).map((product) => (
                   <ProductGridCard
                     key={product.id}
                     product={product}
@@ -166,12 +166,14 @@ export default function HomePage() {
                   />
                 ))}
               </div>
-              {popularProducts.length > 9 && (
-                <Link to="/search" className="block mt-3">
-                  <Button variant="outline" className="w-full h-9 text-xs font-medium border-border text-muted-foreground">
-                    View all {popularProducts.length} items
-                  </Button>
-                </Link>
+              {popularProducts.length > 8 && (
+                <div className="px-4 mt-3">
+                  <Link to="/search" className="block">
+                    <Button variant="outline" className="w-full h-9 text-xs font-medium border-border text-muted-foreground">
+                      View all {popularProducts.length} items
+                    </Button>
+                  </Link>
+                </div>
               )}
             </div>
           )}

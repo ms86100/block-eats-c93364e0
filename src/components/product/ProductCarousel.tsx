@@ -1,8 +1,9 @@
 import useEmblaCarousel from 'embla-carousel-react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { ProductGridCard, ProductWithSeller } from './ProductGridCard';
 import { CategoryBehavior } from '@/types/categories';
 import { cn } from '@/lib/utils';
+import { useCallback, useEffect, useState } from 'react';
 
 interface ProductCarouselProps {
   title: string;
@@ -27,50 +28,87 @@ export function ProductCarousel({
   variant = 'compact',
   className,
 }: ProductCarouselProps) {
-  const [emblaRef] = useEmblaCarousel({
+  const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
     dragFree: true,
     containScroll: 'trimSnaps',
   });
 
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+    return () => { emblaApi.off('select', onSelect); };
+  }, [emblaApi, onSelect]);
+
   if (products.length === 0) return null;
 
-  const cardWidth = variant === 'compact' ? 'w-[152px]' : 'w-[200px]';
+  const cardWidth = variant === 'compact' ? 'w-[160px]' : 'w-[200px]';
 
   return (
     <div className={cn('', className)}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 mb-2.5">
-        <div className="flex items-center gap-2">
-          {emoji && <span className="text-base">{emoji}</span>}
-          <h3 className="font-semibold text-sm">{title}</h3>
+      {/* Header — Amazon/Blinkit-style: bold title left, "see all" right */}
+      <div className="flex items-center justify-between px-4 mb-3">
+        <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+          {emoji && <span className="text-lg">{emoji}</span>}
+          {title}
           {itemCount !== undefined && (
-            <span className="text-xs text-muted-foreground">({itemCount})</span>
+            <span className="text-xs font-normal text-muted-foreground">({itemCount})</span>
           )}
-        </div>
+        </h3>
         {onSeeAll && (
           <button
             onClick={onSeeAll}
-            className="text-xs text-primary font-medium flex items-center gap-0.5"
+            className="text-sm text-primary font-semibold flex items-center gap-0.5 hover:underline"
           >
-            See All <ChevronRight size={14} />
+            see all <ChevronRight size={16} />
           </button>
         )}
       </div>
 
-      {/* Carousel */}
-      <div ref={emblaRef} className="overflow-hidden">
-        <div className="flex gap-3 pl-4 pr-2">
-          {products.map((product) => (
-            <div key={product.id} className={cn('shrink-0', cardWidth)}>
-              <ProductGridCard
-                product={product}
-                behavior={behavior}
-                onTap={onProductTap}
-              />
-            </div>
-          ))}
+      {/* Carousel with nav arrows */}
+      <div className="relative group">
+        <div ref={emblaRef} className="overflow-hidden">
+          <div className="flex gap-3 pl-4 pr-2">
+            {products.map((product) => (
+              <div key={product.id} className={cn('shrink-0', cardWidth)}>
+                <ProductGridCard
+                  product={product}
+                  behavior={behavior}
+                  onTap={onProductTap}
+                />
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Prev/Next arrows — Amazon-style */}
+        {canScrollPrev && (
+          <button
+            onClick={() => emblaApi?.scrollPrev()}
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <ChevronLeft size={18} />
+          </button>
+        )}
+        {canScrollNext && (
+          <button
+            onClick={() => emblaApi?.scrollNext()}
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <ChevronRight size={18} />
+          </button>
+        )}
       </div>
     </div>
   );
