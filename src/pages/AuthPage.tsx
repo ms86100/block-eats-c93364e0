@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { loginSchema, emailSchema, profileDataSchema, validateForm } from '@/lib/validation-schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -147,13 +148,16 @@ export default function AuthPage() {
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleLogin = async () => {
-    const trimmedEmail = email.trim();
+    const validation = validateForm(loginSchema, { email, password });
+    if ('errors' in validation) {
+      toast.error(Object.values(validation.errors)[0] as string);
+      return;
+    }
+    const { email: trimmedEmail, password: validatedPassword } = validation.data;
     setEmail(trimmedEmail);
-    if (!validateEmail(trimmedEmail)) { toast.error('Please enter a valid email address'); return; }
-    if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password: validatedPassword });
       if (error) throw error;
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user?.id).single();
       if (profile) { toast.success('Welcome back!'); navigate('/'); }
@@ -166,9 +170,13 @@ export default function AuthPage() {
   };
 
   const handlePasswordReset = async () => {
-    const trimmedEmail = email.trim();
+    const validation = validateForm(emailSchema, email);
+    if (!validation.success) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    const trimmedEmail = validation.data;
     setEmail(trimmedEmail);
-    if (!validateEmail(trimmedEmail)) { toast.error('Please enter a valid email address'); return; }
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
@@ -183,10 +191,12 @@ export default function AuthPage() {
   };
 
   const handleCredentialsNext = () => {
-    const trimmedEmail = email.trim();
-    setEmail(trimmedEmail);
-    if (!validateEmail(trimmedEmail)) { toast.error('Please enter a valid email address'); return; }
-    if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+    const validation = validateForm(loginSchema, { email, password });
+    if ('errors' in validation) {
+      toast.error(Object.values(validation.errors)[0] as string);
+      return;
+    }
+    setEmail(validation.data.email);
     setSignupStep('society');
   };
 
@@ -247,10 +257,10 @@ export default function AuthPage() {
   };
 
   const handleSignupComplete = async () => {
-    if (!profileData.name || !profileData.flat_number || !profileData.block || !profileData.phone) {
-      toast.error('Please fill in all required fields'); return;
+    const profileValidation = validateForm(profileDataSchema, profileData);
+    if ('errors' in profileValidation) {
+      toast.error(Object.values(profileValidation.errors)[0] as string); return;
     }
-    if (profileData.phone.length !== 10) { toast.error('Please enter a valid 10-digit phone number'); return; }
     if (!selectedSociety) { toast.error('Please select your society first'); setSignupStep('society'); return; }
     setIsLoading(true);
     try {
