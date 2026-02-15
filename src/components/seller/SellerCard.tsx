@@ -8,7 +8,7 @@ import { Clock, MapPin, Award, Zap, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SellerCardProps {
-  seller: SellerProfile & { profile?: { name: string; block: string }; avg_response_minutes?: number | null; completed_order_count?: number; last_active_at?: string | null; cancellation_rate?: number };
+  seller: SellerProfile & { profile?: { name: string; block: string } };
   featuredProduct?: Product;
   showFavorite?: boolean;
 }
@@ -81,10 +81,10 @@ export function SellerCard({ seller, featuredProduct, showFavorite = true }: Sel
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 shrink-0">
                 New Seller
               </Badge>
-            ) : (seller as any).completed_order_count > 0 ? (
+            ) : (seller.completed_order_count || 0) > 0 ? (
               <span className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary font-semibold flex items-center gap-1 shrink-0">
                 <Users size={10} />
-                {(seller as any).completed_order_count} orders
+                {seller.completed_order_count} orders
               </span>
             ) : null}
           </div>
@@ -107,19 +107,19 @@ export function SellerCard({ seller, featuredProduct, showFavorite = true }: Sel
 
           {/* Real trust signals */}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            {(seller as any).avg_response_minutes != null && (seller as any).avg_response_minutes > 0 && (
+            {seller.avg_response_minutes != null && seller.avg_response_minutes > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-success/10 text-success flex items-center gap-0.5">
                 <Zap size={9} />
-                ~{(seller as any).avg_response_minutes}m response
+                ~{seller.avg_response_minutes}m response
               </span>
             )}
-            {(seller as any).last_active_at && isRecentlyActive((seller as any).last_active_at) && (
+            {seller.last_active_at && isRecentlyActive(seller.last_active_at) && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-success/10 text-success flex items-center gap-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 Active today
               </span>
             )}
-            {(seller as any).cancellation_rate != null && (seller as any).cancellation_rate < 5 && (seller as any).completed_order_count >= 5 && (
+            {seller.cancellation_rate != null && seller.cancellation_rate < 5 && (seller.completed_order_count || 0) >= 5 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-0.5">
                 Reliable
               </span>

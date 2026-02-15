@@ -108,6 +108,11 @@ export interface SellerProfile {
   society_id: string | null;
   created_at: string;
   updated_at: string;
+  // Denormalized stats (populated by triggers/views)
+  completed_order_count?: number;
+  avg_response_minutes?: number | null;
+  last_active_at?: string | null;
+  cancellation_rate?: number | null;
   // Joined data
   profile?: Profile;
   is_favorite?: boolean;

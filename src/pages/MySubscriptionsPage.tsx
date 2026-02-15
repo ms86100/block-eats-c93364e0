@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Pause, Play, X, RefreshCw } from 'lucide-react';
+import { Pause, Play, X, RefreshCw } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Subscription {
@@ -59,7 +60,9 @@ export default function MySubscriptionsPage() {
     <AppLayout headerTitle="My Subscriptions" showLocation={false}>
       <div className="p-4 space-y-3">
         {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="animate-spin text-muted-foreground" /></div>
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
+          </div>
         ) : subs.length === 0 ? (
           <div className="text-center py-12">
             <RefreshCw size={32} className="mx-auto text-muted-foreground mb-3" />

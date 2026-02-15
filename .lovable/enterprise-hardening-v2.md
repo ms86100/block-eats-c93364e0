@@ -285,12 +285,39 @@ The codebase has already been through an 8-phase, 64-task hardening pass focused
 
 ---
 
-## Phase 5 Proposed Fixes
+## Phase 5 Execution (5 Fixes) — ✅ COMPLETED
 
-| # | Issue | Impact |
+1. ✅ **Fix #20**: Deleted orphan `EnquiryButton.tsx` (zero imports). Confirmed `FilterPresets` and `ListingCard` are actively used.
+2. ✅ **Fix #22**: Extended `SellerProfile` type in `database.ts` with denormalized stats (`completed_order_count`, `avg_response_minutes`, `last_active_at`, `cancellation_rate`). Removed ~20 `as any` casts from `SellerCard.tsx` and `SellerDashboardPage.tsx`.
+3. ✅ **Fix #23**: Replaced spinner-only loading states with `Skeleton` components in `DisputesPage.tsx` and `MySubscriptionsPage.tsx` (OrdersPage, FavoritesPage, NotificationInboxPage already had skeletons).
+4. ⏭️ **Fix #17**: List virtualization deferred — requires `@tanstack/react-virtual` + significant list component refactoring.
+5. ⏭️ **Fix #21**: Client notification retry deferred — notification queue already has server-side retry with exponential backoff.
+
+### Files Deleted
+- `src/components/listing/EnquiryButton.tsx` (orphan)
+
+### Files Modified
+- `src/types/database.ts` — Extended `SellerProfile` with denormalized stat fields
+- `src/components/seller/SellerCard.tsx` — Removed `as any` casts (now uses proper types)
+- `src/pages/SellerDashboardPage.tsx` — Removed `as any` casts
+- `src/pages/DisputesPage.tsx` — Skeleton loading state
+- `src/pages/MySubscriptionsPage.tsx` — Skeleton loading state
+
+---
+
+## Cumulative Hardening Summary (Phases 1-5)
+
+| Phase | Fixes | Focus |
 |---|---|---|
-| 17 | Add virtualization for large lists (orders, notifications) | Performance on large datasets |
-| 20 | Audit and remove unused imports/components | Bundle size reduction |
-| 21 | Add retry logic to notification delivery in client | Notification reliability |
-| 22 | Add proper TypeScript types replacing `as any` casts | Type safety |
-| 23 | Add loading skeletons to all data-fetching pages | UX consistency |
+| 1 | 5 | QueryClient, ErrorBoundary, escapeIlike, orphan removal, global error handler |
+| 2 | 6 | search_path hardening, handleApiError, cart optimistic updates, console stripping |
+| 3 | 4 | Zod validation, useSubmitGuard, RouteErrorBoundary |
+| 4 | 3 | AuthContext refactor, dispute/job validation, checkout submit guard |
+| 5 | 3 | Dead code removal, TypeScript type safety, loading skeletons |
+| **Total** | **21** | |
+
+### Remaining Items (Low Priority)
+- List virtualization for large datasets
+- Further `as any` reduction across 69 files (~940 remaining casts)
+- Client-side notification retry (server-side already handles)
+- Refactor `database.ts` to deduplicate with generated Supabase types

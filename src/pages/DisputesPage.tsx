@@ -7,7 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CreateDisputeSheet } from '@/components/disputes/CreateDisputeSheet';
 import { DisputeTicketCard } from '@/components/disputes/DisputeTicketCard';
 import { DisputeDetailSheet } from '@/components/disputes/DisputeDetailSheet';
-import { Plus, Loader2, ShieldAlert } from 'lucide-react';
+import { Plus, ShieldAlert } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Ticket {
@@ -63,7 +64,9 @@ export default function DisputesPage() {
         </Tabs>
 
         {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="animate-spin text-muted-foreground" /></div>
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
+          </div>
         ) : display.length === 0 ? (
           <div className="text-center py-12">
             <ShieldAlert size={32} className="mx-auto text-muted-foreground mb-3" />

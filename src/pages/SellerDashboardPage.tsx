@@ -89,12 +89,12 @@ export default function SellerDashboardPage() {
         sellerProfile.is_available ? 'Store is now closed' : 'Store is now open'
       );
 
-      if ((sellerProfile as any).society_id) {
+      if (sellerProfile.society_id) {
         logAudit(
           sellerProfile.is_available ? 'store_closed' : 'store_opened',
           'seller_profile',
           sellerProfile.id,
-          (sellerProfile as any).society_id
+          sellerProfile.society_id
         );
       }
     } catch (error) {
@@ -167,8 +167,8 @@ export default function SellerDashboardPage() {
                 <Clock size={16} className="text-primary" />
                 <div>
                   <p className="text-sm font-semibold">
-                    {(sellerProfile as any).avg_response_minutes != null
-                      ? `~${(sellerProfile as any).avg_response_minutes} min`
+                    {sellerProfile.avg_response_minutes != null
+                      ? `~${sellerProfile.avg_response_minutes} min`
                       : 'N/A'}
                   </p>
                   <p className="text-[10px] text-muted-foreground">Avg response</p>
@@ -178,7 +178,7 @@ export default function SellerDashboardPage() {
                 <CheckCircle size={16} className="text-success" />
                 <div>
                   <p className="text-sm font-semibold">
-                    {(sellerProfile as any).completed_order_count || 0}
+                    {sellerProfile.completed_order_count || 0}
                   </p>
                   <p className="text-[10px] text-muted-foreground">Orders fulfilled</p>
                 </div>
@@ -187,8 +187,8 @@ export default function SellerDashboardPage() {
                 <XCircle size={16} className="text-destructive" />
                 <div>
                   <p className="text-sm font-semibold">
-                    {(sellerProfile as any).cancellation_rate != null
-                      ? `${(sellerProfile as any).cancellation_rate}%`
+                    {sellerProfile.cancellation_rate != null
+                      ? `${sellerProfile.cancellation_rate}%`
                       : '0%'}
                   </p>
                   <p className="text-[10px] text-muted-foreground">Cancellation</p>
@@ -197,12 +197,12 @@ export default function SellerDashboardPage() {
             </div>
             {/* Badges buyers see */}
             <div className="flex flex-wrap gap-1.5">
-              {((sellerProfile as any).completed_order_count || 0) === 0 && (
+              {(sellerProfile.completed_order_count || 0) === 0 && (
                 <Badge variant="secondary" className="text-[10px] bg-secondary text-secondary-foreground">
                   New Seller
                 </Badge>
               )}
-              {((sellerProfile as any).cancellation_rate === 0 || (sellerProfile as any).cancellation_rate === null) && ((sellerProfile as any).completed_order_count || 0) > 2 && (
+              {(sellerProfile.cancellation_rate === 0 || sellerProfile.cancellation_rate === null) && (sellerProfile.completed_order_count || 0) > 2 && (
                 <Badge variant="secondary" className="text-[10px] bg-success/10 text-success">
                   <ShieldCheck size={10} className="mr-0.5" />
                   0% Cancellation
