@@ -1,82 +1,112 @@
 
 
-# Search Page Redesign + Preference Persistence
+# Marketplace Discovery Redesign: "So Easy a 5-Year-Old Can Find It"
 
-## Problem
-1. The "Browse beyond my community" toggle on the Search page does NOT persist to the database (unlike HomePage which already does)
-2. The search results show seller-level cards, but when a user searches for an item (e.g., "biryani"), they want to see **product-level results** with trust signals like rating, distance, seller name, price, veg/non-veg badge -- not just grouped under a seller card
-3. The current UI is cluttered with too many sections competing for attention
+## The Problem
+
+The current search page is a **blank screen with a search bar**. A user must already know what they want and type it in. There is no visual browsing, no category exploration, and no "trending" or "popular" section. This is the opposite of intuitive -- it's like walking into a mall with no signs, no storefronts, and just a blank reception desk.
+
+## The Solution: A Visual-First Marketplace
+
+Transform the search page into a **marketplace home** with three layers of discovery:
+
+1. **Category Bubbles** -- Colorful, tappable icons at the top (pulled from the admin-configured `category_config` table). Tapping one instantly filters results.
+2. **Popular / Trending Products** -- On page load (before any search), show a curated grid of products from all categories so users immediately see what's available.
+3. **Search + Filter** -- The existing search bar remains, but now it overlays on top of a page that already has content.
+
+Think of it like a kid's app store: big icons, bright colors, instant results.
 
 ## What Changes
 
-### 1. Persist Browse Preference (SearchPage)
-- Add the same `persistPreference` pattern from `HomePage.tsx` to `SearchPage.tsx`
-- When user toggles "Browse beyond" or changes radius slider, save to `profiles` table immediately
-- Initialize state from `profile.browse_beyond_community` and `profile.search_radius_km`
+### 1. Idle State becomes "Browse Everything"
 
-### 2. Unified Product-First Search
-When a user types a search term (e.g., "biryani"), the results should show **individual product cards** (not seller cards) with rich trust/context info:
+Instead of showing "Search for products across sellers" when the user hasn't typed anything, the page will:
+- Show a **scrollable row of category icons** (from `category_config`) at the top
+- Tapping a category icon sets a category filter and shows all products in that category
+- Below the categories, show a **"Popular Near You"** section with products loaded from the database immediately on mount
+- This means the page is never empty -- there's always something to explore
 
-Each product result card will show:
-- Product image, name, price
-- Veg/Non-veg badge
-- Seller name + seller rating (stars)
-- Distance badge (e.g., "1.2 km away") for cross-society sellers, or "Your community" for same-society
-- Society name for cross-society items
-- Category tag (Food, Education, Pets, etc.)
+### 2. Category Quick-Filter Row
 
-### 3. Combined Search Logic
-When "Browse beyond" is ON and user searches:
-- Search **both** same-society sellers (via `search_marketplace` RPC) AND cross-society sellers (via `search_nearby_sellers` RPC with `_search_term`)
-- Merge results and flatten to product-level cards
-- Sort by relevance, then distance
+A horizontally scrollable row of the admin-configured categories with their emoji icons (from `category_config`):
+```
+[Home Food] [Bakery] [Yoga] [Tuition] [Electrician] [Tailoring] [Pet Grooming] [Rentals] ...
+```
+- Tapping one filters results to that category
+- Tapping again deselects it
+- Active category is highlighted with a colored background
 
-When "Browse beyond" is OFF:
-- Search only same-society sellers (existing behavior)
+### 3. "Popular Near You" Default Results
 
-### 4. Cleaner UI Layout
-- Search bar at top (unchanged)
-- Filter presets row (unchanged)
-- "Browse beyond" toggle as a compact inline chip/toggle, not a giant card
-- Results area: product-level cards in a clean list
-- Each card is tappable, linking to the seller's page
+On page load, fetch products without a search term -- just the top ~20 products from same-society sellers (and cross-society if toggled on), sorted by seller rating. This gives the page instant content.
+
+### 4. Seed Dummy Data for Empty Categories
+
+Currently, 37 categories have zero products. The plan will seed products across the most important empty categories to ensure a rich browsing experience:
+- **Services**: Plumber, AC Service, Carpenter, Pest Control, Maid, Cook
+- **Personal**: Beauty, Salon, Laundry, Mehendi  
+- **Classes**: Dance, Music, Art & Craft, Language, Coaching
+- **Events**: Catering, Decoration, DJ & Music
+- **Resale**: Toys, Kitchen, Clothing
+- **Pets**: Pet Food
+- **Rentals**: Vehicle, Baby Gear
+- **Professional**: IT Support, Tax Consultant, Tutoring
+
+This requires creating new seller profiles for categories that don't have sellers yet, and adding products to them.
+
+### 5. Product Card Enhancement
+
+Each product card already shows good info. Minor improvements:
+- Show the category emoji icon next to the category label for visual scanning
+- Make the category label use the `display_name` from `category_config` (dynamic, not hardcoded)
 
 ## Technical Details
 
 ### Files Modified
 
-**`src/pages/SearchPage.tsx`** (major rewrite):
-- Add `persistPreference` callback (same as HomePage)
-- Wrap `setBrowseBeyond` and `setSearchRadius` with DB persistence
-- New `searchAll()` function that calls both RPCs when browse-beyond is enabled
-- Flatten results into a unified `ProductSearchResult` interface:
-  ```
-  { product_id, product_name, price, image_url, is_veg, category,
-    seller_id, seller_name, seller_rating, seller_reviews,
-    society_name, distance_km, is_same_society }
-  ```
-- New product result card component (inline) showing all trust signals
-- Compact browse-beyond toggle (small card, not full-width section)
-- Remove the separate "Nearby Sellers" section (merged into search results)
+**`src/pages/SearchPage.tsx`** (significant changes):
+- Import `useCategoryConfigs` hook to get dynamic category list with icons/colors
+- Add a `selectedCategory` state that filters products by category
+- Add a category icon row component (horizontally scrollable, uses category_config data)
+- Modify the idle state: instead of showing a static message, call a new `loadPopularProducts()` function on mount that fetches top-rated products without a search term
+- When a category is tapped, set `selectedCategory` and trigger search with empty query but category filter
+- Remove hardcoded `CATEGORY_LABELS` map -- use `category_config` display names dynamically
+- Update `ProductResultCard` to show category emoji from config
 
-### No Database Changes Needed
-- The `search_nearby_sellers` RPC already accepts `_search_term` and `_category` params
-- The `search_marketplace` RPC already returns matching products
-- `profiles` table already has `browse_beyond_community` and `search_radius_km` columns
-- All persistence logic already proven in `HomePage.tsx`
+**`loadPopularProducts()` logic:**
+- Query `products` table directly (joined with `seller_profiles` and `societies`), filtered by `is_available = true` and `verification_status = 'approved'`
+- Scoped to user's society (and nearby if browse-beyond is on)
+- Sorted by seller rating descending
+- Limited to 30 items
+- This replaces the empty idle state
 
-### Search Flow
-1. User types "biryani"
-2. If browse-beyond OFF: call `search_marketplace('biryani', society_id)` -> flatten matching_products from each seller
-3. If browse-beyond ON: call BOTH RPCs in parallel -> merge + deduplicate by product_id -> sort by distance (same society first, then nearest)
-4. Display as product cards with seller context
+**`category icon row` logic:**
+- Uses `useCategoryConfigs()` to get all active categories
+- Only shows categories that have at least 1 available product (filter client-side after fetching product counts, or show all and let empty results speak)
+- Scrollable horizontal row with emoji + name
 
-### Product Result Card Design
-```
-+------------------------------------------+
-| [img] Chicken Biryani          ₹180      |
-|       Veg badge   |  home_food           |
-|       Lakeside Kitchen  * 4.6 (12)       |
-|       Prestige Lakeside  |  1.2 km away  |
-+------------------------------------------+
-```
+### Database Changes (Migration)
+
+**Seed new seller profiles and products** for empty categories. This requires:
+
+1. New seller profiles in Shriram Greenfield (and some in nearby societies) for service categories like plumber, carpenter, beauty, salon, etc.
+2. Products for each new seller with realistic names, prices, and Unsplash image URLs
+3. Approved seller licenses where needed (food group sellers)
+
+Approximately:
+- 8-10 new seller profiles across Shriram Greenfield and nearby societies
+- 60-80 new products covering 25+ currently-empty categories
+- Each product with a realistic image URL, price, and description
+
+### No Schema Changes Needed
+- The `category_config`, `products`, `seller_profiles` tables already support everything needed
+- The `search_marketplace` and `search_nearby_sellers` RPCs already support category filtering
+
+### Search Flow After Changes
+
+1. **Page loads** -> Category icons appear at top -> "Popular Near You" products load below (never empty)
+2. **User taps a category** (e.g., "Plumber") -> Results filter to plumber services only
+3. **User types in search** -> Works as before, but now also respects selected category
+4. **User taps category again** -> Deselects, shows all results again
+5. **Browse beyond toggle** -> Expands results to include nearby societies (persisted to DB)
+
