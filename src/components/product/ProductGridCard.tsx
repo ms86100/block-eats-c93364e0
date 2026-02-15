@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Minus, MessageCircle, Calendar, Phone, ShoppingBag, Send, Home, Handshake } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +37,7 @@ const ACTION_CONFIG: Record<ProductActionType, { label: string; icon: typeof Plu
 };
 
 export function ProductGridCard({ product, behavior, onTap, className }: ProductGridCardProps) {
+  const navigate = useNavigate();
   const { items, addItem, updateQuantity } = useCart();
   const [contactOpen, setContactOpen] = useState(false);
   const cartItem = items.find((item) => item.product_id === product.id);
@@ -73,6 +75,11 @@ export function ProductGridCard({ product, behavior, onTap, className }: Product
   };
 
   const handleCardClick = () => {
+    if (!isCartAction && product.seller_id) {
+      // Non-cart items: go directly to seller page (no intermediate popup)
+      navigate(`/seller/${product.seller_id}`);
+      return;
+    }
     onTap?.(product);
   };
 
