@@ -51,6 +51,8 @@ export default function SellerProductsPage() {
     name: '',
     description: '',
     price: '',
+    mrp: '',
+    discount_percentage: '',
     prep_time_minutes: '',
     category: '' as ProductCategory | '',
     is_veg: true,
@@ -161,12 +163,13 @@ export default function SellerProductsPage() {
   };
 
   const resetForm = () => {
-    // Auto-select category if there's only one allowed
     const defaultCategory = allowedCategories.length === 1 ? allowedCategories[0].category as ProductCategory : '';
     setFormData({
       name: '',
       description: '',
       price: '',
+      mrp: '',
+      discount_percentage: '',
       prep_time_minutes: '',
       category: defaultCategory,
       is_veg: true,
@@ -187,6 +190,8 @@ export default function SellerProductsPage() {
       name: product.name,
       description: product.description || '',
       price: product.price.toString(),
+      mrp: (product as any).mrp?.toString() || '',
+      discount_percentage: (product as any).discount_percentage?.toString() || '',
       prep_time_minutes: (product as any).prep_time_minutes?.toString() || '',
       category: product.category,
       is_veg: product.is_veg,
@@ -236,11 +241,15 @@ export default function SellerProductsPage() {
     setIsSaving(true);
     try {
       const prepTime = formData.prep_time_minutes ? parseInt(formData.prep_time_minutes) : null;
+      const mrp = formData.mrp ? parseFloat(formData.mrp) : null;
+      const discountPct = formData.discount_percentage ? parseFloat(formData.discount_percentage) : null;
       const productData = {
         seller_id: sellerProfile.id,
         name: formData.name.trim(),
         description: formData.description.trim() || null,
         price: isNaN(price) ? 0 : price,
+        mrp: (mrp && !isNaN(mrp) && mrp > 0) ? mrp : null,
+        discount_percentage: (discountPct && !isNaN(discountPct) && discountPct > 0) ? discountPct : null,
         prep_time_minutes: (prepTime && !isNaN(prepTime) && prepTime > 0) ? prepTime : null,
         category: formData.category,
         is_veg: formData.is_veg,
@@ -418,6 +427,44 @@ export default function SellerProductsPage() {
                         setFormData({ ...formData, price: e.target.value })
                       }
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mrp">MRP (₹)</Label>
+                    <Input
+                      id="mrp"
+                      type="number"
+                      placeholder="Original price"
+                      value={formData.mrp}
+                      onChange={(e) => {
+                        const mrpVal = e.target.value;
+                        const mrpNum = parseFloat(mrpVal);
+                        const priceNum = parseFloat(formData.price);
+                        let autoPct = '';
+                        if (mrpNum > 0 && priceNum > 0 && mrpNum > priceNum) {
+                          autoPct = Math.round(((mrpNum - priceNum) / mrpNum) * 100).toString();
+                        }
+                        setFormData({ ...formData, mrp: mrpVal, discount_percentage: autoPct });
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="discount_percentage">Discount %</Label>
+                    <Input
+                      id="discount_percentage"
+                      type="number"
+                      placeholder="Auto-calculated"
+                      value={formData.discount_percentage}
+                      onChange={(e) =>
+                        setFormData({ ...formData, discount_percentage: e.target.value })
+                      }
+                    />
+                    {formData.mrp && formData.price && parseFloat(formData.mrp) > parseFloat(formData.price) && (
+                      <p className="text-[10px] text-success font-medium">
+                        {formData.discount_percentage}% OFF — Selling at ₹{formData.price} (MRP ₹{formData.mrp})
+                      </p>
+                    )}
                   </div>
                   {showDurationField && (
                     <div className="space-y-2">
