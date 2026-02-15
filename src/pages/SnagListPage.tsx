@@ -53,7 +53,7 @@ export default function SnagListPage() {
   const fetchTickets = async () => {
     if (!effectiveSocietyId) return;
     const [ticketRes, escalationRes] = await Promise.all([
-      supabase.from('snag_tickets').select('*').order('created_at', { ascending: false }),
+      supabase.from('snag_tickets').select('*').eq('society_id', effectiveSocietyId).order('created_at', { ascending: false }),
       supabase.from('collective_escalations').select('*').eq('society_id', effectiveSocietyId).eq('status', 'active'),
     ]);
 

@@ -116,6 +116,11 @@ export function PostDetailSheet({ post, open, onOpenChange, onVote }: PostDetail
   // Poll voting
   const handlePollVote = async (optionId: string) => {
     if (!post || !user) return;
+    // Check if poll deadline has passed
+    if (post.poll_deadline && new Date(post.poll_deadline) < new Date()) {
+      toast({ title: 'Voting has ended', variant: 'destructive' });
+      return;
+    }
     const { error } = await supabase.from('bulletin_votes').insert({
       post_id: post.id,
       user_id: user.id,

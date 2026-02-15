@@ -36,7 +36,7 @@ interface Income {
 }
 
 export default function SocietyFinancesPage() {
-  const { user, profile, isAdmin, effectiveSocietyId } = useAuth();
+  const { user, profile, isAdmin, isSocietyAdmin, effectiveSocietyId } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [income, setIncome] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,7 +164,7 @@ export default function SocietyFinancesPage() {
       </div>
 
       {/* Admin FABs */}
-      {isAdmin && (
+      {(isAdmin || isSocietyAdmin) && (
         <div className="fixed bottom-24 right-4 z-40 flex flex-col gap-2">
           <Button size="sm" className="rounded-full shadow-lg gap-1" onClick={() => setShowAddIncome(true)}>
             <Plus size={14} /> Income

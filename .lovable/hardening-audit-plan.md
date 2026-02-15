@@ -151,7 +151,7 @@
 | Phase 2 — Discovery & Products | ✅ Done | 8/8 |
 | Phase 3 — Seller Module | ✅ Done | 8/8 |
 | Phase 4 — Orders & Payments | ✅ Done | 8/8 |
-| Phase 5 — Society & Community | ⏳ Pending | 0/8 |
+| Phase 5 — Society & Community | ✅ Done | 8/8 |
 | Phase 6 — Security & Gate | ⏳ Pending | 0/8 |
 | Phase 7 — Workforce & Workers | ⏳ Pending | 0/8 |
 | Phase 8 — Admin & Final Polish | ⏳ Pending | 0/8 |

@@ -33,6 +33,7 @@ export function AdminDisputesTab() {
     const { data } = await supabase
       .from('dispute_tickets')
       .select('*, submitter:profiles!dispute_tickets_submitted_by_fkey(name)')
+      .eq('society_id', effectiveSocietyId)
       .order('created_at', { ascending: false });
     setTickets((data as any) || []);
     setLoading(false);

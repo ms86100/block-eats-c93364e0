@@ -44,6 +44,7 @@ export default function BulletinPage() {
     let query = supabase
       .from('bulletin_posts')
       .select('*, author:profiles!bulletin_posts_author_id_fkey(name, block, flat_number, avatar_url)')
+      .eq('society_id', effectiveSocietyId)
       .eq('is_archived', false)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
@@ -52,7 +53,8 @@ export default function BulletinPage() {
       query = query.eq('category', category);
     }
     if (search.trim()) {
-      query = query.or(`title.ilike.%${search}%,body.ilike.%${search}%`);
+      const escaped = search.replace(/%/g, '\\%').replace(/_/g, '\\_');
+      query = query.or(`title.ilike.%${escaped}%,body.ilike.%${escaped}%`);
     }
 
     const { data } = await query;
@@ -68,6 +70,7 @@ export default function BulletinPage() {
     const { data } = await supabase
       .from('bulletin_posts')
       .select('*, author:profiles!bulletin_posts_author_id_fkey(name, block, flat_number, avatar_url)')
+      .eq('society_id', effectiveSocietyId)
       .eq('is_archived', false)
       .gte('created_at', yesterday.toISOString())
       .order('comment_count', { ascending: false })
@@ -91,6 +94,7 @@ export default function BulletinPage() {
     const { data } = await supabase
       .from('help_requests')
       .select('*, author:profiles!help_requests_author_id_fkey(name, block, flat_number)')
+      .eq('society_id', effectiveSocietyId)
       .order('created_at', { ascending: false });
     setHelpRequests((data as any) || []);
   }, [effectiveSocietyId]);
