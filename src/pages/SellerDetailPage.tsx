@@ -76,9 +76,10 @@ export default function SellerDetailPage() {
       if (sellerRes.error) throw sellerRes.error;
       if (productsRes.error) throw productsRes.error;
 
-      // Society scoping: only allow viewing sellers from same society
+      // Society scoping: allow same-society or cross-society when browse_beyond is enabled
       const sellerData = sellerRes.data as any;
-      if (effectiveSocietyId && sellerData.society_id && sellerData.society_id !== effectiveSocietyId) {
+      const browseBeyond = (authProfile as any)?.browse_beyond_community === true;
+      if (effectiveSocietyId && sellerData.society_id && sellerData.society_id !== effectiveSocietyId && !browseBeyond) {
         setSeller(null);
         return;
       }
