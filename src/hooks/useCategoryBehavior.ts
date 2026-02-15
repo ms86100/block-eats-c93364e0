@@ -44,6 +44,7 @@ interface CategoryConfigRow {
   supports_warranty_display: boolean;
   image_aspect_ratio: string;
   image_object_fit: string;
+  image_url: string | null;
 }
 
 const fetchCategoryConfigs = async (): Promise<CategoryConfig[]> => {
@@ -86,6 +87,7 @@ const fetchCategoryConfigs = async (): Promise<CategoryConfig[]> => {
       pricePrefix: row.price_prefix || null,
       placeholderEmoji: row.placeholder_emoji || null,
     },
+    imageUrl: row.image_url || null,
     display: {
       supportsBrandDisplay: row.supports_brand_display,
       supportsWarrantyDisplay: row.supports_warranty_display,

@@ -560,6 +560,7 @@ export type Database = {
           id: string
           image_aspect_ratio: string
           image_object_fit: string
+          image_url: string | null
           is_active: boolean
           is_negotiable: boolean
           is_physical_product: boolean
@@ -599,6 +600,7 @@ export type Database = {
           id?: string
           image_aspect_ratio?: string
           image_object_fit?: string
+          image_url?: string | null
           is_active?: boolean
           is_negotiable?: boolean
           is_physical_product?: boolean
@@ -638,6 +640,7 @@ export type Database = {
           id?: string
           image_aspect_ratio?: string
           image_object_fit?: string
+          image_url?: string | null
           is_active?: boolean
           is_negotiable?: boolean
           is_physical_product?: boolean

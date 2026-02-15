@@ -67,6 +67,7 @@ export interface CategoryConfig {
   behavior: CategoryBehavior;
   formHints: CategoryFormHints;
   display: CategoryDisplayConfig;
+  imageUrl: string | null;
   displayOrder: number;
   isActive: boolean;
 }
