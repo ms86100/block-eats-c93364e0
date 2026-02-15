@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const HomePage = lazy(() => import("./pages/HomePage"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
-const SearchPage = lazy(() => import("./pages/SearchPage"));
+// SearchPage removed — marketplace is unified on HomePage
 
 const SellerDetailPage = lazy(() => import("./pages/SellerDetailPage"));
 const CartPage = lazy(() => import("./pages/CartPage"));
@@ -193,7 +193,7 @@ function AppRoutes() {
         <Route path="/welcome" element={user && profile ? <Navigate to="/" replace /> : <LandingPage />} />
         <Route path="/auth" element={user && profile ? <Navigate to="/" replace /> : <AuthPage />} />
         <Route path="/" element={user ? <ProtectedRoute><HomePage /></ProtectedRoute> : <Navigate to="/welcome" replace />} />
-        <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+        <Route path="/search" element={<Navigate to="/" replace />} />
         <Route path="/community" element={<ProtectedRoute><BulletinPage /></ProtectedRoute>} />
         <Route path="/category/:category" element={<ProtectedRoute><CategoryGroupPage /></ProtectedRoute>} />
         <Route path="/seller/:id" element={<ProtectedRoute><SellerDetailPage /></ProtectedRoute>} />

@@ -9,7 +9,7 @@ import type { FeatureKey } from '@/hooks/useEffectiveFeatures';
 
 const residentNavItems: { to: string; icon: typeof Home; label: string; featureKey?: FeatureKey }[] = [
   { to: '/', icon: Home, label: 'Home' },
-  { to: '/search', icon: Store, label: 'Marketplace', featureKey: 'marketplace' },
+  // Marketplace is now integrated into Home — removed separate route
   { to: '/community', icon: Users, label: 'Community', featureKey: 'bulletin' },
   { to: '/society', icon: Building2, label: 'Society' },
   { to: '/profile', icon: User, label: 'Profile' },
@@ -47,7 +47,7 @@ export function BottomNav() {
         {visibleItems.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to || 
             (to !== '/' && location.pathname.startsWith(to));
-          const showCartBadge = to === '/search' && itemCount > 0;
+          const showCartBadge = false; // Cart badge moved to FloatingCartBar
           
           return (
             <NavLink

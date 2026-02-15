@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProductGridCard, ProductWithSeller } from '@/components/product/ProductGridCard';
-import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
+// ProductDetailSheet removed — cards navigate directly to seller page
 import { SellerCard } from '@/components/seller/SellerCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -29,8 +29,7 @@ export default function CategoryGroupPage() {
   const [activeSubCategory, setActiveSubCategory] = useState<ServiceCategory | null>(subCategory);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('relevance');
-  const [selectedProduct, setSelectedProduct] = useState<ProductWithSeller | null>(null);
-  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+  // No popup — product cards navigate to seller store directly
 
   const parentGroup = category ? getGroupBySlug(category) : undefined;
   const subCategories = category ? groupedConfigs[category] || [] : [];
@@ -97,10 +96,7 @@ export default function CategoryGroupPage() {
     }
   };
 
-  const handleProductTap = (product: ProductWithSeller) => {
-    setSelectedProduct(product);
-    setDetailSheetOpen(true);
-  };
+  // No-op: cards navigate to seller page directly via ProductGridCard default behavior
 
   const isLoading = groupsLoading || configsLoading;
 
@@ -233,7 +229,6 @@ export default function CategoryGroupPage() {
                   key={product.id}
                   product={product}
                   behavior={getBehavior(product.category)}
-                  onTap={handleProductTap}
                 />
               ))}
             </div>
@@ -271,29 +266,7 @@ export default function CategoryGroupPage() {
         )}
       </div>
 
-      {/* Product Detail Sheet */}
-      <ProductDetailSheet
-        product={selectedProduct ? {
-          product_id: selectedProduct.id,
-          product_name: selectedProduct.name,
-          price: selectedProduct.price,
-          image_url: selectedProduct.image_url,
-          is_veg: selectedProduct.is_veg,
-          category: selectedProduct.category,
-          description: selectedProduct.description || null,
-          action_type: (selectedProduct as any).action_type || null,
-          contact_phone: (selectedProduct as any).contact_phone || null,
-          seller_id: selectedProduct.seller_id,
-          seller_name: selectedProduct.seller_name || '',
-          seller_rating: selectedProduct.seller_rating || 0,
-          seller_reviews: 0,
-          society_name: null,
-          distance_km: null,
-          is_same_society: true,
-        } : null}
-        open={detailSheetOpen}
-        onOpenChange={setDetailSheetOpen}
-      />
+      {/* Popup removed — cards navigate directly to seller store */}
     </AppLayout>
   );
 }

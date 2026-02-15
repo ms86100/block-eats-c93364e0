@@ -69,7 +69,12 @@ export function ProductGridCard({ product, behavior, onTap, className, viewOnly 
   };
 
   const handleCardClick = () => {
-    onTap?.(product);
+    if (onTap) {
+      onTap(product);
+    } else {
+      // Default: navigate to seller store page (no popup)
+      navigate(`/seller/${product.seller_id}`);
+    }
   };
 
   const ActionIcon = config.icon;
