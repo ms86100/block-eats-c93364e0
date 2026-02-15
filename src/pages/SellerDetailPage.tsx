@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProductCard } from '@/components/product/ProductCard';
+import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
 import { RatingStars } from '@/components/ui/rating-stars';
 import { ReviewList } from '@/components/review/ReviewList';
 import { FavoriteButton } from '@/components/favorite/FavoriteButton';
@@ -46,6 +47,13 @@ export default function SellerDetailPage() {
   const [reportType, setReportType] = useState<string>('');
   const [reportDescription, setReportDescription] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+
+  const handleProductTap = (product: Product) => {
+    setSelectedProduct(product);
+    setDetailSheetOpen(true);
+  };
 
   useEffect(() => {
     if (id) {
@@ -413,7 +421,7 @@ export default function SellerDetailPage() {
             {filteredProducts.length > 0 ? (
               <div className="space-y-0">
                 {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product} onTap={handleProductTap} />
                 ))}
               </div>
             ) : (
@@ -451,6 +459,30 @@ export default function SellerDetailPage() {
           </Link>
         </div>
       )}
+
+      {/* Product Detail / Enquiry Sheet */}
+      <ProductDetailSheet
+        product={selectedProduct ? {
+          product_id: selectedProduct.id,
+          product_name: selectedProduct.name,
+          price: selectedProduct.price,
+          image_url: selectedProduct.image_url,
+          is_veg: selectedProduct.is_veg,
+          category: selectedProduct.category,
+          description: selectedProduct.description || null,
+          action_type: (selectedProduct as any).action_type || null,
+          contact_phone: (selectedProduct as any).contact_phone || null,
+          seller_id: seller?.id || '',
+          seller_name: seller?.business_name || '',
+          seller_rating: seller?.rating || 0,
+          seller_reviews: 0,
+          society_name: null,
+          distance_km: null,
+          is_same_society: true,
+        } : null}
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+      />
     </AppLayout>
   );
 }
