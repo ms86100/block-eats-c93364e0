@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { Filter, SlidersHorizontal, X } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ProductCategory } from '@/types/database';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 
@@ -15,30 +13,26 @@ export interface FilterState {
   minRating: number;
   isVeg: boolean | null;
   categories: ProductCategory[];
-  block: string | null;
   sortBy: 'rating' | 'newest' | 'price_low' | 'price_high' | null;
 }
 
 interface SearchFiltersProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
-  blocks?: string[];
   showPriceFilter?: boolean;
 }
 
 const defaultFilters: FilterState = {
-  priceRange: [0, 1000],
+  priceRange: [0, 5000],
   minRating: 0,
   isVeg: null,
   categories: [],
-  block: null,
   sortBy: null,
 };
 
 export function SearchFilters({
   filters,
   onFiltersChange,
-  blocks = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
   showPriceFilter = true,
 }: SearchFiltersProps) {
   const { configs: allCategories } = useCategoryConfigs();
@@ -49,9 +43,8 @@ export function SearchFilters({
     filters.minRating > 0,
     filters.isVeg !== null,
     filters.categories.length > 0,
-    filters.block !== null,
     filters.sortBy !== null,
-    filters.priceRange[0] > 0 || filters.priceRange[1] < 1000,
+    filters.priceRange[0] > 0 || filters.priceRange[1] < 5000,
   ].filter(Boolean).length;
 
   const handleApply = () => {
@@ -211,41 +204,6 @@ export function SearchFilters({
             </div>
           </div>
 
-          {/* Block Filter */}
-          <div>
-            <Label className="text-sm font-semibold">Block / Location</Label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              <button
-                onClick={() => setLocalFilters({ ...localFilters, block: null })}
-                className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                  localFilters.block === null
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                All
-              </button>
-              {blocks.map((block) => (
-                <button
-                  key={block}
-                  onClick={() =>
-                    setLocalFilters({
-                      ...localFilters,
-                      block: localFilters.block === block ? null : block,
-                    })
-                  }
-                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    localFilters.block === block
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  Block {block}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Price Range */}
           {showPriceFilter && (
             <div>
@@ -264,7 +222,7 @@ export function SearchFilters({
                   })
                 }
                 min={0}
-                max={1000}
+                max={5000}
                 step={50}
                 className="mt-4"
               />

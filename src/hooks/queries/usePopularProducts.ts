@@ -20,6 +20,7 @@ export function usePopularProducts(limit = 12) {
           )
         `)
         .eq('is_available', true)
+        .eq('approval_status', 'approved')
         .order('is_bestseller', { ascending: false })
         .order('updated_at', { ascending: false })
         .limit(limit);
@@ -62,6 +63,7 @@ export function useCategoryProducts(parentGroup: string | null, societyId: strin
           )
         `)
         .eq('is_available', true)
+        .eq('approval_status', 'approved')
         .order('is_bestseller', { ascending: false })
         .order('created_at', { ascending: false });
 

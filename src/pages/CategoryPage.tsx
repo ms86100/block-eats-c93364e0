@@ -70,33 +70,25 @@ export default function CategoryPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await supabase
+      let q = supabase
         .from('products')
-        .select('*')
+        .select('*, seller:seller_profiles!products_seller_id_fkey(id, business_name, rating, society_id, verification_status, fulfillment_mode, delivery_note)')
         .eq('category', category as string)
-        .eq('is_available', true);
-      
-      let prodResults = (res.data || []) as any[];
+        .eq('is_available', true)
+        .eq('approval_status', 'approved')
+        .eq('seller.verification_status', 'approved');
+
       if (effectiveSocietyId) {
-        prodResults = prodResults.filter((p: any) => p.society_id === effectiveSocietyId);
+        q = q.eq('seller.society_id', effectiveSocietyId);
       }
 
-      if (prodResults.length === 0) {
-        setProducts([]);
-        return;
-      }
-
-      const sellerIds = [...new Set(prodResults.map((p: any) => p.seller_id as string))];
-      const { data: sellerData } = await supabase
-        .from('seller_profiles')
-        .select('id, business_name, delivery_radius, availability_start, availability_end, is_available, profile:profiles!seller_profiles_user_id_fkey(block, flat_number)')
-        .in('id', sellerIds);
-
-      const sellerMap = new Map((sellerData || []).map((s: any) => [s.id, s]));
+      const res = await q;
       
+      const prodResults = (res.data || []).filter((p: any) => p.seller != null) as any[];
+
       const enriched = prodResults.map((p: any) => ({
         ...p,
-        seller: sellerMap.get(p.seller_id) || null,
+        seller: p.seller,
       }));
 
       setProducts(enriched);

@@ -5000,8 +5000,6 @@ export type Database = {
         | {
             Args: { search_term: string; user_society_id?: string }
             Returns: {
-              availability_end: string
-              availability_start: string
               business_name: string
               categories: string[]
               cover_image_url: string

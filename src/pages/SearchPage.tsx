@@ -143,6 +143,7 @@ export default function SearchPage() {
         .from('products')
         .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, action_type, contact_phone, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
         .eq('is_available', true)
+        .eq('approval_status', 'approved')
         .eq('seller.verification_status', 'approved')
         .order('created_at', { ascending: false })
         .limit(30);
@@ -195,10 +196,9 @@ export default function SearchPage() {
     filters.minRating > 0 ||
     filters.isVeg !== null ||
     filters.categories.length > 0 ||
-    filters.block !== null ||
     filters.sortBy !== null ||
     filters.priceRange[0] > 0 ||
-    filters.priceRange[1] < 1000;
+    filters.priceRange[1] < 5000;
 
   // ── Determine if we're in "active search" mode ──
   const isSearchActive = debouncedQuery.length >= 1 || hasActiveFilters() || selectedCategory !== null;
@@ -244,6 +244,8 @@ export default function SearchPage() {
                 image_url: p.image_url,
                 is_veg: p.is_veg,
                 category: p.category,
+                action_type: p.action_type || null,
+                contact_phone: p.contact_phone || null,
                 seller_id: seller.seller_id,
                 seller_name: seller.business_name,
                 seller_rating: seller.rating,
@@ -261,6 +263,7 @@ export default function SearchPage() {
           .from('products')
           .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, action_type, contact_phone, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
           .eq('is_available', true)
+          .eq('approval_status', 'approved')
           .eq('seller.verification_status', 'approved')
           .order('created_at', { ascending: false })
           .limit(50);
@@ -321,6 +324,8 @@ export default function SearchPage() {
                   image_url: p.image_url,
                   is_veg: p.is_veg,
                   category: p.category,
+                  action_type: p.action_type || null,
+                  contact_phone: p.contact_phone || null,
                   seller_id: seller.seller_id,
                   seller_name: seller.business_name,
                   seller_rating: seller.rating,
@@ -343,7 +348,7 @@ export default function SearchPage() {
       if (effectiveCategories.length > 0 && term.length >= 1) {
         filtered = filtered.filter((p) => p.category && effectiveCategories.includes(p.category as any));
       }
-      if (filters.priceRange[0] > 0 || filters.priceRange[1] < 1000) {
+      if (filters.priceRange[0] > 0 || filters.priceRange[1] < 5000) {
         filtered = filtered.filter((p) => p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]);
       }
 

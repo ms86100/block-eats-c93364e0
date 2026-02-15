@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   ServiceCategory, 
@@ -38,62 +39,53 @@ interface CategoryConfigRow {
   show_duration_field: boolean | null;
 }
 
+const fetchCategoryConfigs = async (): Promise<CategoryConfig[]> => {
+  const { data, error } = await supabase
+    .from('category_config')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order');
+
+  if (error) throw error;
+
+  return (data as CategoryConfigRow[]).map((row) => ({
+    id: row.id,
+    category: row.category as ServiceCategory,
+    displayName: row.display_name,
+    icon: row.icon,
+    color: row.color,
+    parentGroup: row.parent_group as ParentGroup,
+    behavior: {
+      isPhysicalProduct: row.is_physical_product,
+      requiresPreparation: row.requires_preparation,
+      requiresTimeSlot: row.requires_time_slot,
+      requiresDelivery: row.requires_delivery,
+      supportsCart: row.supports_cart,
+      enquiryOnly: row.enquiry_only,
+      hasQuantity: row.has_quantity,
+      hasDuration: row.has_duration,
+      hasDateRange: row.has_date_range,
+      isNegotiable: row.is_negotiable,
+    },
+    formHints: {
+      namePlaceholder: row.name_placeholder,
+      descriptionPlaceholder: row.description_placeholder,
+      priceLabel: row.price_label || 'Price',
+      durationLabel: row.duration_label,
+      showVegToggle: row.show_veg_toggle ?? false,
+      showDurationField: row.show_duration_field ?? false,
+    },
+    displayOrder: row.display_order,
+    isActive: row.is_active,
+  }));
+};
+
 export function useCategoryConfigs() {
-  const [configs, setConfigs] = useState<CategoryConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchConfigs();
-  }, []);
-
-  const fetchConfigs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('category_config')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order');
-
-      if (error) throw error;
-
-      const mappedConfigs: CategoryConfig[] = (data as CategoryConfigRow[]).map((row) => ({
-        id: row.id,
-        category: row.category as ServiceCategory,
-        displayName: row.display_name,
-        icon: row.icon,
-        color: row.color,
-        parentGroup: row.parent_group as ParentGroup,
-        behavior: {
-          isPhysicalProduct: row.is_physical_product,
-          requiresPreparation: row.requires_preparation,
-          requiresTimeSlot: row.requires_time_slot,
-          requiresDelivery: row.requires_delivery,
-          supportsCart: row.supports_cart,
-          enquiryOnly: row.enquiry_only,
-          hasQuantity: row.has_quantity,
-          hasDuration: row.has_duration,
-          hasDateRange: row.has_date_range,
-          isNegotiable: row.is_negotiable,
-        },
-        formHints: {
-          namePlaceholder: row.name_placeholder,
-          descriptionPlaceholder: row.description_placeholder,
-          priceLabel: row.price_label || 'Price',
-          durationLabel: row.duration_label,
-          showVegToggle: row.show_veg_toggle ?? false,
-          showDurationField: row.show_duration_field ?? false,
-        },
-        displayOrder: row.display_order,
-        isActive: row.is_active,
-      }));
-
-      setConfigs(mappedConfigs);
-    } catch (error) {
-      console.error('Error fetching category configs:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: configs = [], isLoading, refetch } = useQuery({
+    queryKey: ['category-configs'],
+    queryFn: fetchCategoryConfigs,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
 
   // Group configs by parent group - fully dynamic
   const groupedConfigs = useMemo(() => {
@@ -107,7 +99,7 @@ export function useCategoryConfigs() {
     return grouped;
   }, [configs]);
 
-  return { configs, groupedConfigs, isLoading, refresh: fetchConfigs };
+  return { configs, groupedConfigs, isLoading, refresh: refetch };
 }
 
 export function useCategoryBehavior(category: ServiceCategory | null) {

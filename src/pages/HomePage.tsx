@@ -345,7 +345,7 @@ function OpenNowSection({ sellers }: { sellers: any[] }) {
           <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
           <h3 className="font-semibold text-sm">Open Now</h3>
         </div>
-        <Link to="/search?filter=open" className="text-sm text-primary font-medium">
+        <Link to="/search" className="text-sm text-primary font-medium">
           See all
         </Link>
       </div>
