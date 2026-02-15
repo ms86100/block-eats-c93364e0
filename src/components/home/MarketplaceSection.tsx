@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useProductsByCategory } from '@/hooks/queries/useProductsByCategory';
 import { useNearbySellers } from '@/hooks/queries/useNearbySellers';
+import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { CategoryGroupGrid } from '@/components/category/CategoryGroupGrid';
 import { ProductListingCard, ProductWithSeller } from '@/components/product/ProductListingCard';
 import { Input } from '@/components/ui/input';
@@ -210,7 +211,7 @@ function LocalProductsTab({
   categories,
   isLoading,
 }: {
-  categories: { category: string; displayName: string; icon: string; products: ProductWithSeller[] }[];
+  categories: { category: string; parentGroup: string; displayName: string; icon: string; products: ProductWithSeller[] }[];
   isLoading: boolean;
 }) {
   const navigate = useNavigate();
@@ -249,7 +250,7 @@ function LocalProductsTab({
           <div className="flex items-center justify-between px-4 mb-2">
             <h3 className="font-bold text-sm text-foreground">{cat.displayName}</h3>
             <Link
-              to={`/category/${cat.category}`}
+              to={`/category/${cat.parentGroup}?sub=${cat.category}`}
               className="text-xs font-semibold text-success hover:underline"
             >
               see all
@@ -283,6 +284,7 @@ function NearbyTab({
   isLoading: boolean;
 }) {
   const navigate = useNavigate();
+  const { configs: categoryConfigs } = useCategoryConfigs();
 
   // Transform nearby sellers' matching_products into category-grouped product cards
   const nearbyCategories = useMemo(() => {
@@ -306,13 +308,17 @@ function NearbyTab({
       }
     }
 
-    return Object.entries(catMap).map(([cat, data]) => ({
-      category: cat,
-      displayName: cat.replace(/_/g, ' '),
-      icon: '📦',
-      products: data.products.sort((a, b) => a.price - b.price),
-    }));
-  }, [sellers]);
+    return Object.entries(catMap).map(([cat, data]) => {
+      const cfg = categoryConfigs.find(c => c.category === cat);
+      return {
+        category: cat,
+        parentGroup: cfg?.parentGroup || cat,
+        displayName: cfg?.displayName || cat.replace(/_/g, ' '),
+        icon: cfg?.icon || '📦',
+        products: data.products.sort((a, b) => a.price - b.price),
+      };
+    });
+  }, [sellers, categoryConfigs]);
 
   return (
     <div className="px-4 space-y-4 pb-4">
@@ -359,7 +365,7 @@ function NearbyTab({
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-bold text-sm text-foreground capitalize">{cat.displayName}</h3>
                 <button
-                  onClick={() => navigate(`/category/${cat.category}`)}
+                  onClick={() => navigate(`/category/${cat.parentGroup}?sub=${cat.category}`)}
                   className="text-xs font-semibold text-success hover:underline"
                 >
                   see all

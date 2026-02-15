@@ -5,6 +5,7 @@ import { ProductWithSeller } from '@/components/product/ProductListingCard';
 
 interface CategoryGroup {
   category: string;
+  parentGroup: string;
   displayName: string;
   icon: string;
   products: ProductWithSeller[];
@@ -19,7 +20,7 @@ export function useProductsByCategory(limit = 50) {
       // Fetch category configs
       const { data: configs } = await supabase
         .from('category_config')
-        .select('category, display_name, icon, supports_cart')
+        .select('category, display_name, icon, supports_cart, parent_group')
         .eq('is_active', true)
         .order('display_order');
 
@@ -74,6 +75,7 @@ export function useProductsByCategory(limit = 50) {
         const cfg = configMap.get(category);
         result.push({
           category,
+          parentGroup: cfg?.parent_group || category,
           displayName: cfg?.display_name || category,
           icon: cfg?.icon || '📦',
           products: items,
