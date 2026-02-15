@@ -75,6 +75,11 @@ const config: CapacitorConfig = {
     scheme: 'sociva',
     contentInset: 'automatic',
     preferredContentMode: 'mobile',
+    // Skip App Store encryption compliance prompt — app only uses HTTPS (Apple's built-in TLS)
+    // All custom crypto (AES-GCM) runs server-side in edge functions, not in the app binary
+    plistOverrides: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
 
   // Android-specific configuration
