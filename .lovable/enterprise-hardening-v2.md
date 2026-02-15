@@ -220,10 +220,38 @@ The codebase has already been through an 8-phase, 64-task hardening pass focused
 
 ---
 
-## Proposed Phase 1 Execution (5 High-Impact Fixes)
+## Proposed Phase 1 Execution (5 High-Impact Fixes) — ✅ COMPLETED
 
-1. **Fix #1**: Configure QueryClient with retry:1, staleTime:30s, global onError
-2. **Fix #2**: Fix ErrorBoundary HashRouter navigation
-3. **Fix #3**: Create `escapeIlike()` utility + refactor all 4+ usages
-4. **Fix #4**: Remove orphan CategoryPage
-5. **Fix #5**: Global query error handler with toast
+1. ✅ **Fix #1**: Configure QueryClient with retry:1, staleTime:30s, global onError
+2. ✅ **Fix #2**: Fix ErrorBoundary HashRouter navigation
+3. ✅ **Fix #3**: Create `escapeIlike()` utility + refactor all 4+ usages
+4. ✅ **Fix #4**: Remove orphan CategoryPage
+5. ✅ **Fix #5**: Global query error handler with toast
+
+---
+
+## Phase 2 Execution (5 High-Impact Fixes) — ✅ COMPLETED
+
+1. ✅ **Fix #6**: Fixed `haversine_km` missing `SET search_path` — only function without it
+2. ✅ **Fix #7**: Audited `trigger_errors` permissive RLS — intentional for SECURITY DEFINER triggers, documented
+3. ✅ **Fix #8**: Verified all other functions already have `SET search_path TO 'public'`
+4. ✅ **Fix #9**: Created `handleApiError()` utility in `src/lib/query-utils.ts` — standardized error extraction + toast
+5. ✅ **Fix #10**: Refactored CartProvider with optimistic updates + rollback on failure
+6. ✅ **Fix #11**: Console log stripping already configured via `drop_console: mode === 'production'` in vite.config.ts
+
+### Remaining Linter Warnings (Non-Actionable via Code)
+- **Extension in Public**: Extensions in `public` schema — requires manual migration to `extensions` schema
+- **Leaked Password Protection Disabled**: Requires Lovable Cloud auth configuration
+- **trigger_errors WITH CHECK(true)**: Intentional — error logging from SECURITY DEFINER triggers has no user-facing write path
+
+---
+
+## Phase 3 Proposed Fixes
+
+| # | Issue | Impact |
+|---|---|---|
+| 12 | Add zod validation schemas for critical forms (auth, orders, disputes) | Better UX + reduced failed API calls |
+| 13 | Refactor AuthContext into smaller modules | Maintainability |
+| 14 | Add client-side rate limiting (debounce) for form submissions | Prevents duplicate submissions |
+| 15 | Add virtualization for large lists (orders, notifications) | Performance on large datasets |
+| 16 | Implement shared error boundary per route group | Granular error recovery |

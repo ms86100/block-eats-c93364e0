@@ -1,9 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CartItem, Product } from '@/types/database';
 import { toast } from 'sonner';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
+import { handleApiError } from '@/lib/query-utils';
 
 interface SellerGroup {
   sellerId: string;
@@ -33,7 +34,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<(CartItem & { product: Product })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     if (!user) {
       setItems([]);
       return;
@@ -56,11 +57,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchCart();
-  }, [user]);
+  }, [fetchCart]);
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   
@@ -109,11 +110,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    const existingItem = items.find(item => item.product_id === product.id);
+    const prevItems = [...items];
+
+    // Optimistic update
+    if (existingItem) {
+      setItems(prev =>
+        prev.map(item =>
+          item.product_id === product.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        )
+      );
+    } else {
+      const optimisticItem = {
+        id: `temp-${Date.now()}`,
+        user_id: user.id,
+        product_id: product.id,
+        quantity,
+        created_at: new Date().toISOString(),
+        product,
+      } as CartItem & { product: Product };
+      setItems(prev => [...prev, optimisticItem]);
+    }
+
     try {
-      const existingItem = items.find(item => item.product_id === product.id);
-      
       if (existingItem) {
-        await updateQuantity(product.id, existingItem.quantity + quantity);
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ quantity: existingItem.quantity + quantity })
+          .eq('user_id', user.id)
+          .eq('product_id', product.id);
+        if (error) throw error;
       } else {
         const { error } = await supabase
           .from('cart_items')
@@ -122,26 +150,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
             product_id: product.id,
             quantity,
           });
-
         if (error) throw error;
-        toast.success('Added to cart');
-        await fetchCart();
       }
+      toast.success('Added to cart');
+      // Sync with server to get real IDs
+      await fetchCart();
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('Failed to add item');
+      // Rollback on failure
+      setItems(prevItems);
+      handleApiError(error, 'Failed to add item');
     }
   };
 
   const updateQuantity = async (productId: string, quantity: number) => {
     if (!user) return;
 
-    try {
-      if (quantity <= 0) {
-        await removeItem(productId);
-        return;
-      }
+    if (quantity <= 0) {
+      await removeItem(productId);
+      return;
+    }
 
+    const prevItems = [...items];
+
+    // Optimistic update
+    setItems(prev =>
+      prev.map(item =>
+        item.product_id === productId ? { ...item, quantity } : item
+      )
+    );
+
+    try {
       const { error } = await supabase
         .from('cart_items')
         .update({ quantity })
@@ -149,15 +187,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .eq('product_id', productId);
 
       if (error) throw error;
-      await fetchCart();
     } catch (error) {
-      console.error('Error updating quantity:', error);
-      toast.error('Failed to update quantity');
+      setItems(prevItems);
+      handleApiError(error, 'Failed to update quantity');
     }
   };
 
   const removeItem = async (productId: string) => {
     if (!user) return;
+
+    const prevItems = [...items];
+
+    // Optimistic removal
+    setItems(prev => prev.filter(item => item.product_id !== productId));
 
     try {
       const { error } = await supabase
@@ -168,15 +210,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
       toast.success('Removed from cart');
-      await fetchCart();
     } catch (error) {
-      console.error('Error removing item:', error);
-      toast.error('Failed to remove item');
+      setItems(prevItems);
+      handleApiError(error, 'Failed to remove item');
     }
   };
 
   const clearCart = async () => {
     if (!user) return;
+
+    const prevItems = [...items];
+    setItems([]);
 
     try {
       const { error } = await supabase
@@ -185,8 +229,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .eq('user_id', user.id);
 
       if (error) throw error;
-      setItems([]);
     } catch (error) {
+      setItems(prevItems);
       console.error('Error clearing cart:', error);
     }
   };
