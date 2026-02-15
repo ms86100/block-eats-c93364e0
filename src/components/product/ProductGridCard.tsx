@@ -151,16 +151,15 @@ export function ProductGridCard({ product, behavior, onTap, className }: Product
               )}
             </div>
 
-            {/* Action button — Blinkit green bordered ADD */}
+            {/* Action area — only show ADD for cart items, otherwise subtle view prompt */}
             <div className="shrink-0">
-              {isCartAction ? (
+              {isCartAction && product.is_available ? (
                 quantity === 0 ? (
                   <button
                     onClick={handleAdd}
-                    disabled={!product.is_available}
-                    className="border border-success text-success font-bold text-xs px-3 py-1 rounded-md hover:bg-success hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="border border-success text-success font-bold text-xs px-3 py-1 rounded-md hover:bg-success hover:text-white transition-colors"
                   >
-                    {config.label}
+                    ADD
                   </button>
                 ) : (
                   <div className="flex items-center bg-success rounded-md overflow-hidden">
@@ -180,13 +179,9 @@ export function ProductGridCard({ product, behavior, onTap, className }: Product
                   </div>
                 )
               ) : (
-                <button
-                  onClick={handleAdd}
-                  disabled={!product.is_available}
-                  className="border border-primary text-primary font-bold text-xs px-2.5 py-1 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center gap-1"
-                >
-                  <ActionIcon size={11} /> {config.label}
-                </button>
+                <span className="text-[10px] font-medium text-primary">
+                  {product.is_available ? 'View →' : 'Unavailable'}
+                </span>
               )}
             </div>
           </div>
