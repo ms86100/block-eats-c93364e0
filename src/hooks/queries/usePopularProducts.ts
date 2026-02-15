@@ -16,7 +16,7 @@ export function usePopularProducts(limit = 12) {
         .select(`
           *,
           seller:seller_profiles!products_seller_id_fkey(
-            id, business_name, rating, society_id, verification_status
+            id, business_name, rating, society_id, verification_status, fulfillment_mode, delivery_note
           )
         `)
         .eq('is_available', true)
@@ -39,6 +39,8 @@ export function usePopularProducts(limit = 12) {
           seller_name: p.seller?.business_name || 'Seller',
           seller_rating: p.seller?.rating || 0,
           seller_id: p.seller_id,
+          fulfillment_mode: p.seller?.fulfillment_mode || null,
+          delivery_note: p.seller?.delivery_note || null,
         }));
     },
     enabled: !!effectiveSocietyId,
@@ -78,6 +80,8 @@ export function useCategoryProducts(parentGroup: string | null, societyId: strin
           seller_name: p.seller?.business_name || 'Seller',
           seller_rating: p.seller?.rating || 0,
           seller_id: p.seller_id,
+          fulfillment_mode: p.seller?.fulfillment_mode || null,
+          delivery_note: p.seller?.delivery_note || null,
         }));
     },
     enabled: !!parentGroup,

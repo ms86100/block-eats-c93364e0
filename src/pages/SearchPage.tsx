@@ -29,6 +29,10 @@ interface ProductSearchResult {
   image_url: string | null;
   is_veg: boolean | null;
   category: string | null;
+  description?: string | null;
+  prep_time_minutes?: number | null;
+  fulfillment_mode?: string | null;
+  delivery_note?: string | null;
   seller_id: string;
   seller_name: string;
   seller_rating: number;
@@ -132,7 +136,7 @@ export default function SearchPage() {
     try {
       let query = supabase
         .from('products')
-        .select('id, name, price, image_url, is_veg, category, seller_id, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status)')
+        .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
         .eq('is_available', true)
         .eq('seller.verification_status', 'approved')
         .order('created_at', { ascending: false })
@@ -151,6 +155,10 @@ export default function SearchPage() {
           image_url: p.image_url,
           is_veg: p.is_veg,
           category: p.category,
+          description: p.description,
+          prep_time_minutes: p.prep_time_minutes,
+          fulfillment_mode: p.seller?.fulfillment_mode || null,
+          delivery_note: p.seller?.delivery_note || null,
           seller_id: p.seller?.id || p.seller_id,
           seller_name: p.seller?.business_name || '',
           seller_rating: p.seller?.rating || 0,
@@ -244,7 +252,7 @@ export default function SearchPage() {
         // Category-only browse (no search term) - direct query
         let q = supabase
           .from('products')
-          .select('id, name, price, image_url, is_veg, category, seller_id, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status)')
+          .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
           .eq('is_available', true)
           .eq('seller.verification_status', 'approved')
           .order('created_at', { ascending: false })
@@ -269,6 +277,10 @@ export default function SearchPage() {
               image_url: p.image_url,
               is_veg: p.is_veg,
               category: p.category,
+              description: p.description,
+              prep_time_minutes: p.prep_time_minutes,
+              fulfillment_mode: p.seller?.fulfillment_mode || null,
+              delivery_note: p.seller?.delivery_note || null,
               seller_id: p.seller?.id || p.seller_id,
               seller_name: p.seller?.business_name || '',
               seller_rating: p.seller?.rating || 0,
@@ -772,11 +784,13 @@ function PopularCarousels({
     is_recommended: false,
     is_urgent: false,
     category: p.category || '',
-    description: null,
+    description: p.description || null,
     created_at: '',
     updated_at: '',
     seller_name: p.seller_name,
     seller_rating: p.seller_rating,
+    fulfillment_mode: p.fulfillment_mode || null,
+    delivery_note: p.delivery_note || null,
   });
 
   const handleProductTap = (pw: ProductWithSeller) => {

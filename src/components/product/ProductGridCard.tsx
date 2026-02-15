@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Minus, Clock, MessageCircle, Calendar } from 'lucide-react';
+import { Plus, Minus, Clock, MessageCircle, Calendar, Truck, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { VegBadge } from '@/components/ui/veg-badge';
@@ -13,6 +13,8 @@ export interface ProductWithSeller extends Product {
   seller_name?: string;
   seller_rating?: number;
   seller_id: string;
+  fulfillment_mode?: string | null;
+  delivery_note?: string | null;
 }
 
 interface ProductGridCardProps {
@@ -137,6 +139,18 @@ export function ProductGridCard({ product, behavior, onTap, className }: Product
             </span>
           )}
         </div>
+
+        {/* Fulfillment mode */}
+        {product.fulfillment_mode && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <Truck size={9} className="text-muted-foreground" />
+            <span className="text-[10px] text-muted-foreground">
+              {product.fulfillment_mode === 'self_pickup' && 'Pickup Only'}
+              {product.fulfillment_mode === 'delivery' && 'Delivery'}
+              {product.fulfillment_mode === 'both' && 'Pickup / Delivery'}
+            </span>
+          </div>
+        )}
 
         {/* Seller name */}
         {product.seller_name && (
