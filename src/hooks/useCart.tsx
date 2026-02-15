@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CartItem, Product } from '@/types/database';
 import { toast } from 'sonner';
+import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 
 interface SellerGroup {
   sellerId: string;
@@ -28,6 +29,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { configs: categoryConfigs } = useCategoryConfigs();
   const [items, setItems] = useState<(CartItem & { product: Product })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -89,6 +91,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) {
       toast.error('Please sign in to add items to cart');
       return;
+    }
+
+    // Client-side guard: check if category supports cart
+    const productCategory = (product as any).category;
+    if (productCategory && categoryConfigs.length > 0) {
+      const catConfig = categoryConfigs.find(c => c.category === productCategory);
+      if (catConfig && !catConfig.behavior?.supportsCart) {
+        toast.error('This item uses a booking or enquiry flow — tap to view details.');
+        return;
+      }
     }
 
     try {

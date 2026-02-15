@@ -13,7 +13,7 @@ import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/hooks/useCart';
 import { SellerProfile, ProductCategory, Product } from '@/types/database';
-import { ArrowLeft, Search, Clock, MapPin, Truck, ShoppingCart, Plus, Minus, X } from 'lucide-react';
+import { ArrowLeft, Search, Clock, MapPin, Truck, ShoppingCart, Plus, Minus, X, MessageCircle, Calendar } from 'lucide-react';
 
 type ProductWithSeller = Product & {
   seller?: {
@@ -246,40 +246,57 @@ export default function CategoryPage() {
                         </div>
                       </div>
 
-                      {/* Add to cart */}
+                      {/* Action button - category-aware */}
                       <div className="px-3 pb-3 flex justify-end">
-                        {qty === 0 ? (
+                        {categoryInfo?.behavior?.supportsCart && !categoryInfo?.behavior?.enquiryOnly && !categoryInfo?.behavior?.requiresTimeSlot ? (
+                          qty === 0 ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                              onClick={() => addItem(product)}
+                              disabled={!product.is_available || !seller?.is_available}
+                            >
+                              <Plus size={14} className="mr-1" /> Add
+                            </Button>
+                          ) : (
+                            <div className="flex items-center gap-2 bg-primary rounded-md px-2 shadow-sm">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-primary-foreground hover:bg-primary-foreground/20"
+                                onClick={() => updateQuantity(product.id, qty - 1)}
+                              >
+                                <Minus size={14} />
+                              </Button>
+                              <span className="font-semibold text-primary-foreground w-4 text-center text-sm">
+                                {qty}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-primary-foreground hover:bg-primary-foreground/20"
+                                onClick={() => updateQuantity(product.id, qty + 1)}
+                              >
+                                <Plus size={14} />
+                              </Button>
+                            </div>
+                          )
+                        ) : (
                           <Button
                             size="sm"
                             variant="outline"
                             className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                            onClick={() => addItem(product)}
                             disabled={!product.is_available || !seller?.is_available}
                           >
-                            <Plus size={14} className="mr-1" /> Add
+                            {categoryInfo?.behavior?.enquiryOnly ? (
+                              <><MessageCircle size={14} className="mr-1" /> Contact</>
+                            ) : categoryInfo?.behavior?.requiresTimeSlot ? (
+                              <><Calendar size={14} className="mr-1" /> Book</>
+                            ) : (
+                              <><Plus size={14} className="mr-1" /> View</>
+                            )}
                           </Button>
-                        ) : (
-                          <div className="flex items-center gap-2 bg-primary rounded-md px-2 shadow-sm">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0 text-primary-foreground hover:bg-primary-foreground/20"
-                              onClick={() => updateQuantity(product.id, qty - 1)}
-                            >
-                              <Minus size={14} />
-                            </Button>
-                            <span className="font-semibold text-primary-foreground w-4 text-center text-sm">
-                              {qty}
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0 text-primary-foreground hover:bg-primary-foreground/20"
-                              onClick={() => updateQuantity(product.id, qty + 1)}
-                            >
-                              <Plus size={14} />
-                            </Button>
-                          </div>
                         )}
                       </div>
                     </CardContent>

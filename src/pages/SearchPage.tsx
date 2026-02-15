@@ -16,7 +16,7 @@ import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
 import { ProductCarousel } from '@/components/product/ProductCarousel';
 import { ProductGridCard, ProductWithSeller } from '@/components/product/ProductGridCard';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
-import { ArrowLeft, Search as SearchIcon, X, Globe, Star, MapPin, Home, Tag, ShoppingBag, Plus, Minus, Clock } from 'lucide-react';
+import { ArrowLeft, Search as SearchIcon, X, Globe, Star, MapPin, Home, Tag, ShoppingBag, Plus, Minus, Clock, MessageCircle, Calendar } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -73,11 +73,18 @@ export default function SearchPage() {
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const { configs: categoryConfigs, isLoading: categoriesLoading } = useCategoryConfigs();
 
-  // Build a lookup map: category slug -> { icon, displayName }
+  // Build a lookup map: category slug -> { icon, displayName, supportsCart, etc. }
   const categoryMap = useMemo(() => {
-    const m: Record<string, { icon: string; displayName: string; color: string }> = {};
+    const m: Record<string, { icon: string; displayName: string; color: string; supportsCart?: boolean; enquiryOnly?: boolean; requiresTimeSlot?: boolean }> = {};
     categoryConfigs.forEach((c) => {
-      m[c.category] = { icon: c.icon, displayName: c.displayName, color: c.color };
+      m[c.category] = {
+        icon: c.icon,
+        displayName: c.displayName,
+        color: c.color,
+        supportsCart: c.behavior?.supportsCart ?? true,
+        enquiryOnly: c.behavior?.enquiryOnly ?? false,
+        requiresTimeSlot: c.behavior?.requiresTimeSlot ?? false,
+      };
     });
     return m;
   }, [categoryConfigs]);
@@ -598,13 +605,15 @@ function ProductResultCard({
   product: p,
   categoryMap,
   cartItems,
+  categoryConfigs,
   onAddToCart,
   onUpdateQuantity,
   onProductTap,
 }: {
   product: ProductSearchResult;
-  categoryMap: Record<string, { icon: string; displayName: string }>;
+  categoryMap: Record<string, { icon: string; displayName: string; supportsCart?: boolean; enquiryOnly?: boolean; requiresTimeSlot?: boolean }>;
   cartItems: any[];
+  categoryConfigs?: any[];
   onAddToCart: (product: any) => void;
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onProductTap: (p: ProductSearchResult) => void;
@@ -614,8 +623,21 @@ function ProductResultCard({
   const quantity = cartItem?.quantity || 0;
   const isNewSeller = p.seller_reviews === 0 || p.seller_rating === 0;
 
+  const supportsCart = catInfo?.supportsCart ?? true;
+  const enquiryOnly = catInfo?.enquiryOnly ?? false;
+  const requiresTimeSlot = catInfo?.requiresTimeSlot ?? false;
+  const isService = requiresTimeSlot || enquiryOnly;
+  const canAddToCart = supportsCart && !isService;
+
+  const actionLabel = enquiryOnly ? 'Contact' : requiresTimeSlot ? 'Book' : 'Add +';
+  const ActionIcon = enquiryOnly ? MessageCircle : requiresTimeSlot ? Calendar : Plus;
+
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!canAddToCart) {
+      onProductTap(p);
+      return;
+    }
     onAddToCart({
       id: p.product_id,
       seller_id: p.seller_id,
@@ -706,35 +728,46 @@ function ProductResultCard({
 
         {/* Action button row */}
         <div className="flex items-center justify-end mt-1.5" onClick={(e) => e.stopPropagation()}>
-          {quantity === 0 ? (
+          {canAddToCart ? (
+            quantity === 0 ? (
+              <Button
+                size="sm"
+                variant="default"
+                className="h-7 px-4 text-xs font-semibold"
+                onClick={handleAdd}
+              >
+                <Plus size={12} className="mr-1" /> Add +
+              </Button>
+            ) : (
+              <div className="flex items-center gap-1 bg-primary rounded-lg px-1.5">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
+                  onClick={(e) => { e.stopPropagation(); onUpdateQuantity(p.product_id, quantity - 1); }}
+                >
+                  <Minus size={12} />
+                </Button>
+                <span className="text-xs font-bold text-primary-foreground w-4 text-center">{quantity}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
+                  onClick={(e) => { e.stopPropagation(); onUpdateQuantity(p.product_id, quantity + 1); }}
+                >
+                  <Plus size={12} />
+                </Button>
+              </div>
+            )
+          ) : (
             <Button
               size="sm"
-              variant="default"
-              className="h-7 px-4 text-xs font-semibold"
+              variant="outline"
+              className="h-7 px-4 text-xs font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               onClick={handleAdd}
             >
-              Add +
+              <ActionIcon size={12} className="mr-1" /> {actionLabel}
             </Button>
-          ) : (
-            <div className="flex items-center gap-1 bg-primary rounded-lg px-1.5">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
-                onClick={(e) => { e.stopPropagation(); onUpdateQuantity(p.product_id, quantity - 1); }}
-              >
-                <Minus size={12} />
-              </Button>
-              <span className="text-xs font-bold text-primary-foreground w-4 text-center">{quantity}</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
-                onClick={(e) => { e.stopPropagation(); onUpdateQuantity(p.product_id, quantity + 1); }}
-              >
-                <Plus size={12} />
-              </Button>
-            </div>
           )}
         </div>
       </div>
