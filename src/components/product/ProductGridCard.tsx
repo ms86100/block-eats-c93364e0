@@ -41,7 +41,6 @@ export function ProductGridCard({ product, behavior, onTap, className }: Product
   const cartItem = items.find((item) => item.product_id === product.id);
   const quantity = cartItem?.quantity || 0;
 
-  // Product-level action_type overrides category behavior
   const actionType: ProductActionType = (product as any).action_type || 'add_to_cart';
   const config = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
   const isCartAction = config.isCart;
@@ -49,12 +48,10 @@ export function ProductGridCard({ product, behavior, onTap, className }: Product
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-
     if (actionType === 'contact_seller' && (product as any).contact_phone) {
       setContactOpen(true);
       return;
     }
-
     if (!isCartAction) {
       onTap?.(product);
       return;
@@ -85,104 +82,117 @@ export function ProductGridCard({ product, behavior, onTap, className }: Product
       <div
         onClick={handleCardClick}
         className={cn(
-          'bg-card rounded-xl overflow-hidden border border-border/40 cursor-pointer transition-all hover:shadow-md flex flex-col',
+          'bg-card rounded-xl border border-border/60 cursor-pointer transition-shadow hover:shadow-md flex flex-col h-full',
           className
         )}
       >
-        {/* Image */}
-        <div className="relative aspect-square bg-muted">
-          {product.image_url ? (
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-3xl">{isCartAction ? '🛍️' : '🛠️'}</span>
-            </div>
-          )}
+        {/* Image — Blinkit-style: clean white bg, product centered */}
+        <div className="relative p-3 pb-1">
+          <div className="relative aspect-square rounded-lg overflow-hidden bg-muted/30">
+            {product.image_url ? (
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="w-full h-full object-contain"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                <span className="text-3xl">{isCartAction ? '🛍️' : '🛠️'}</span>
+              </div>
+            )}
 
-          {!product.is_available && (
-            <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-              <span className="text-xs font-medium text-muted-foreground">Unavailable</span>
-            </div>
-          )}
+            {!product.is_available && (
+              <div className="absolute inset-0 bg-background/70 flex items-center justify-center rounded-lg">
+                <span className="text-xs font-medium text-muted-foreground">Out of stock</span>
+              </div>
+            )}
 
-          {product.is_bestseller && (
-            <Badge className="absolute top-1.5 left-1.5 bg-accent text-accent-foreground text-[9px] px-1.5 py-0 h-4 font-semibold shadow-sm">
-              Bestseller
-            </Badge>
-          )}
+            {/* Discount / Bestseller badge — top-left like Blinkit */}
+            {product.is_bestseller && (
+              <Badge className="absolute top-1 left-1 bg-accent text-accent-foreground text-[9px] px-1.5 py-0 h-[18px] font-bold shadow-sm rounded-sm">
+                Bestseller
+              </Badge>
+            )}
+          </div>
 
-          <div className="absolute top-1.5 right-1.5">
+          {/* Veg badge — top-right */}
+          <div className="absolute top-4 right-4">
             <VegBadge isVeg={product.is_veg} size="sm" />
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-2 flex flex-col flex-1">
-          <h4 className="font-medium text-xs leading-tight line-clamp-2 text-foreground">{product.name}</h4>
+        {/* Content — Blinkit-style: name, description, then price + ADD at bottom */}
+        <div className="px-3 pb-3 pt-1 flex flex-col flex-1 gap-0.5">
+          {/* Product name — 2-line clamp */}
+          <h4 className="font-semibold text-xs leading-tight line-clamp-2 text-foreground min-h-[2rem]">
+            {product.name}
+          </h4>
 
-          <p className="font-bold text-sm text-foreground mt-1">
-            {actionType === 'contact_seller' ? '' : actionType === 'make_offer' ? 'From ' : ''}
-            {actionType !== 'contact_seller' && `₹${product.price}`}
-            {actionType === 'contact_seller' && <span className="text-xs font-medium text-muted-foreground">Contact for price</span>}
-          </p>
+          {/* Description / weight line */}
+          {product.description && (
+            <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+              {product.description}
+            </p>
+          )}
 
           <div className="flex-1" />
 
-          {/* Action button */}
-          <div className="mt-2">
-            {isCartAction ? (
-              quantity === 0 ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full h-7 text-xs font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+          {/* Price + Action row — like Blinkit: price on left, ADD on right */}
+          <div className="flex items-end justify-between mt-2 gap-1">
+            <div className="flex flex-col">
+              {actionType === 'contact_seller' ? (
+                <span className="text-[10px] font-medium text-muted-foreground">Contact for price</span>
+              ) : (
+                <>
+                  <span className="font-bold text-sm text-foreground leading-tight">₹{product.price}</span>
+                  {/* Placeholder for MRP strikethrough if available */}
+                </>
+              )}
+            </div>
+
+            {/* Action button — Blinkit green bordered ADD */}
+            <div className="shrink-0">
+              {isCartAction ? (
+                quantity === 0 ? (
+                  <button
+                    onClick={handleAdd}
+                    disabled={!product.is_available}
+                    className="border border-success text-success font-bold text-xs px-3 py-1 rounded-md hover:bg-success hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {config.label}
+                  </button>
+                ) : (
+                  <div className="flex items-center bg-success rounded-md overflow-hidden">
+                    <button
+                      onClick={handleDecrement}
+                      className="px-2 py-1 text-white hover:bg-success/80 transition-colors"
+                    >
+                      <Minus size={12} />
+                    </button>
+                    <span className="font-bold text-xs text-white px-1 min-w-[16px] text-center">{quantity}</span>
+                    <button
+                      onClick={handleIncrement}
+                      className="px-2 py-1 text-white hover:bg-success/80 transition-colors"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </div>
+                )
+              ) : (
+                <button
                   onClick={handleAdd}
                   disabled={!product.is_available}
+                  className="border border-primary text-primary font-bold text-xs px-2.5 py-1 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center gap-1"
                 >
-                  {config.label}
-                </Button>
-              ) : (
-                <div className="flex items-center justify-between bg-primary rounded-lg h-7 px-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-5 w-5 p-0 text-primary-foreground hover:bg-primary-foreground/20"
-                    onClick={handleDecrement}
-                  >
-                    <Minus size={12} />
-                  </Button>
-                  <span className="font-bold text-xs text-primary-foreground">{quantity}</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-5 w-5 p-0 text-primary-foreground hover:bg-primary-foreground/20"
-                    onClick={handleIncrement}
-                  >
-                    <Plus size={12} />
-                  </Button>
-                </div>
-              )
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full h-7 text-xs font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                onClick={handleAdd}
-                disabled={!product.is_available}
-              >
-                <ActionIcon size={12} className="mr-1" /> {config.label}
-              </Button>
-            )}
+                  <ActionIcon size={11} /> {config.label}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Contact Seller Modal */}
       {actionType === 'contact_seller' && (
         <ContactSellerModal
           open={contactOpen}

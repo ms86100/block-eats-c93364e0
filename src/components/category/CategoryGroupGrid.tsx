@@ -43,29 +43,30 @@ export function CategoryGroupGrid({
     );
   }
 
-  // Compact horizontal scroll variant for homepage
+  // Compact variant — Blinkit-style category grid with larger icons
   if (variant === 'compact') {
+    const visibleGroups = filteredGroups.filter(g => groupedConfigs[g.value]?.length > 0);
     return (
-      <div className="space-y-4">
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide py-2 -mx-4 px-4">
-          {filteredGroups.filter(g => groupedConfigs[g.value]?.length > 0).map(({ value, label, icon, color }) => (
-            <Link
-              key={value}
-              to={`/category/${value}`}
-              className="flex flex-col items-center gap-1.5 min-w-[72px]"
+      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-2 gap-y-3">
+        {visibleGroups.map(({ value, label, icon, color }) => (
+          <Link
+            key={value}
+            to={`/category/${value}`}
+            className="flex flex-col items-center gap-1.5 group"
+          >
+            <div
+              className={cn(
+                'w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110 group-hover:shadow-md',
+                color
+              )}
             >
-              <div
-                className={cn(
-                  'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-transform hover:scale-105',
-                  color
-                )}
-              >
-                {icon}
-              </div>
-              <span className="text-xs font-medium text-center leading-tight">{label.split(' ')[0]}</span>
-            </Link>
-          ))}
-        </div>
+              {icon}
+            </div>
+            <span className="text-[11px] font-medium text-center leading-tight text-foreground line-clamp-2 max-w-[72px]">
+              {label}
+            </span>
+          </Link>
+        ))}
       </div>
     );
   }
