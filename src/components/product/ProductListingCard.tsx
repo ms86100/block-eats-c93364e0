@@ -137,6 +137,11 @@ export function ProductListingCard({
       setContactOpen(true);
       return;
     }
+    // Non-cart actions: navigate to seller store instead of adding to cart
+    if (!isCartAction) {
+      navigate(`/seller/${product.seller_id}`);
+      return;
+    }
     addItem(product as any);
   };
 
