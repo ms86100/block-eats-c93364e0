@@ -53,6 +53,7 @@ export function ProductCarousel({
 
   if (products.length === 0) return null;
 
+  const minPrice = Math.min(...products.map((p) => p.price));
   const cardWidth = variant === 'compact' ? 'w-[160px]' : 'w-[200px]';
 
   return (
@@ -65,6 +66,7 @@ export function ProductCarousel({
           {itemCount !== undefined && (
             <span className="text-xs font-normal text-muted-foreground">({itemCount})</span>
           )}
+          <span className="text-xs font-semibold text-success ml-1">Starting ₹{minPrice}</span>
         </h3>
         {onSeeAll && (
           <button
