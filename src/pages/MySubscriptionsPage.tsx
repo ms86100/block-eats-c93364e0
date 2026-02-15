@@ -41,7 +41,16 @@ export default function MySubscriptionsPage() {
   useEffect(() => { fetchSubs(); }, [fetchSubs]);
 
   const updateStatus = async (id: string, status: string) => {
-    await supabase.from('subscriptions').update({ status }).eq('id', id);
+    if (!user) return;
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({ status })
+      .eq('id', id)
+      .eq('buyer_id', user.id);
+    if (error) {
+      toast({ title: 'Failed to update', description: error.message, variant: 'destructive' });
+      return;
+    }
     toast({ title: `Subscription ${status}` });
     fetchSubs();
   };

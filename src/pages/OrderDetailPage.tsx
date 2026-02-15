@@ -324,7 +324,7 @@ export default function OrderDetailPage() {
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         isCompleted
-                          ? 'bg-success text-white'
+                          ? 'bg-success text-success-foreground'
                           : 'bg-muted text-muted-foreground'
                       } ${isCurrent ? 'ring-2 ring-success ring-offset-2' : ''}`}
                     >

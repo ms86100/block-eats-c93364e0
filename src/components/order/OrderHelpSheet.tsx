@@ -36,14 +36,20 @@ export function OrderHelpSheet({ orderId, onChatOpen }: OrderHelpSheetProps) {
     }
 
     setIsSubmitting(true);
-    // In a real app, this would create a support ticket
-    setTimeout(() => {
-      toast.success('Your issue has been reported. We\'ll get back to you soon.');
-      setIsOpen(false);
+    try {
+      // Route to seller chat as the primary resolution path
+      if (onChatOpen) {
+        setIsOpen(false);
+        onChatOpen();
+        toast.success('Opening chat with seller to resolve your issue.');
+      } else {
+        toast.info('Please contact the seller directly for help with this order.');
+      }
       setSelectedIssue(null);
       setDetails('');
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   const handleChatWithSeller = () => {

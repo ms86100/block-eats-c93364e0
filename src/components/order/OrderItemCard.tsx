@@ -103,11 +103,17 @@ export function OrderItemCard({ item, isSellerView, orderStatus, onStatusUpdate 
               <SelectValue placeholder="Change status" />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_ORDER.map((status) => (
-                <SelectItem key={status} value={status} className="text-xs">
-                  {ITEM_STATUS_LABELS[status].label}
-                </SelectItem>
-              ))}
+              {STATUS_ORDER.map((status) => {
+                const statusIndex = STATUS_ORDER.indexOf(status);
+                const currentIndex = STATUS_ORDER.indexOf(currentStatus);
+                // Only allow forward transitions
+                const isDisabled = statusIndex <= currentIndex;
+                return (
+                  <SelectItem key={status} value={status} className="text-xs" disabled={isDisabled}>
+                    {ITEM_STATUS_LABELS[status].label}
+                  </SelectItem>
+                );
+              })}
               <SelectItem value="cancelled" className="text-xs text-destructive">
                 Cancelled
               </SelectItem>

@@ -62,7 +62,7 @@ export function OrderCancellation({ orderId, orderStatus, onCancelled }: OrderCa
         .from('orders')
         .update({ 
           status: 'cancelled',
-          notes: `Cancelled by buyer: ${finalReason}`
+          rejection_reason: `Cancelled by buyer: ${finalReason}`,
         })
         .eq('id', orderId);
 
