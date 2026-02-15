@@ -43,7 +43,8 @@ export function ProductGridCard({ product, behavior, onTap, className }: Product
 
   const actionType: ProductActionType = (product as any).action_type || 'add_to_cart';
   const config = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
-  const isCartAction = config.isCart;
+  // Only treat as cart action if BOTH the action type says so AND the category behavior supports cart
+  const isCartAction = config.isCart && (behavior?.supportsCart !== false);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
