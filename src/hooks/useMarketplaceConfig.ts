@@ -2,16 +2,26 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Fetches admin_settings keys relevant to the marketplace UI.
- * Returns a typed config object with fallbacks.
+ * System-wide marketplace config from system_settings + admin_settings.
+ * Single source of truth — no frontend defaults for business logic.
  */
-interface MarketplaceConfig {
+export interface MarketplaceConfig {
   lowStockThreshold: number;
+  currencySymbol: string;
+  defaultCurrency: string;
+  maxBadgesPerCard: number;
+  enableScarcity: boolean;
+  enablePulseAnimation: boolean;
   fulfillmentLabels: Record<string, string>;
 }
 
-const DEFAULTS: MarketplaceConfig = {
+const FALLBACKS: MarketplaceConfig = {
   lowStockThreshold: 5,
+  currencySymbol: '₹',
+  defaultCurrency: 'INR',
+  maxBadgesPerCard: 2,
+  enableScarcity: true,
+  enablePulseAnimation: true,
   fulfillmentLabels: {
     delivery: '🚚 Delivery',
     self_pickup: '📍 Pickup',
@@ -19,39 +29,48 @@ const DEFAULTS: MarketplaceConfig = {
   },
 };
 
-export function useMarketplaceConfig() {
-  const { data: config = DEFAULTS } = useQuery({
-    queryKey: ['marketplace-config'],
+export function useMarketplaceConfig(): MarketplaceConfig {
+  const { data: config = FALLBACKS } = useQuery({
+    queryKey: ['marketplace-config-v2'],
     queryFn: async (): Promise<MarketplaceConfig> => {
-      const { data, error } = await supabase
-        .from('admin_settings')
-        .select('key, value')
-        .in('key', ['low_stock_threshold', 'fulfillment_labels'])
-        .eq('is_active', true);
+      // Fetch from both tables in parallel
+      const [sysResult, adminResult] = await Promise.all([
+        supabase.from('system_settings').select('key, value'),
+        supabase
+          .from('admin_settings')
+          .select('key, value')
+          .in('key', ['fulfillment_labels'])
+          .eq('is_active', true),
+      ]);
 
-      if (error) {
-        console.error('Failed to fetch marketplace config:', error);
-        return DEFAULTS;
+      const sysMap: Record<string, string> = {};
+      for (const row of sysResult.data || []) {
+        if (row.key && row.value) sysMap[row.key] = row.value;
       }
 
-      const map: Record<string, string> = {};
-      for (const row of data || []) {
-        if (row.key && row.value) map[row.key] = row.value;
+      const adminMap: Record<string, string> = {};
+      for (const row of adminResult.data || []) {
+        if (row.key && row.value) adminMap[row.key] = row.value;
       }
 
-      let fulfillmentLabels = DEFAULTS.fulfillmentLabels;
+      let fulfillmentLabels = FALLBACKS.fulfillmentLabels;
       try {
-        if (map.fulfillment_labels) {
-          fulfillmentLabels = JSON.parse(map.fulfillment_labels);
+        if (adminMap.fulfillment_labels) {
+          fulfillmentLabels = JSON.parse(adminMap.fulfillment_labels);
         }
-      } catch { /* use defaults */ }
+      } catch { /* use fallbacks */ }
 
       return {
-        lowStockThreshold: parseInt(map.low_stock_threshold || '5', 10) || 5,
+        lowStockThreshold: parseInt(sysMap.low_stock_threshold || '5', 10) || 5,
+        currencySymbol: sysMap.currency_symbol || '₹',
+        defaultCurrency: sysMap.default_currency || 'INR',
+        maxBadgesPerCard: parseInt(sysMap.max_badges_per_card || '2', 10) || 2,
+        enableScarcity: sysMap.enable_scarcity !== 'false',
+        enablePulseAnimation: sysMap.enable_pulse_animation !== 'false',
         fulfillmentLabels,
       };
     },
-    staleTime: 15 * 60 * 1000, // 15 min — rarely changes
+    staleTime: 15 * 60 * 1000,
   });
 
   return config;

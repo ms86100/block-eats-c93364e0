@@ -72,6 +72,7 @@ export interface CategoryConfig {
   icon: string;
   color: string;
   parentGroup: ParentGroup;
+  layoutType: 'ecommerce' | 'food' | 'service';
   behavior: CategoryBehavior;
   formHints: CategoryFormHints;
   displayOrder: number;

@@ -19,6 +19,7 @@ interface CategoryConfigRow {
   icon: string;
   color: string;
   parent_group: string;
+  layout_type: string;
   is_physical_product: boolean;
   requires_preparation: boolean;
   requires_time_slot: boolean;
@@ -58,6 +59,7 @@ const fetchCategoryConfigs = async (): Promise<CategoryConfig[]> => {
     icon: row.icon,
     color: row.color,
     parentGroup: row.parent_group as ParentGroup,
+    layoutType: (row.layout_type as 'ecommerce' | 'food' | 'service') || 'ecommerce',
     behavior: {
       isPhysicalProduct: row.is_physical_product,
       requiresPreparation: row.requires_preparation,

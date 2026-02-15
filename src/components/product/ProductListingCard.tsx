@@ -6,9 +6,8 @@ import { VegBadge } from '@/components/ui/veg-badge';
 import { useCart } from '@/hooks/useCart';
 import { ProductActionType } from '@/types/database';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
-import { useParentGroups } from '@/hooks/useParentGroups';
 import { useMarketplaceConfig } from '@/hooks/useMarketplaceConfig';
-import { ACTION_CONFIG } from '@/lib/marketplace-constants';
+import { useBadgeConfig } from '@/hooks/useBadgeConfig';
 import { useCardAnalytics } from '@/hooks/useCardAnalytics';
 import { ContactSellerModal } from './ContactSellerModal';
 import { cn } from '@/lib/utils';
@@ -64,14 +63,12 @@ type CardLayout = 'auto' | 'ecommerce' | 'food' | 'service';
 interface ProductListingCardProps {
   product: ProductWithSeller;
   layout?: CardLayout;
-  parentGroup?: string | null;
   onTap?: (product: ProductWithSeller) => void;
   className?: string;
   viewOnly?: boolean;
 }
 
-/* ━━━ Constants — kept only for spice display (visual emoji, not logic) ━━━ */
-
+/* ━━━ Constants — visual only (spice emoji) ━━━ */
 const SPICE_EMOJI: Record<string, string> = {
   mild: '🌶️',
   medium: '🌶️🌶️',
@@ -79,22 +76,11 @@ const SPICE_EMOJI: Record<string, string> = {
   extra_hot: '🔥',
 };
 
-/* Badge priority: bestseller > limited > new > trending (max 2) */
-type BadgeVariant = 'bestseller' | 'limited' | 'new' | 'trending';
-
-const BADGE_STYLES: Record<BadgeVariant, string> = {
-  bestseller: 'bg-accent text-accent-foreground',
-  limited: 'bg-destructive text-destructive-foreground animate-low-stock-pulse',
-  new: 'bg-info text-primary-foreground',
-  trending: 'bg-primary text-primary-foreground',
-};
-
 /* ━━━ Main Component ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 export function ProductListingCard({
   product,
   layout = 'auto',
-  parentGroup,
   onTap,
   className,
   viewOnly = false,
@@ -102,49 +88,38 @@ export function ProductListingCard({
   const navigate = useNavigate();
   const { items, addItem, updateQuantity } = useCart();
   const { configs: categoryConfigs } = useCategoryConfigs();
-  const { layoutMap } = useParentGroups();
   const marketplaceConfig = useMarketplaceConfig();
+  const { badges: badgeConfigs } = useBadgeConfig();
   const [contactOpen, setContactOpen] = useState(false);
 
   const cartItem = items.find((item) => item.product_id === product.id);
   const quantity = cartItem?.quantity || 0;
 
   const actionType: ProductActionType = (product.action_type as ProductActionType) || 'add_to_cart';
-  const config = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
 
-  /* ── Category config lookup ── */
+  /* ── Category config lookup — single source of truth ── */
   const catConfig = useMemo(() => {
     return categoryConfigs.find(c => c.category === product.category) || null;
   }, [categoryConfigs, product.category]);
 
-  /* ── Layout resolution — fully DB-driven via parent_groups.layout_type ── */
-  const resolvedParentGroup = useMemo(() => {
-    if (parentGroup) return parentGroup;
-    return catConfig?.parentGroup || null;
-  }, [parentGroup, catConfig]);
-
+  /* ── Layout from category_config.layout_type — NO inference ── */
   const resolvedLayout = useMemo((): 'ecommerce' | 'food' | 'service' => {
     if (layout !== 'auto') return layout as 'ecommerce' | 'food' | 'service';
-    if (resolvedParentGroup && layoutMap[resolvedParentGroup]) {
-      return layoutMap[resolvedParentGroup];
-    }
-    return 'ecommerce';
-  }, [layout, resolvedParentGroup, layoutMap]);
+    return catConfig?.layoutType || 'ecommerce';
+  }, [layout, catConfig]);
 
+  /* ── All display flags from DB ── */
   const isCartAction = useMemo(() => {
-    if (!config.isCart) return false;
     if (catConfig) return catConfig.behavior?.supportsCart ?? false;
     return actionType === 'add_to_cart' || actionType === 'buy_now';
-  }, [config.isCart, catConfig, actionType]);
+  }, [catConfig, actionType]);
 
-  /* ── DB-driven display flags ── */
-  const showVegBadge = catConfig?.formHints?.showVegToggle ?? (resolvedLayout === 'food');
-  const placeholderEmoji = catConfig?.formHints?.placeholderEmoji
-    || (resolvedLayout === 'food' ? '🍽️' : resolvedLayout === 'service' ? '🛠️' : '🛒');
-  const pricePrefix = catConfig?.formHints?.pricePrefix || (resolvedLayout === 'service' ? 'Starting ' : '');
-  const buttonLabel = catConfig?.formHints?.primaryButtonLabel || config.shortLabel;
+  const showVegBadge = catConfig?.formHints?.showVegToggle ?? false;
+  const placeholderEmoji = catConfig?.formHints?.placeholderEmoji || '🛒';
+  const pricePrefix = catConfig?.formHints?.pricePrefix || '';
+  const buttonLabel = catConfig?.formHints?.primaryButtonLabel || 'ADD';
 
-  /* ── Analytics ── */
+  /* ── Analytics — DB-backed ── */
   const { ref: cardRef, onCardClick: trackClick, onAddClick: trackAdd } = useCardAnalytics({
     productId: product.id,
     category: product.category,
@@ -183,25 +158,47 @@ export function ProductListingCard({
     else navigate(`/seller/${product.seller_id}`);
   };
 
-  /* ── Derived values — DB-driven thresholds ── */
+  /* ── Derived values — all thresholds from DB ── */
   const sellerName = product.seller_name || (product.seller as any)?.business_name || 'Seller';
   const isOutOfStock = !product.is_available;
-  const lowStockThreshold = marketplaceConfig.lowStockThreshold;
-  const isLowStock = product.stock_quantity != null && product.stock_quantity > 0 && product.stock_quantity <= lowStockThreshold;
+  const isLowStock = marketplaceConfig.enableScarcity &&
+    product.stock_quantity != null &&
+    product.stock_quantity > 0 &&
+    product.stock_quantity <= marketplaceConfig.lowStockThreshold;
 
-  /* Badge system — max 2, priority ordered, driven by product.tags[] and product flags */
-  const badges: { label: string; variant: BadgeVariant }[] = [];
-  if (product.is_bestseller) badges.push({ label: 'Bestseller', variant: 'bestseller' });
-  if (isLowStock) badges.push({ label: `Only ${product.stock_quantity} left!`, variant: 'limited' });
-  if (product.tags?.includes('New Arrival') && badges.length < 2) badges.push({ label: 'New', variant: 'new' });
-  if (product.tags?.includes('Trending') && badges.length < 2) badges.push({ label: 'Trending', variant: 'trending' });
+  /* ── Badge system — fully DB-driven via badge_config ── */
+  const badges = useMemo(() => {
+    const result: { label: string; color: string }[] = [];
+    const maxBadges = marketplaceConfig.maxBadgesPerCard;
+
+    for (const bc of badgeConfigs) {
+      if (result.length >= maxBadges) break;
+      if (!bc.layout_visibility.includes(resolvedLayout)) continue;
+
+      if (bc.tag_key === 'bestseller' && product.is_bestseller) {
+        result.push({ label: bc.badge_label, color: bc.color });
+      } else if (bc.tag_key === 'low_stock' && isLowStock) {
+        const label = bc.badge_label.replace('{stock}', String(product.stock_quantity));
+        result.push({
+          label,
+          color: marketplaceConfig.enablePulseAnimation
+            ? `${bc.color} animate-low-stock-pulse`
+            : bc.color,
+        });
+      } else if (product.tags?.includes(bc.tag_key) && bc.tag_key !== 'bestseller' && bc.tag_key !== 'low_stock') {
+        result.push({ label: bc.badge_label, color: bc.color });
+      }
+    }
+    return result;
+  }, [badgeConfigs, product, resolvedLayout, isLowStock, marketplaceConfig]);
 
   /* Image aspect ratio per layout */
   const imageAspect = resolvedLayout === 'food' ? 'aspect-[4/3]'
     : resolvedLayout === 'service' ? 'aspect-[16/10]'
     : 'aspect-square';
-
   const imageObjectFit = resolvedLayout === 'ecommerce' ? 'object-contain' : 'object-cover';
+
+  const currencySymbol = marketplaceConfig.currencySymbol;
 
   return (
     <>
@@ -219,10 +216,7 @@ export function ProductListingCard({
       >
         {/* ━━━ IMAGE SECTION ━━━ */}
         <div className="relative p-2 pb-0">
-          <div className={cn(
-            'relative rounded-lg overflow-hidden bg-muted/40',
-            imageAspect
-          )}>
+          <div className={cn('relative rounded-lg overflow-hidden bg-muted/40', imageAspect)}>
             {product.image_url ? (
               <img
                 src={product.image_url}
@@ -240,7 +234,6 @@ export function ProductListingCard({
               </div>
             )}
 
-            {/* Out of stock overlay */}
             {isOutOfStock && (
               <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] flex items-center justify-center rounded-lg">
                 <span className="text-[10px] font-bold text-muted-foreground bg-muted/90 px-2.5 py-1 rounded-full uppercase tracking-wider">
@@ -249,15 +242,14 @@ export function ProductListingCard({
               </div>
             )}
 
-            {/* Top-left badges — vertical stack, max 2 */}
             {badges.length > 0 && (
               <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5">
-                {badges.slice(0, 2).map((b, i) => (
+                {badges.map((b, i) => (
                   <Badge
                     key={i}
                     className={cn(
                       'text-[9px] leading-none px-1.5 py-0.5 font-bold shadow-sm rounded border-0',
-                      BADGE_STYLES[b.variant]
+                      b.color
                     )}
                   >
                     {b.label}
@@ -266,7 +258,6 @@ export function ProductListingCard({
               </div>
             )}
 
-            {/* Veg/NonVeg badge — driven by category_config.show_veg_toggle */}
             {showVegBadge && (
               <div className="absolute top-1.5 right-1.5">
                 <VegBadge isVeg={product.is_veg} size="sm" />
@@ -277,19 +268,16 @@ export function ProductListingCard({
 
         {/* ━━━ CONTENT SECTION ━━━ */}
         <div className="px-3 pb-3 pt-2 flex flex-col flex-1 space-y-1">
-          {/* Brand (ecommerce only) */}
           {resolvedLayout === 'ecommerce' && product.brand && (
             <span className="text-[10px] font-semibold text-primary/70 uppercase tracking-wider truncate leading-none">
               {product.brand}
             </span>
           )}
 
-          {/* Title */}
           <h4 className="font-semibold text-sm leading-snug line-clamp-2 text-foreground">
             {product.name}
           </h4>
 
-          {/* Layout-specific metadata */}
           {resolvedLayout === 'ecommerce' && <EcommerceMetadata product={product} sellerName={sellerName} />}
           {resolvedLayout === 'food' && <FoodMetadata product={product} sellerName={sellerName} />}
           {resolvedLayout === 'service' && (
@@ -300,14 +288,12 @@ export function ProductListingCard({
             />
           )}
 
-          {/* Trust layer */}
           <TrustRow product={product} layout={resolvedLayout} />
 
           <div className="flex-1 min-h-1" />
 
-          {/* ━━━ PRICE + ACTION ROW ━━━ */}
           <div className="flex items-end justify-between gap-2 pt-1">
-            <PriceBlock product={product} actionType={actionType} pricePrefix={pricePrefix} />
+            <PriceBlock product={product} actionType={actionType} pricePrefix={pricePrefix} currencySymbol={currencySymbol} />
             <ActionButton
               actionType={actionType}
               buttonLabel={buttonLabel}
@@ -341,7 +327,6 @@ export function ProductListingCard({
    SUB-COMPONENTS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-/* ── Seller Row ── */
 function SellerRow({ name, verified }: { name: string; verified?: boolean }) {
   return (
     <div className="flex items-center gap-1">
@@ -352,11 +337,9 @@ function SellerRow({ name, verified }: { name: string; verified?: boolean }) {
   );
 }
 
-/* ── Trust Row — rating, social proof, trust badges ── */
 function TrustRow({ product, layout }: { product: ProductWithSeller; layout: string }) {
   const hasRating = product.seller_rating && product.seller_rating > 0;
   const hasOrders = product.completed_order_count && product.completed_order_count > 0;
-
   if (!hasRating && !hasOrders && !product.warranty_period) return null;
 
   return (
@@ -389,14 +372,11 @@ function TrustRow({ product, layout }: { product: ProductWithSeller; layout: str
   );
 }
 
-/* ── E-commerce Metadata ── */
 function EcommerceMetadata({ product, sellerName }: { product: ProductWithSeller; sellerName: string }) {
   return (
     <div className="space-y-0.5">
       {product.unit_type && (
-        <span className="text-xs text-muted-foreground block">
-          {product.price_per_unit || product.unit_type}
-        </span>
+        <span className="text-xs text-muted-foreground block">{product.price_per_unit || product.unit_type}</span>
       )}
       <SellerRow name={sellerName} verified={product.seller_verified} />
       {product.delivery_time_text && <DeliveryChip text={product.delivery_time_text} />}
@@ -404,7 +384,6 @@ function EcommerceMetadata({ product, sellerName }: { product: ProductWithSeller
   );
 }
 
-/* ── Food Metadata ── */
 function FoodMetadata({ product, sellerName }: { product: ProductWithSeller; sellerName: string }) {
   return (
     <div className="space-y-0.5">
@@ -413,9 +392,7 @@ function FoodMetadata({ product, sellerName }: { product: ProductWithSeller; sel
         <span className="text-xs text-muted-foreground block">{product.cuisine_type}</span>
       )}
       <div className="flex items-center gap-2 flex-wrap">
-        {product.serving_size && (
-          <span className="text-xs text-muted-foreground">{product.serving_size}</span>
-        )}
+        {product.serving_size && <span className="text-xs text-muted-foreground">{product.serving_size}</span>}
         {product.prep_time_minutes && (
           <span className="text-xs text-muted-foreground flex items-center gap-0.5">
             <Timer size={9} /> ~{product.prep_time_minutes}m
@@ -431,7 +408,6 @@ function FoodMetadata({ product, sellerName }: { product: ProductWithSeller; sel
   );
 }
 
-/* ── Service Metadata — fulfillment labels from DB ── */
 function ServiceMetadata({
   product,
   sellerName,
@@ -462,7 +438,6 @@ function ServiceMetadata({
   );
 }
 
-/* ── Delivery Chip — Blinkit-style ── */
 function DeliveryChip({ text }: { text: string }) {
   return (
     <div className="flex items-center gap-1 mt-0.5">
@@ -472,22 +447,22 @@ function DeliveryChip({ text }: { text: string }) {
   );
 }
 
-/* ── Price Block — pricePrefix from DB ── */
 function PriceBlock({
   product,
   actionType,
   pricePrefix,
+  currencySymbol,
 }: {
   product: ProductWithSeller;
   actionType: ProductActionType;
   pricePrefix: string;
+  currencySymbol: string;
 }) {
   if (actionType === 'contact_seller') {
     return <span className="text-xs font-medium text-muted-foreground italic">Contact for price</span>;
   }
 
   const hasDiscount = product.mrp && product.mrp > product.price;
-  // Use DB-computed discount_percentage; only fallback if column is null
   const discountPct = product.discount_percentage
     || (hasDiscount ? Math.round(((product.mrp! - product.price) / product.mrp!) * 100) : 0);
 
@@ -495,25 +470,24 @@ function PriceBlock({
     <div className="flex flex-col min-w-0">
       <div className="flex items-baseline gap-1 flex-wrap">
         <span className="font-bold text-base text-foreground leading-none">
-          {pricePrefix}₹{product.price}
+          {pricePrefix}{currencySymbol}{product.price}
         </span>
       </div>
       {hasDiscount && (
         <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-[10px] text-muted-foreground line-through leading-none">₹{product.mrp}</span>
+          <span className="text-[10px] text-muted-foreground line-through leading-none">{currencySymbol}{product.mrp}</span>
           <span className="text-[10px] font-bold text-success bg-success/10 px-1 py-0 rounded leading-none">
             {discountPct}% OFF
           </span>
         </div>
       )}
       {product.minimum_charge != null && product.minimum_charge > 0 && (
-        <span className="text-[9px] text-muted-foreground mt-0.5 leading-none">Min ₹{product.minimum_charge}</span>
+        <span className="text-[9px] text-muted-foreground mt-0.5 leading-none">Min {currencySymbol}{product.minimum_charge}</span>
       )}
     </div>
   );
 }
 
-/* ── Action Button — State Machine, label from DB ── */
 function ActionButton({
   actionType,
   buttonLabel,
@@ -554,16 +528,12 @@ function ActionButton({
 
   if (isOutOfStock) {
     return (
-      <button
-        disabled
-        className="bg-muted text-muted-foreground font-semibold text-[10px] px-3 py-1.5 rounded-full cursor-not-allowed shrink-0"
-      >
+      <button disabled className="bg-muted text-muted-foreground font-semibold text-[10px] px-3 py-1.5 rounded-full cursor-not-allowed shrink-0">
         Sold out
       </button>
     );
   }
 
-  // Cart-compatible: ADD → quantity stepper
   if (isCartAction) {
     if (quantity === 0) {
       return (
@@ -588,7 +558,6 @@ function ActionButton({
     );
   }
 
-  // Non-cart actions: Book, Contact, Quote, etc.
   if (!isAvailable) {
     return <span className="text-[10px] font-medium text-muted-foreground shrink-0">Unavailable</span>;
   }

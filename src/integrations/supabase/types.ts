@@ -128,6 +128,39 @@ export type Database = {
         }
         Relationships: []
       }
+      badge_config: {
+        Row: {
+          badge_label: string
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          layout_visibility: string[]
+          priority: number
+          tag_key: string
+        }
+        Insert: {
+          badge_label: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          layout_visibility?: string[]
+          priority?: number
+          tag_key: string
+        }
+        Update: {
+          badge_label?: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          layout_visibility?: string[]
+          priority?: number
+          tag_key?: string
+        }
+        Relationships: []
+      }
       builder_feature_packages: {
         Row: {
           assigned_at: string
@@ -528,6 +561,7 @@ export type Database = {
           is_active: boolean
           is_negotiable: boolean
           is_physical_product: boolean
+          layout_type: string
           name_placeholder: string | null
           parent_group: string
           placeholder_emoji: string | null
@@ -562,6 +596,7 @@ export type Database = {
           is_active?: boolean
           is_negotiable?: boolean
           is_physical_product?: boolean
+          layout_type?: string
           name_placeholder?: string | null
           parent_group: string
           placeholder_emoji?: string | null
@@ -596,6 +631,7 @@ export type Database = {
           is_active?: boolean
           is_negotiable?: boolean
           is_physical_product?: boolean
+          layout_type?: string
           name_placeholder?: string | null
           parent_group?: string
           placeholder_emoji?: string | null
@@ -1815,6 +1851,50 @@ export type Database = {
             columns: ["society_id"]
             isOneToOne: false
             referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_events: {
+        Row: {
+          category: string | null
+          created_at: string
+          event_type: string
+          id: string
+          layout_type: string | null
+          metadata: Json | null
+          product_id: string | null
+          seller_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          layout_type?: string | null
+          metadata?: Json | null
+          product_id?: string | null
+          seller_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          layout_type?: string | null
+          metadata?: Json | null
+          product_id?: string | null
+          seller_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -4409,6 +4489,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
       }
       trigger_errors: {
         Row: {

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Analytics tracking hooks for ProductListingCard.
- * Fires lightweight events for impression, click, add, wishlist.
- * Replace the console.debug calls with your analytics provider (Mixpanel, Amplitude, etc.)
+ * DB-backed analytics tracking for ProductListingCard.
+ * Writes to marketplace_events table. No console-only logging.
  */
 
 interface CardEvent {
@@ -14,15 +14,26 @@ interface CardEvent {
   layout: string;
 }
 
-function emit(event: string, data: CardEvent) {
-  // Replace with real analytics SDK call
-  if (typeof window !== 'undefined' && (window as any).__CARD_ANALYTICS_DEBUG__) {
-    console.debug(`[analytics] ${event}`, data);
+async function emit(eventType: string, data: CardEvent) {
+  try {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session?.session?.user?.id || null;
+
+    await supabase.from('marketplace_events').insert({
+      product_id: data.productId,
+      seller_id: data.sellerId,
+      category: data.category,
+      layout_type: data.layout,
+      event_type: eventType,
+      user_id: userId,
+      metadata: { price: data.price },
+    });
+  } catch {
+    // Silent fail — analytics must never break UI
   }
-  // Future: window.analytics?.track(event, data);
 }
 
-export function useCardAnalytics(product: CardEvent & { layout: string }) {
+export function useCardAnalytics(product: CardEvent) {
   const impressionFired = useRef(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -41,7 +52,7 @@ export function useCardAnalytics(product: CardEvent & { layout: string }) {
       ([entry]) => {
         if (entry.isIntersecting && !impressionFired.current) {
           impressionFired.current = true;
-          emit('card_impression', payload);
+          emit('impression', payload);
         }
       },
       { threshold: 0.5 }
@@ -52,17 +63,17 @@ export function useCardAnalytics(product: CardEvent & { layout: string }) {
   }, [product.productId]);
 
   const onCardClick = useCallback(() => {
-    emit('card_click', payload);
+    emit('click', payload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.productId]);
 
   const onAddClick = useCallback(() => {
-    emit('card_add', payload);
+    emit('add_to_cart', payload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.productId]);
 
   const onWishlistClick = useCallback(() => {
-    emit('card_wishlist', payload);
+    emit('wishlist', payload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.productId]);
 

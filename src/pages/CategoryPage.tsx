@@ -188,7 +188,6 @@ export default function CategoryPage() {
                 <ProductListingCard
                   key={product.id}
                   product={product as any}
-                  parentGroup={(categoryInfo as any)?.parent_group}
                   onTap={handleProductTap}
                 />
               ))}
