@@ -242,39 +242,30 @@ function LocalProductsTab({
   }
 
   return (
-    <div className="space-y-6 pb-4">
-      {categories.map(cat => {
-        const minPrice = Math.min(...cat.products.map(p => p.price));
-        return (
-          <div key={cat.category} className="px-4">
-            <div
-              className="flex items-center justify-between mb-3 cursor-pointer"
-              onClick={() => navigate(`/category/${cat.category}`)}
+    <div className="space-y-5 pb-4">
+      {categories.map(cat => (
+        <div key={cat.category}>
+          {/* Section Header — Blinkit style */}
+          <div className="flex items-center justify-between px-4 mb-2">
+            <h3 className="font-bold text-sm text-foreground">{cat.displayName}</h3>
+            <Link
+              to={`/category/${cat.category}`}
+              className="text-xs font-semibold text-success hover:underline"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{cat.icon}</span>
-                <h3 className="font-bold text-sm text-foreground">{cat.displayName}</h3>
-                <span className="text-xs text-muted-foreground">({cat.products.length})</span>
-                <span className="text-xs font-semibold text-success">Starting ₹{minPrice}</span>
-              </div>
-              <ChevronRight size={16} className="text-muted-foreground" />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {cat.products.slice(0, 4).map(product => (
-                <ProductListingCard key={product.id} product={product} />
-              ))}
-            </div>
-            {cat.products.length > 4 && (
-              <Link
-                to={`/category/${cat.category}`}
-                className="block text-center text-xs text-primary font-medium py-2 mt-2"
-              >
-                View all {cat.products.length} items →
-              </Link>
-            )}
+              see all
+            </Link>
           </div>
-        );
-      })}
+
+          {/* Horizontal scrollable product row */}
+          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide px-4 pb-1">
+            {cat.products.slice(0, 8).map(product => (
+              <div key={product.id} className="w-[140px] shrink-0">
+                <ProductListingCard product={product} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -362,32 +353,27 @@ function NearbyTab({
           <p className="text-xs text-muted-foreground mt-1">Try increasing the search radius</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {nearbyCategories.map(cat => {
-            const minPrice = Math.min(...cat.products.map(p => p.price));
-            return (
-              <div key={cat.category}>
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="font-bold text-sm text-foreground capitalize">{cat.displayName}</h3>
-                  <span className="text-xs text-muted-foreground">({cat.products.length})</span>
-                  <span className="text-xs font-semibold text-success">Starting ₹{minPrice}</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {cat.products.slice(0, 4).map((product, idx) => (
-                    <ProductListingCard key={`${product.id || idx}`} product={product} />
-                  ))}
-                </div>
-                {cat.products.length > 4 && (
-                  <button
-                    onClick={() => navigate(`/category/${cat.category}`)}
-                    className="block text-center text-xs text-primary font-medium py-2 mt-2 w-full"
-                  >
-                    View all {cat.products.length} items →
-                  </button>
-                )}
+        <div className="space-y-5">
+          {nearbyCategories.map(cat => (
+            <div key={cat.category}>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-sm text-foreground capitalize">{cat.displayName}</h3>
+                <button
+                  onClick={() => navigate(`/category/${cat.category}`)}
+                  className="text-xs font-semibold text-success hover:underline"
+                >
+                  see all
+                </button>
               </div>
-            );
-          })}
+              <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1">
+                {cat.products.slice(0, 8).map((product, idx) => (
+                  <div key={`${product.id || idx}`} className="w-[140px] shrink-0">
+                    <ProductListingCard product={product} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

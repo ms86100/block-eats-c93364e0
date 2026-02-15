@@ -47,22 +47,22 @@ export function CategoryGroupGrid({
   if (variant === 'compact') {
     const visibleGroups = filteredGroups.filter(g => groupedConfigs[g.value]?.length > 0);
     return (
-      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-2 gap-y-3">
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 py-1">
         {visibleGroups.map(({ value, label, icon, color }) => (
           <Link
             key={value}
             to={`/category/${value}`}
-            className="flex flex-col items-center gap-1.5 group"
+            className="flex flex-col items-center gap-1 min-w-[64px] shrink-0 group"
           >
             <div
               className={cn(
-                'w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110 group-hover:shadow-md',
-                color
+                'w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-transform group-hover:scale-105',
+                'bg-muted/60 border border-border/30'
               )}
             >
               {icon}
             </div>
-            <span className="text-[11px] font-medium text-center leading-tight text-foreground line-clamp-2 max-w-[72px]">
+            <span className="text-[10px] font-medium text-center leading-tight text-foreground line-clamp-2 max-w-[64px]">
               {label}
             </span>
           </Link>
