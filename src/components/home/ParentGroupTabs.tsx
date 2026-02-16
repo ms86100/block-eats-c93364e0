@@ -6,11 +6,15 @@ import { useHaptics } from '@/hooks/useHaptics';
 interface ParentGroupTabsProps {
   activeGroup: string | null;
   onGroupChange: (slug: string | null) => void;
+  activeParentGroups?: Set<string>;
 }
 
-export function ParentGroupTabs({ activeGroup, onGroupChange }: ParentGroupTabsProps) {
+export function ParentGroupTabs({ activeGroup, onGroupChange, activeParentGroups }: ParentGroupTabsProps) {
   const { parentGroupInfos, isLoading } = useParentGroups();
   const { selectionChanged } = useHaptics();
+  const filteredGroups = activeParentGroups
+    ? parentGroupInfos.filter(g => activeParentGroups.has(g.value))
+    : parentGroupInfos;
 
   if (isLoading) {
     return (
@@ -31,7 +35,7 @@ export function ParentGroupTabs({ activeGroup, onGroupChange }: ParentGroupTabsP
     layoutType: 'ecommerce',
   };
 
-  const tabs = [allTab, ...parentGroupInfos];
+  const tabs = [allTab, ...filteredGroups];
 
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-1">

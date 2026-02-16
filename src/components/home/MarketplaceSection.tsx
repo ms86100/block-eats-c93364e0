@@ -27,18 +27,17 @@ export function MarketplaceSection() {
     : localCategories;
 
   const activeCategorySet = new Set(localCategories.map(c => c.category));
+  const activeParentGroupSet = new Set(localCategories.map(c => c.parentGroup));
 
   const activeParentGroups = activeGroup
-    ? parentGroupInfos.filter(g => g.value === activeGroup)
-    : parentGroupInfos.filter(g =>
-        localCategories.some(cat => cat.parentGroup === g.value)
-      );
+    ? parentGroupInfos.filter(g => g.value === activeGroup && activeParentGroupSet.has(g.value))
+    : parentGroupInfos.filter(g => activeParentGroupSet.has(g.value));
 
   return (
     <div className="pb-2">
       {/* ━━━ Parent Group Pill Tabs ━━━ */}
       <div className="pt-2 pb-3">
-        <ParentGroupTabs activeGroup={activeGroup} onGroupChange={setActiveGroup} />
+        <ParentGroupTabs activeGroup={activeGroup} onGroupChange={setActiveGroup} activeParentGroups={activeParentGroupSet} />
       </div>
 
       {/* ━━━ Category Image Sections ━━━ */}
