@@ -99,7 +99,6 @@ export function DraftProductManager({
           name: newProduct.name.trim(),
           price: newProduct.price || 0,
           mrp: newProduct.mrp && newProduct.mrp > 0 ? newProduct.mrp : null,
-          discount_percentage: computedDiscount,
           description: newProduct.description.trim() || null,
           category: newProduct.category,
           is_veg: newProduct.is_veg,
