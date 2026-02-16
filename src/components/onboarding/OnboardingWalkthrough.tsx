@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, ShoppingBag, Users, MapPin, Shield, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,8 @@ const slides = [
 
 export function OnboardingWalkthrough({ onComplete }: OnboardingWalkthroughProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
@@ -45,15 +47,39 @@ export function OnboardingWalkthrough({ onComplete }: OnboardingWalkthroughProps
     }
   };
 
+  const handlePrev = () => {
+    if (currentSlide > 0) {
+      setCurrentSlide(currentSlide - 1);
+    }
+  };
+
   const handleSkip = () => {
     onComplete();
   };
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const onTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    // Only trigger if horizontal swipe is dominant
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX < 0) handleNext();
+      else handlePrev();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }, [currentSlide]);
 
   const slide = slides[currentSlide];
   const Icon = slide.icon;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {/* Skip button */}
       <div className="flex justify-end p-4">
         <Button variant="ghost" size="sm" onClick={handleSkip}>
