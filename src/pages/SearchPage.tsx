@@ -626,12 +626,14 @@ export default function SearchPage() {
             </div>
           )}
 
-          {/* ─── Category Bubbles ─── */}
+          {/* ─── Category Bubbles (only categories with active products) ─── */}
           <CategoryBubbleRow
-            categories={categoryConfigs}
+            categories={categoryConfigs.filter(c => 
+              popularProducts.some(p => p.category === c.category)
+            )}
             selectedCategory={selectedCategory}
             onCategoryTap={handleCategoryTap}
-            isLoading={categoriesLoading}
+            isLoading={categoriesLoading || isLoadingPopular}
           />
 
           {/* ─── Filter presets ─── */}
