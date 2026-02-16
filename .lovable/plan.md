@@ -1,205 +1,140 @@
 
-# Production-Grade Product & Service Listing Card System
+
+# End-to-End Cross-Society Marketplace Test Plan
 
 ## Overview
 
-Rebuild the product card system into a unified, conversion-optimized component that adapts its layout based on product type (physical product, service, food) while extracting and displaying every available structured detail. This requires both database schema extensions and a new multi-layout card component.
+This plan sets up a clean-slate test environment with specific test entities to validate society-based visibility, distance-based discovery (4 km and 10 km), and ordering across societies.
 
 ---
 
-## Phase 1: Database Schema Extensions
+## Phase 1: Data Reset
 
-Add missing fields to the `products` table that are required for a marketplace-grade listing:
+Clear all existing data from transactional and entity tables in dependency order to avoid foreign key violations.
 
-| New Column | Type | Purpose |
-|---|---|---|
-| `mrp` | numeric | Original price for strike-through display |
-| `brand` | text | Brand name for trust signals |
-| `unit_type` | text | kg, g, ml, plate, session, visit, etc. |
-| `price_per_unit` | text | e.g. "per kg", "per session" |
-| `stock_quantity` | integer | For scarcity indicator ("Only 3 left") |
-| `secondary_images` | text[] | Array of additional image URLs |
-| `bullet_features` | text[] | Quick feature bullets |
-| `specifications` | jsonb | Key-value specs (color, weight, material) |
-| `ingredients` | text | For food/grocery items |
-| `serving_size` | text | e.g. "Serves 2", "250g" |
-| `spice_level` | text | mild / medium / hot / extra_hot |
-| `cuisine_type` | text | For food: North Indian, Chinese, etc. |
-| `warranty_period` | text | For services/products |
-| `service_scope` | text | What's included in the service |
-| `visit_charge` | numeric | Inspection/visit fee for services |
-| `minimum_charge` | numeric | Minimum order/service charge |
-| `delivery_time_text` | text | "30 min", "Same Day", "2-3 days" |
-| `tags` | text[] | Trending, New Arrival, Limited Stock, etc. |
+**Tables to clear (in order):**
+1. Transactional/child tables first: `coupon_redemptions`, `payment_records`, `order_items`, `orders`, `orders_archive`, `cart_items`, `chat_messages`, `reviews`, `favorites`, `subscription_deliveries`, `subscriptions`, `marketplace_events`, `notification_queue`, `user_notifications`, `device_tokens`, `audit_log`, `audit_log_archive`, `trigger_errors`
+2. Community modules: `bulletin_votes`, `bulletin_comments`, `bulletin_rsvps`, `bulletin_posts`, `help_responses`, `help_requests`, `dispute_comments`, `dispute_tickets`, `snag_tickets`, `society_activity`, `emergency_broadcasts`, `gate_entries`, `visitor_entries`, `manual_entry_requests`, `parcel_entries`, `parking_violations`, `parking_slots`, `worker_ratings`, `worker_entry_logs`, `worker_flat_assignments`, `worker_job_requests`, `society_workers`, `domestic_help_attendance`, `domestic_help_entries`
+3. Marketplace: `products`, `seller_licenses`, `seller_profiles`, `coupons`, `featured_items`
+4. Trust/skills: `skill_endorsements`, `skill_listings`, `reports`, `warnings`
+5. Finance/progress: `society_expenses`, `society_income`, `expense_flags`, `expense_views`, `maintenance_dues`, `resident_payments`, `payment_milestones`, `project_answers`, `project_questions`, `project_documents`, `milestone_reactions`, `construction_milestones`, `project_towers`, `inspection_items`, `inspection_checklists`, `society_report_cards`, `society_reports`, `collective_escalations`
+6. Admin/config: `society_feature_overrides`, `society_features`, `security_staff`, `society_admins`, `builder_feature_packages`, `builder_societies`, `builder_members`, `builders`
+7. Core: `user_roles`, `profiles` (cascade will handle auth references)
+8. Societies: `societies` (only test ones -- we preserve `category_config`, `parent_groups`, `badge_config`, `system_settings`, `platform_features`, `feature_packages`, `society_worker_categories`, `order_status_config` as configuration data)
 
-Add a computed trigger to auto-calculate `discount_percentage` from `mrp` and `price`.
+**Note:** `category_config`, `parent_groups`, `badge_config`, `system_settings`, and `admin_settings` are configuration tables and will NOT be cleared.
 
 ---
 
-## Phase 2: New Unified `ProductListingCard` Component
+## Phase 2: Seed Test Data
 
-Create `src/components/product/ProductListingCard.tsx` -- a single, reusable card that replaces `ProductGridCard` for all listing surfaces.
+### Step 1 -- Create Three Societies with Real Coordinates
 
-### Layout Detection Logic
+Using Bangalore coordinates with known distances:
 
-```text
-if parent_group in (food, grocery)  --> Food Layout
-if parent_group in (services, personal, professional, events) --> Service Layout
-else --> E-commerce Layout
-```
+| Entity | Name | Lat | Lon | Notes |
+|--------|------|-----|-----|-------|
+| Society B | Green Valley Residency | 12.9716 | 77.5946 | Primary (central Bangalore) |
+| Society D | Lakeside Towers | 12.9950 | 77.6150 | ~3.2 km from B (within 4 km) |
+| Society E | Hilltop Heights | 13.0350 | 77.6500 | ~8.5 km from B, ~8.0 km from D (within 10 km) |
 
-### Common Elements (all layouts)
+All societies will be `is_active = true`, `is_verified = true`.
 
-- Image container with lazy loading and fallback emoji
-- Bestseller / New / Limited Stock badge overlay (top-left)
-- Wishlist heart icon (top-right, future hook)
-- Veg/Non-veg badge where applicable
-- Seller name with verified tick
-- Price block: bold selling price, strike-through MRP, discount badge
-- Dynamic action button (ADD / Book / Contact / View) based on `action_type`
-- Quantity stepper when item is in cart
-- Out-of-stock overlay
-- Scarcity indicator ("Only 3 left!")
+### Step 2 -- Create Auth Users
 
-### E-commerce Layout (Grocery, Electronics, Beauty)
+Create 2 auth users via Supabase auth admin (edge function or direct insert):
+- **User A** (customer): `usera@test.sociva.com` -- mapped to Society B
+- **User D** (customer): `userd@test.sociva.com` -- mapped to Society D
 
-```text
-+---------------------------+
-| [Badge]          [Heart]  |
-|       [Product Image]     |
-|       (object-contain)    |
-|  [Veg]                    |
-+---------------------------+
-| Brand Name (if exists)    |
-| Product Title (2-line)    |
-| Unit: 500g                |
-| Seller Name  [Verified]   |
-| ₹199  ~~₹299~~  33% OFF  |
-| Delivery: 30 min          |
-| [Stock warning]    [ADD]  |
-+---------------------------+
-```
+And 1 seller user:
+- **Seller C user**: `sellerc@test.sociva.com` -- mapped to Society B
 
-### Food Layout (Home Food, Restaurant, Bakery)
+Additionally, create a seller in Society E for the 10 km radius test:
+- **Seller E user**: `sellere@test.sociva.com` -- mapped to Society E
 
-```text
-+---------------------------+
-| [Bestseller]     [Heart]  |
-|       [Dish Image]        |
-|  [Veg/NonVeg]             |
-+---------------------------+
-| Dish Name (2-line)        |
-| Kitchen: Mom's Kitchen    |
-| Cuisine: North Indian     |
-| Serves 2 | Prep ~20 min   |
-| Spice: Medium 🌶️          |
-| ₹149           [ADD]     |
-+---------------------------+
-```
+### Step 3 -- Create Profiles and Roles
 
-### Service Layout (Electrician, Yoga, Salon)
+For each user, insert into `profiles` with their respective `society_id` and `verification_status = 'approved'`. Insert `buyer` role for Users A and D, `seller` role for Seller C and Seller E users.
 
-```text
-+---------------------------+
-| [Badge]          [Heart]  |
-|     [Service Image]       |
-+---------------------------+
-| Service Name (2-line)     |
-| Provider: Ravi Electricals|
-| Duration: 60 min          |
-| Delivery & Pickup         |
-| Visit charge: ₹99        |
-| Starting ₹499    [Book]  |
-+---------------------------+
-```
+### Step 4 -- Create Seller Profiles
 
-### Props Interface
+- **Seller C**: Food seller in Society B, `verification_status = 'approved'`, `sell_beyond_community = true`, `delivery_radius_km = 5` (covers Society D at 3.2 km)
+- **Seller E**: Food seller in Society E, `verification_status = 'approved'`, `sell_beyond_community = true`, `delivery_radius_km = 10`
 
-```typescript
-interface ProductListingCardProps {
-  product: ProductWithSeller;
-  layout?: 'auto' | 'ecommerce' | 'food' | 'service';
-  onTap?: (product: ProductWithSeller) => void;
-  showWishlist?: boolean;
-  className?: string;
-}
-```
+### Step 5 -- Create Products
+
+For **Seller C** (Society B):
+- "Butter Chicken" - home_food, price 250, approved
+- "Paneer Tikka" - home_food, price 180, approved
+- "Fresh Naan" - bakery, price 30, approved
+
+For **Seller E** (Society E):
+- "Masala Dosa" - home_food, price 80, approved
+- "Filter Coffee" - beverages, price 40, approved
+
+All products: `is_available = true`, `approval_status = 'approved'`, `action_type = 'add_to_cart'`
 
 ---
 
-## Phase 3: Enhanced ProductDetailSheet
+## Phase 3: Validation Scenarios
 
-Update the bottom sheet to show all new fields:
+### Test 1 -- Same-Society Visibility (User A sees Seller C)
+- Login as User A
+- Navigate to homepage -- Seller C should appear in "Open Now" / "Shop by Store"
+- Search for "Butter Chicken" -- product should appear with Add to Cart
+- Place an order from Seller C
 
-- Image carousel (primary + secondary images)
-- MRP with strike-through and discount percentage
-- Bullet features list
-- Specifications table (key-value pairs)
-- Ingredients section (food items)
-- Service scope / what's included
-- Delivery time estimate
-- Stock status
-- Scarcity warning
-- Variant selector (future-ready via specifications jsonb)
+### Test 2 -- Cross-Society Discovery at 4 km (User D sees Seller C)
+- Login as User D
+- On Search page, toggle "Browse beyond my community" ON
+- Set radius slider to 4 km (default or explicit)
+- Seller C (Society B, 3.2 km away) should appear in cross-society results
+- User D can view Seller C's food listings and add to cart
 
----
+### Test 3 -- Expanded Radius to 10 km (User D sees Seller E)
+- User D increases search radius to 10 km
+- Society E sellers become visible (8.0 km away)
+- Seller E's "Masala Dosa" and "Filter Coffee" should appear
+- User D can browse and order from Seller E
 
-## Phase 4: Integration Across All Surfaces
-
-Replace `ProductGridCard` usage with `ProductListingCard` in:
-
-1. `MarketplaceSection.tsx` (Home page - Local + Nearby tabs)
-2. `CategoryPage.tsx` (Category browsing)
-3. `SearchPage.tsx` (Search results)
-4. `SellerDetailPage.tsx` (Seller store - keep horizontal `ProductCard` but enhance it)
-
----
-
-## Phase 5: Conversion Optimization Features
-
-- **Scarcity indicator**: Show "Only X left!" when `stock_quantity` is between 1-5
-- **Popular tag**: Show "X+ orders" from seller's `completed_order_count`
-- **Discount badge**: Auto-calculated from MRP vs selling price
-- **Delivery ETA chip**: From `delivery_time_text`
-- **Social proof**: Seller rating stars + review count inline
-- **Smart fallbacks**: Graceful handling for missing images, zero price, inactive sellers, out-of-stock
+### Test 4 -- Negative Case
+- At 4 km radius, User D should NOT see Seller E (8 km away)
+- Sellers without `sell_beyond_community = true` should never appear cross-society
 
 ---
 
-## Edge Cases Handled
+## Phase 4: Implementation Approach
 
-| Scenario | Behavior |
-|---|---|
-| No image | Show category-specific emoji placeholder |
-| Out of stock | Grey overlay + "Out of stock" label, disable action button |
-| No MRP | Hide strike-through, show only selling price |
-| Service unavailable | Show "Unavailable" instead of action button |
-| No seller name | Show "Seller" as fallback |
-| Zero price (contact_seller) | Show "Contact for price" |
-| Missing category config | Default to e-commerce layout |
+Since we cannot create auth users via SQL alone (they live in `auth.users`), the implementation will:
 
----
+1. **Create an edge function** `seed-test-data` that:
+   - Uses the Supabase service role to create auth users
+   - Inserts all test data (societies, profiles, roles, sellers, products)
+   - Returns credentials for manual login testing
 
-## Files to Create/Modify
+2. **Data reset** will be done via SQL DELETE statements executed through the insert tool (for data operations)
 
-| File | Action |
-|---|---|
-| `supabase/migrations/...` | Add new columns to `products` table |
-| `src/components/product/ProductListingCard.tsx` | **Create** - New unified card |
-| `src/components/product/ProductDetailSheet.tsx` | **Modify** - Show all new fields |
-| `src/components/product/ProductGridCard.tsx` | **Deprecate** - Replace usages with new card |
-| `src/components/home/MarketplaceSection.tsx` | **Modify** - Use new card |
-| `src/pages/CategoryPage.tsx` | **Modify** - Use new card |
-| `src/pages/SearchPage.tsx` | **Modify** - Use new card |
-| `src/types/database.ts` | **Modify** - Extend Product interface |
-| `src/integrations/supabase/types.ts` | Auto-updated after migration |
+3. **No schema changes** are needed -- all tables and functions already exist
 
 ---
 
-## Technical Notes
+## Technical Details
 
-- All new DB columns are nullable with sensible defaults so existing products continue to work without data migration
-- The layout detection uses `parent_group` from `category_config` (already cached via `useCategoryConfigs` hook) -- no new API calls
-- Dark mode compatibility is automatic via existing Tailwind CSS variables (bg-card, text-foreground, etc.)
-- The card is fully responsive: 2-col mobile, 3-col tablet, 4-col desktop (matches current grid)
-- The `ACTION_CONFIG` from `marketplace-constants.ts` continues to be the single source of truth for button labels/icons
+### Edge Function: `seed-test-data`
+
+- Creates auth users with known passwords using `supabase.auth.admin.createUser()`
+- Inserts societies with precise lat/lon coordinates
+- Inserts profiles, user_roles, seller_profiles, and products
+- Returns a summary of created entities and login credentials
+
+### Key Database Functions Already in Place
+- `haversine_km()` -- distance calculation
+- `search_nearby_sellers()` -- cross-society seller discovery with radius filtering
+- `search_marketplace()` -- same-society marketplace search
+- Profile fields: `browse_beyond_community`, `search_radius_km`
+- Seller fields: `sell_beyond_community`, `delivery_radius_km`
+
+### Files to Create/Modify
+1. **New**: `supabase/functions/seed-test-data/index.ts` -- edge function for seeding
+2. No frontend changes needed -- all discovery UI already exists
+
