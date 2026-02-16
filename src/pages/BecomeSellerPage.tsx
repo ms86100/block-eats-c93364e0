@@ -316,7 +316,7 @@ export default function BecomeSellerPage() {
   if (existingSeller && selectedGroup) {
     return (
       <AppLayout showHeader={false} showNav={false}>
-        <div className="p-4">
+        <div className="p-4 safe-top">
           <Link to="/" className="flex items-center gap-2 text-muted-foreground mb-6">
             <ArrowLeft size={20} />
             <span>Back</span>
@@ -356,7 +356,7 @@ export default function BecomeSellerPage() {
   // ── Main Flow ─────────────────────────────────────────────────────────
   return (
     <AppLayout showHeader={false} showNav={false}>
-      <div className="p-4 pb-24">
+      <div className="p-4 pb-24 safe-top">
         {/* Top Bar */}
         <div className="flex items-center justify-between mb-6">
           <Link to="/" className="flex items-center gap-2 text-muted-foreground">

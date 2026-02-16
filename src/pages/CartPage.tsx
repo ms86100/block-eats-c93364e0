@@ -167,7 +167,7 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <AppLayout showHeader={false}>
-        <div className="p-4">
+        <div className="p-4 safe-top">
           <Link to="/" className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted mb-6">
             <ArrowLeft size={18} />
           </Link>

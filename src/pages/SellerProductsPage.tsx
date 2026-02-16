@@ -338,7 +338,7 @@ export default function SellerProductsPage() {
 
   return (
     <AppLayout showHeader={false}>
-      <div className="p-4">
+      <div className="p-4 safe-top">
         <div className="flex items-center justify-between mb-6">
           <Link to="/seller" className="flex items-center gap-2 text-muted-foreground">
             <ArrowLeft size={20} />

@@ -47,7 +47,7 @@ const VIOLATIONS = [
 export default function CommunityRulesPage() {
   return (
     <AppLayout showHeader={false} showNav={false}>
-      <div className="p-4 pb-8">
+      <div className="p-4 pb-8 safe-top">
         <Link to="/help" className="flex items-center gap-2 text-muted-foreground mb-6">
           <ArrowLeft size={20} />
           <span>Back to Help</span>

@@ -69,7 +69,7 @@ const plans = [
 export default function PricingPage() {
   return (
     <AppLayout showHeader={false}>
-      <div className="p-4 pb-8">
+      <div className="p-4 pb-8 safe-top">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => window.history.back()}>
             <ArrowLeft size={24} />

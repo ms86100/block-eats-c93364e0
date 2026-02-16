@@ -298,7 +298,7 @@ export default function SellerSettingsPage() {
 
   return (
     <AppLayout showHeader={false} showNav={false}>
-      <div className="p-4 pb-24">
+      <div className="p-4 pb-24 safe-top">
         <div className="flex items-center gap-3 mb-6">
           <Link to="/seller" className="text-muted-foreground">
             <ArrowLeft size={24} />

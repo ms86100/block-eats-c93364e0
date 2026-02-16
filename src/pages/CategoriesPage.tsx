@@ -28,7 +28,7 @@ export default function CategoriesPage() {
 
   return (
     <AppLayout showHeader={false}>
-      <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3">
+      <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 safe-top">
         <h1 className="text-base font-bold text-foreground">Categories</h1>
       </div>
 

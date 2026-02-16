@@ -184,7 +184,7 @@ export default function OrdersPage() {
     <AppLayout showHeader={false}>
       <div className="pb-4">
         {/* Sticky header */}
-        <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 flex items-center gap-3">
+        <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 safe-top flex items-center gap-3">
           <Link to="/" className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted shrink-0">
             <ArrowLeft size={16} />
           </Link>

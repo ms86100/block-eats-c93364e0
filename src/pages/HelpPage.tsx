@@ -66,7 +66,7 @@ export default function HelpPage() {
 
   return (
     <AppLayout showHeader={false} showNav={false}>
-      <div className="p-4 pb-8">
+      <div className="p-4 pb-8 safe-top">
         <Link to="/profile" className="flex items-center gap-2 text-muted-foreground mb-6">
           <ArrowLeft size={20} />
           <span>Back to Profile</span>

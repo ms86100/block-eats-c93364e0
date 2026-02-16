@@ -55,7 +55,7 @@ export default function FavoritesPage() {
   return (
     <AppLayout showHeader={false}>
       {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 safe-top flex items-center gap-3">
         <Link to="/profile">
           <ArrowLeft size={22} className="text-foreground" />
         </Link>

@@ -96,7 +96,7 @@ export default function SellerEarningsPage() {
 
   return (
     <AppLayout showHeader={false}>
-      <div className="p-4">
+      <div className="p-4 safe-top">
         <Link to="/seller" className="flex items-center gap-2 text-muted-foreground mb-6">
           <ArrowLeft size={20} />
           <span>Back to Dashboard</span>
