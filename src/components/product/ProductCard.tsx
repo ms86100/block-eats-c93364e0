@@ -35,10 +35,11 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
       <Card className="overflow-hidden">
         <div className="relative aspect-square">
           {product.image_url ? (
-            <img
+             <img
               src={product.image_url}
               alt={product.name}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -140,6 +141,7 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
               src={product.image_url}
               alt={product.name}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">

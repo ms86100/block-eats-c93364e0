@@ -1,9 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CartItem, Product } from '@/types/database';
 import { toast } from 'sonner';
-import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { handleApiError } from '@/lib/query-utils';
 
 interface SellerGroup {
@@ -30,7 +29,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { configs: categoryConfigs } = useCategoryConfigs();
   const [items, setItems] = useState<(CartItem & { product: Product })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -63,52 +61,53 @@ export function CartProvider({ children }: { children: ReactNode }) {
     fetchCart();
   }, [fetchCart]);
 
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  
-  const totalAmount = items.reduce(
-    (sum, item) => sum + (item.product?.price || 0) * item.quantity,
-    0
+  // Memoize derived values to prevent re-renders in consumers
+  const itemCount = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity, 0),
+    [items]
   );
 
-  // Group items by seller for multi-vendor support
-  const sellerGroups: SellerGroup[] = Object.values(
-    items.reduce<Record<string, SellerGroup>>((groups, item) => {
-      const sellerId = item.product?.seller_id || 'unknown';
-      if (!groups[sellerId]) {
-        groups[sellerId] = {
-          sellerId,
-          sellerName: (item.product as any)?.seller?.business_name || 'Seller',
-          items: [],
-          subtotal: 0,
-        };
-      }
-      groups[sellerId].items.push(item);
-      groups[sellerId].subtotal += (item.product?.price || 0) * item.quantity;
-      return groups;
-    }, {})
+  const totalAmount = useMemo(
+    () => items.reduce((sum, item) => sum + (item.product?.price || 0) * item.quantity, 0),
+    [items]
   );
 
-  const addItem = async (product: Product, quantity = 1) => {
+  // Memoize seller groups to prevent re-computation on every render
+  const sellerGroups: SellerGroup[] = useMemo(() =>
+    Object.values(
+      items.reduce<Record<string, SellerGroup>>((groups, item) => {
+        const sellerId = item.product?.seller_id || 'unknown';
+        if (!groups[sellerId]) {
+          groups[sellerId] = {
+            sellerId,
+            sellerName: (item.product as any)?.seller?.business_name || 'Seller',
+            items: [],
+            subtotal: 0,
+          };
+        }
+        groups[sellerId].items.push(item);
+        groups[sellerId].subtotal += (item.product?.price || 0) * item.quantity;
+        return groups;
+      }, {})
+    ),
+    [items]
+  );
+
+  const addItem = useCallback(async (product: Product, quantity = 1) => {
     if (!user) {
       toast.error('Please sign in to add items to cart');
       return;
     }
 
-    // All products can be added to cart regardless of action_type or category
-
-    const existingItem = items.find(item => item.product_id === product.id);
-    const prevItems = [...items];
-
-    // Optimistic update
-    if (existingItem) {
-      setItems(prev =>
-        prev.map(item =>
+    setItems(prev => {
+      const existingItem = prev.find(item => item.product_id === product.id);
+      if (existingItem) {
+        return prev.map(item =>
           item.product_id === product.id
             ? { ...item, quantity: item.quantity + quantity }
             : item
-        )
-      );
-    } else {
+        );
+      }
       const optimisticItem = {
         id: `temp-${Date.now()}`,
         user_id: user.id,
@@ -117,14 +116,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
         created_at: new Date().toISOString(),
         product,
       } as CartItem & { product: Product };
-      setItems(prev => [...prev, optimisticItem]);
-    }
+      return [...prev, optimisticItem];
+    });
 
     try {
-      if (existingItem) {
+      const { data: existing } = await supabase
+        .from('cart_items')
+        .select('quantity')
+        .eq('user_id', user.id)
+        .eq('product_id', product.id)
+        .maybeSingle();
+
+      if (existing) {
         const { error } = await supabase
           .from('cart_items')
-          .update({ quantity: existingItem.quantity + quantity })
+          .update({ quantity: existing.quantity + quantity })
           .eq('user_id', user.id)
           .eq('product_id', product.id);
         if (error) throw error;
@@ -142,13 +148,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Sync with server to get real IDs
       await fetchCart();
     } catch (error) {
-      // Rollback on failure
-      setItems(prevItems);
+      // Rollback on failure by refetching
+      await fetchCart();
       handleApiError(error, 'Failed to add item');
     }
-  };
+  }, [user, fetchCart]);
 
-  const updateQuantity = async (productId: string, quantity: number) => {
+  const updateQuantity = useCallback(async (productId: string, quantity: number) => {
     if (!user) return;
 
     if (quantity <= 0) {
@@ -156,7 +162,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const prevItems = [...items];
+    const prevItems = items;
 
     // Optimistic update
     setItems(prev =>
@@ -177,12 +183,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems(prevItems);
       handleApiError(error, 'Failed to update quantity');
     }
-  };
+  }, [user, items]);
 
-  const removeItem = async (productId: string) => {
+  const removeItem = useCallback(async (productId: string) => {
     if (!user) return;
 
-    const prevItems = [...items];
+    const prevItems = items;
 
     // Optimistic removal
     setItems(prev => prev.filter(item => item.product_id !== productId));
@@ -200,12 +206,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems(prevItems);
       handleApiError(error, 'Failed to remove item');
     }
-  };
+  }, [user, items]);
 
-  const clearCart = async () => {
+  const clearCart = useCallback(async () => {
     if (!user) return;
 
-    const prevItems = [...items];
+    const prevItems = items;
     setItems([]);
 
     try {
@@ -219,23 +225,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems(prevItems);
       console.error('Error clearing cart:', error);
     }
-  };
+  }, [user, items]);
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo<CartContextType>(() => ({
+    items,
+    itemCount,
+    totalAmount,
+    sellerGroups,
+    isLoading,
+    addItem,
+    updateQuantity,
+    removeItem,
+    clearCart,
+    refresh: fetchCart,
+  }), [items, itemCount, totalAmount, sellerGroups, isLoading, addItem, updateQuantity, removeItem, clearCart, fetchCart]);
 
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        itemCount,
-        totalAmount,
-        sellerGroups,
-        isLoading,
-        addItem,
-        updateQuantity,
-        removeItem,
-        clearCart,
-        refresh: fetchCart,
-      }}
-    >
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

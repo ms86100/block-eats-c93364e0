@@ -20,7 +20,7 @@ export function MarketplaceSection() {
 
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
-  const { data: localCategories = [], isLoading: loadingLocal } = useProductsByCategory(200);
+  const { data: localCategories = [], isLoading: loadingLocal } = useProductsByCategory(80);
   const { parentGroupInfos } = useParentGroups();
 
   const filteredCategories = activeGroup

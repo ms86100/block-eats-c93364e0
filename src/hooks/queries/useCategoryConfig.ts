@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function useCategoryConfig() {
   return useQuery({
-    queryKey: ['category-config'],
+    queryKey: ['category-configs'], // Shared cache key with useCategoryConfigs
     queryFn: async () => {
       const { data } = await supabase
         .from('category_config')
@@ -12,6 +12,6 @@ export function useCategoryConfig() {
         .order('display_order', { ascending: true });
       return data || [];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes — matches useCategoryConfigs
   });
 }
