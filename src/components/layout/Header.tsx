@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, ChevronDown, User } from 'lucide-react';
+import { Bell, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -59,6 +59,11 @@ export function Header({
   const displaySociety = effectiveSociety || society;
   const isViewingAs = viewAsSocietyId && (isAdmin || isBuilderMember);
 
+  // Get initials for avatar
+  const initials = profile?.name
+    ? profile.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : '?';
+
   return (
     <>
       <header className={cn(
@@ -70,19 +75,19 @@ export function Header({
           <div className="flex items-start justify-between">
             {showLocation && profile ? (
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">Sociva in</p>
-                <p className="text-2xl font-extrabold text-foreground leading-tight tracking-tight">
+                <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">Delivery in</p>
+                <p className="text-[22px] font-extrabold text-foreground leading-tight tracking-tight">
                   16 minutes
                 </p>
                 <button 
                   className="flex items-center gap-1 mt-0.5"
                   onClick={() => selectionChanged()}
                 >
-                  <span className="text-xs font-bold text-foreground tracking-wide">
+                  <span className="text-[11px] font-bold text-foreground tracking-wide">
                     HOME
                   </span>
-                  <span className="text-xs text-muted-foreground mx-0.5">—</span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                  <span className="text-[11px] text-muted-foreground mx-0.5">—</span>
+                  <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
                     {profile.block}, {profile.flat_number}
                   </span>
                   <ChevronDown size={12} className="text-muted-foreground shrink-0" />
@@ -92,22 +97,22 @@ export function Header({
               <h1 className="text-lg font-bold text-foreground">{title}</h1>
             ) : (
               <div>
-                <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">Sociva in</p>
-                <p className="text-2xl font-extrabold text-foreground leading-tight">16 minutes</p>
+                <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">Delivery in</p>
+                <p className="text-[22px] font-extrabold text-foreground leading-tight">16 minutes</p>
               </div>
             )}
 
             <div className="flex items-center gap-1.5 mt-1">
-              <ThemeToggle className="h-9 w-9 rounded-full bg-muted text-foreground hover:bg-muted/80" />
+              <ThemeToggle className="h-8 w-8 rounded-full bg-muted text-foreground hover:bg-muted/80" />
               {isApproved && (
                 <>
                   <Link to="/notifications/inbox">
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="relative h-9 w-9 rounded-full bg-muted text-foreground hover:bg-muted/80"
+                      className="relative h-8 w-8 rounded-full bg-muted text-foreground hover:bg-muted/80"
                     >
-                      <Bell size={17} />
+                      <Bell size={16} />
                       {unreadCount > 0 && (
                         <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
                           {unreadCount > 9 ? '9+' : unreadCount}
@@ -116,13 +121,9 @@ export function Header({
                     </Button>
                   </Link>
                   <Link to="/profile">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-9 w-9 rounded-full bg-muted text-foreground hover:bg-muted/80"
-                    >
-                      <User size={17} />
-                    </Button>
+                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px] font-bold cursor-pointer hover:opacity-90 transition-opacity">
+                      {initials}
+                    </div>
                   </Link>
                 </>
               )}
@@ -131,8 +132,8 @@ export function Header({
 
           {/* Search bar — Blinkit style */}
           <Link to="/search" className="block mt-2">
-            <div className="flex items-center gap-2.5 bg-muted rounded-xl px-3 py-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground shrink-0">
+            <div className="flex items-center gap-2.5 bg-muted rounded-xl px-3 py-2.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground shrink-0">
                 <circle cx="11" cy="11" r="8"/>
                 <path d="m21 21-4.3-4.3"/>
               </svg>

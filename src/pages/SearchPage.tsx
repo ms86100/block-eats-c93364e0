@@ -610,9 +610,9 @@ export default function SearchPage() {
 
           {/* ─── Results ─── */}
           {showLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className="h-56 w-full rounded-xl" />
+                <Skeleton key={i} className="h-52 w-full rounded-xl" />
               ))}
             </div>
           ) : displayProducts.length > 0 ? (
@@ -758,7 +758,7 @@ function ProductGridByCategory({
                 From ₹{Math.min(...items.map(p => p.price))}
               </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {items.map((p) => (
                 <ProductListingCard
                   key={p.product_id}
