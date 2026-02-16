@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.gate-token]
 verify_jwt = false
+
+[functions.seed-test-data]
+verify_jwt = false
