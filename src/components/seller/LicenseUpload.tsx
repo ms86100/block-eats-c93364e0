@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 interface LicenseUploadProps {
   sellerId: string;
   groupId: string;
+  onStatusChange?: (status: string | null) => void;
 }
 
 interface GroupLicenseConfig {
@@ -30,7 +31,7 @@ interface LicenseRecord {
   admin_notes: string | null;
 }
 
-export function LicenseUpload({ sellerId, groupId }: LicenseUploadProps) {
+export function LicenseUpload({ sellerId, groupId, onStatusChange }: LicenseUploadProps) {
   const { user } = useAuth();
   const [config, setConfig] = useState<GroupLicenseConfig | null>(null);
   const [license, setLicense] = useState<LicenseRecord | null>(null);
@@ -59,11 +60,19 @@ export function LicenseUpload({ sellerId, groupId }: LicenseUploadProps) {
       ]);
 
       if (groupRes.data) {
-        setConfig(groupRes.data as GroupLicenseConfig);
+        const configData = groupRes.data as GroupLicenseConfig;
+        // Fallback for null license_type_name
+        if (!configData.license_type_name) {
+          configData.license_type_name = 'Business License';
+        }
+        setConfig(configData);
       }
       if (licenseRes.data) {
         setLicense(licenseRes.data as LicenseRecord);
         setLicenseNumber(licenseRes.data.license_number || '');
+        onStatusChange?.(licenseRes.data.status);
+      } else {
+        onStatusChange?.(null);
       }
     } catch (error) {
       console.error('Error fetching license data:', error);

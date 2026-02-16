@@ -105,6 +105,7 @@ export default function BecomeSellerPage() {
   });
   const [draftProducts, setDraftProducts] = useState<any[]>([]);
   const [acceptedDeclaration, setAcceptedDeclaration] = useState(false);
+  const [licenseStatus, setLicenseStatus] = useState<string | null>(null); // 'pending' | 'approved' | 'rejected' | null
 
   // ── Check for existing seller profile or draft ────────────────────────
   useEffect(() => {
@@ -166,6 +167,34 @@ export default function BecomeSellerPage() {
     };
     checkGroupConflict();
   }, [user, selectedGroup]);
+
+  // ── Fetch license status for current seller + group ───────────────────
+  const fetchLicenseStatus = useCallback(async () => {
+    const groupRow = groups.find((g) => g.slug === selectedGroup);
+    if (!draftSellerId || !groupRow) {
+      setLicenseStatus(null);
+      return;
+    }
+    if (!(groupRow as any).requires_license) {
+      setLicenseStatus(null);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from('seller_licenses')
+        .select('status')
+        .eq('seller_id', draftSellerId)
+        .eq('group_id', groupRow.id)
+        .maybeSingle();
+      setLicenseStatus(data?.status || null);
+    } catch {
+      setLicenseStatus(null);
+    }
+  }, [draftSellerId, groups, selectedGroup]);
+
+  useEffect(() => {
+    fetchLicenseStatus();
+  }, [fetchLicenseStatus]);
 
   // ── Category change handler ───────────────────────────────────────────
   const handleCategoryChange = (category: ServiceCategory, checked: boolean) => {
@@ -677,6 +706,38 @@ export default function BecomeSellerPage() {
               )}
             </div>
 
+            {/* License Upload — shown in Step 3 */}
+            {selectedGroupRow && (selectedGroupRow as any).requires_license && (
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Shield size={16} className="text-primary" />
+                  <h3 className="font-semibold text-sm">Required License</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Your category requires a verified license before you can proceed. Please upload it below.
+                </p>
+                {draftSellerId ? (
+                  <LicenseUpload
+                    sellerId={draftSellerId}
+                    groupId={selectedGroupRow.id}
+                    onStatusChange={(status) => {
+                      setLicenseStatus(status);
+                    }}
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    Fill in your business name above — license upload will appear once your draft is saved.
+                  </p>
+                )}
+                {(selectedGroupRow as any).license_mandatory && (!licenseStatus || licenseStatus === 'rejected') && (
+                  <div className="bg-destructive/10 rounded-lg p-3 text-sm text-destructive flex items-center gap-2">
+                    <Shield size={16} />
+                    You must upload your {(selectedGroupRow as any).license_type_name || 'Business License'} before continuing.
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* What's Next hint */}
             <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
               <ArrowRight size={12} />
@@ -686,7 +747,11 @@ export default function BecomeSellerPage() {
             <Button
               className="w-full"
               onClick={handleProceedToProducts}
-              disabled={isLoading || !formData.business_name.trim()}
+              disabled={
+                isLoading ||
+                !formData.business_name.trim() ||
+                ((selectedGroupRow as any)?.license_mandatory && (!licenseStatus || licenseStatus === 'rejected'))
+              }
             >
               {isLoading ? (
                 <Loader2 className="animate-spin mr-2" size={18} />
@@ -704,14 +769,9 @@ export default function BecomeSellerPage() {
               onClick={() => setStep(3)}
               className="flex items-center gap-1 text-sm text-muted-foreground"
             >
-              <ArrowLeft size={16} />
+            <ArrowLeft size={16} />
               Edit business details
             </button>
-
-            {/* License Upload (if required for this group) — must be completed before adding products */}
-            {selectedGroupRow && (selectedGroupRow as any).requires_license && (
-              <LicenseUpload sellerId={draftSellerId} groupId={selectedGroupRow.id} />
-            )}
 
             <DraftProductManager
               sellerId={draftSellerId}
@@ -786,11 +846,20 @@ export default function BecomeSellerPage() {
             </div>
 
             {/* License status reminder (if required for this group) */}
-            {draftSellerId && selectedGroupRow && (selectedGroupRow as any).requires_license && (
-              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground flex items-center gap-2">
-                <Shield size={16} className="text-primary flex-shrink-0" />
+            {draftSellerId && selectedGroupRow && (selectedGroupRow as any).requires_license && licenseStatus && (
+              <div className={cn(
+                'rounded-lg p-3 text-sm flex items-center gap-2',
+                licenseStatus === 'approved' ? 'bg-success/10 text-success' :
+                licenseStatus === 'pending' ? 'bg-warning/10 text-warning' :
+                'bg-muted/50 text-muted-foreground'
+              )}>
+                <Shield size={16} className="flex-shrink-0" />
                 <span>
-                  {(selectedGroupRow as any).license_type_name || 'License'} was uploaded in the previous step. Admin will verify it during review.
+                  {(selectedGroupRow as any).license_type_name || 'Business License'}: {
+                    licenseStatus === 'approved' ? 'Verified ✓' :
+                    licenseStatus === 'pending' ? 'Uploaded — awaiting admin verification' :
+                    'Status: ' + licenseStatus
+                  }
                 </span>
               </div>
             )}
