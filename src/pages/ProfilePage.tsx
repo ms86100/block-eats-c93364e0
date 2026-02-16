@@ -97,7 +97,7 @@ export default function ProfilePage() {
   ];
 
   return (
-    <AppLayout showHeader={false}>
+    <AppLayout>
       <div className="pb-8">
         {/* Profile Header */}
         <div className="bg-card border-b border-border px-4 pt-6 pb-5">

@@ -66,9 +66,9 @@ export default function CategoriesPage() {
   const isEmpty = !isLoading && grouped.length === 0;
 
   return (
-    <AppLayout showHeader={false}>
-      <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 safe-top">
-        <h1 className="text-base font-bold text-foreground">Categories</h1>
+    <AppLayout>
+      <div className="px-4 py-2">
+        <h2 className="text-sm font-bold text-foreground">All Categories</h2>
       </div>
 
       <div className="px-3 py-3 pb-20">

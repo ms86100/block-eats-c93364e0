@@ -181,14 +181,11 @@ export default function OrdersPage() {
   if (!user) return null;
 
   return (
-    <AppLayout showHeader={false}>
+    <AppLayout>
       <div className="pb-4">
-        {/* Sticky header */}
-        <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 safe-top flex items-center gap-3">
-          <Link to="/" className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted shrink-0">
-            <ArrowLeft size={16} />
-          </Link>
-          <h1 className="text-base font-bold">Your Orders</h1>
+        {/* Section title */}
+        <div className="px-4 pt-2 pb-1">
+          <h2 className="text-sm font-bold text-foreground">Your Orders</h2>
         </div>
 
         <div className="px-4 pt-3">
