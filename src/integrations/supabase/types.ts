@@ -5230,61 +5230,33 @@ export type Database = {
               user_id: string
             }[]
           }
-      search_nearby_sellers:
-        | {
-            Args: {
-              _buyer_society_id: string
-              _category?: string
-              _radius_km?: number
-              _search_term?: string
-            }
-            Returns: {
-              availability_end: string
-              availability_start: string
-              business_name: string
-              categories: string[]
-              cover_image_url: string
-              description: string
-              distance_km: number
-              is_available: boolean
-              is_featured: boolean
-              matching_products: Json
-              primary_group: string
-              profile_image_url: string
-              rating: number
-              seller_id: string
-              society_name: string
-              total_reviews: number
-              user_id: string
-            }[]
-          }
-        | {
-            Args: {
-              _buyer_society_id: string
-              _category?: string
-              _radius_km?: number
-              _search_term?: string
-            }
-            Returns: {
-              availability_end: string
-              availability_start: string
-              business_name: string
-              categories: string[]
-              cover_image_url: string
-              description: string
-              distance_km: number
-              is_available: boolean
-              is_featured: boolean
-              matching_products: Json
-              primary_group: string
-              profile_image_url: string
-              rating: number
-              seller_id: string
-              society_name: string
-              total_reviews: number
-              user_id: string
-            }[]
-          }
+      search_nearby_sellers: {
+        Args: {
+          _buyer_society_id: string
+          _category?: string
+          _radius_km?: number
+          _search_term?: string
+        }
+        Returns: {
+          availability_end: string
+          availability_start: string
+          business_name: string
+          categories: string[]
+          cover_image_url: string
+          description: string
+          distance_km: number
+          is_available: boolean
+          is_featured: boolean
+          matching_products: Json
+          primary_group: string
+          profile_image_url: string
+          rating: number
+          seller_id: string
+          society_name: string
+          total_reviews: number
+          user_id: string
+        }[]
+      }
       validate_worker_entry: {
         Args: { _society_id: string; _worker_id: string }
         Returns: Json
