@@ -346,27 +346,32 @@ export default function SellerSettingsPage() {
               <div>
                 <Label className="text-xs text-muted-foreground mb-2 block">Cover Image</Label>
                 {user && (
-                  <ImageUpload
-                    value={formData.cover_image_url}
-                    onChange={(url) => setFormData({ ...formData, cover_image_url: url })}
-                    folder="sellers"
-                    userId={user.id}
-                    aspectRatio="video"
-                    placeholder="Upload cover photo"
-                  />
+                  <div className="max-h-48 max-w-full">
+                    <ImageUpload
+                      value={formData.cover_image_url}
+                      onChange={(url) => setFormData({ ...formData, cover_image_url: url })}
+                      folder="sellers"
+                      userId={user.id}
+                      aspectRatio="video"
+                      placeholder="Upload cover photo"
+                      className="max-h-48"
+                    />
+                  </div>
                 )}
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground mb-2 block">Profile Photo</Label>
                 {user && (
-                  <ImageUpload
-                    value={formData.profile_image_url}
-                    onChange={(url) => setFormData({ ...formData, profile_image_url: url })}
-                    folder="sellers"
-                    userId={user.id}
-                    aspectRatio="square"
-                    placeholder="Upload profile photo"
-                  />
+                  <div className="max-w-[160px]">
+                    <ImageUpload
+                      value={formData.profile_image_url}
+                      onChange={(url) => setFormData({ ...formData, profile_image_url: url })}
+                      folder="sellers"
+                      userId={user.id}
+                      aspectRatio="square"
+                      placeholder="Upload profile photo"
+                    />
+                  </div>
                 )}
               </div>
             </div>

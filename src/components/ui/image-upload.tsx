@@ -142,7 +142,7 @@ export function ImageUpload({
       />
 
       {value ? (
-        <div className={cn('relative rounded-lg overflow-hidden border border-border', aspectClasses[aspectRatio])}>
+        <div className={cn('relative rounded-lg overflow-hidden border border-border max-h-48', aspectClasses[aspectRatio])}>
           <img
             src={value}
             alt="Uploaded"
