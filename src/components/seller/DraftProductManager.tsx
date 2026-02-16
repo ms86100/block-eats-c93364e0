@@ -7,9 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { VegBadge } from '@/components/ui/veg-badge';
-import { ImageUpload } from '@/components/ui/image-upload';
+import { ProductImageUpload } from '@/components/ui/product-image-upload';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Trash2, Loader2, Package } from 'lucide-react';
+import { Plus, Trash2, Loader2, Package, Percent } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 
@@ -17,6 +17,8 @@ interface DraftProduct {
   id?: string;
   name: string;
   price: number;
+  mrp?: number | null;
+  discount_percentage?: number | null;
   description: string;
   category: string;
   is_veg: boolean;
@@ -44,6 +46,8 @@ export function DraftProductManager({
   const [newProduct, setNewProduct] = useState<DraftProduct>({
     name: '',
     price: 0,
+    mrp: null,
+    discount_percentage: null,
     description: '',
     category: categories[0] || '',
     is_veg: true,
@@ -59,13 +63,18 @@ export function DraftProductManager({
   const showVegToggle = activeConfig?.formHints.showVegToggle ?? false;
   const showDurationField = activeConfig?.formHints.showDurationField ?? false;
 
-  // Check if this category requires a price (from category_config DB row)
   const requiresPrice = useMemo(() => {
     if (!activeConfig) return true;
-    // Look up the raw config row to check requires_price
-    // The behavior.enquiryOnly and supportsCart can inform this
     return activeConfig.behavior.supportsCart || !activeConfig.behavior.enquiryOnly;
   }, [activeConfig]);
+
+  // Auto-compute discount when MRP or price changes
+  const computedDiscount = useMemo(() => {
+    if (newProduct.mrp && newProduct.mrp > 0 && newProduct.price > 0 && newProduct.mrp > newProduct.price) {
+      return Math.round(((newProduct.mrp - newProduct.price) / newProduct.mrp) * 100);
+    }
+    return null;
+  }, [newProduct.mrp, newProduct.price]);
 
   const handleAddProduct = async () => {
     if (!newProduct.name.trim()) {
@@ -74,6 +83,10 @@ export function DraftProductManager({
     }
     if (requiresPrice && newProduct.price <= 0) {
       toast.error('Price must be greater than 0');
+      return;
+    }
+    if (newProduct.mrp && newProduct.mrp > 0 && newProduct.price > newProduct.mrp) {
+      toast.error('Price cannot be higher than MRP');
       return;
     }
 
@@ -85,6 +98,8 @@ export function DraftProductManager({
           seller_id: sellerId,
           name: newProduct.name.trim(),
           price: newProduct.price || 0,
+          mrp: newProduct.mrp && newProduct.mrp > 0 ? newProduct.mrp : null,
+          discount_percentage: computedDiscount,
           description: newProduct.description.trim() || null,
           category: newProduct.category,
           is_veg: newProduct.is_veg,
@@ -97,10 +112,12 @@ export function DraftProductManager({
 
       if (error) throw error;
 
-      onProductsChange([...products, { ...newProduct, id: data.id }]);
+      onProductsChange([...products, { ...newProduct, id: data.id, discount_percentage: computedDiscount }]);
       setNewProduct({
         name: '',
         price: 0,
+        mrp: null,
+        discount_percentage: null,
         description: '',
         category: categories[0] || '',
         is_veg: true,
@@ -168,9 +185,19 @@ export function DraftProductManager({
                     {showVeg && <VegBadge isVeg={product.is_veg} size="sm" />}
                     <span className="font-medium text-sm truncate">{product.name}</span>
                   </div>
-                  <p className="text-sm font-bold text-primary mt-0.5">
-                    {product.price > 0 ? `₹${product.price}` : 'Price on request'}
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-sm font-bold text-primary">
+                      {product.price > 0 ? `₹${product.price}` : 'Price on request'}
+                    </p>
+                    {product.mrp && product.mrp > product.price && (
+                      <>
+                        <span className="text-xs text-muted-foreground line-through">₹{product.mrp}</span>
+                        <span className="text-[10px] font-bold text-green-600 bg-green-500/10 px-1.5 py-0.5 rounded">
+                          {product.discount_percentage}% OFF
+                        </span>
+                      </>
+                    )}
+                  </div>
                   {product.description && (
                     <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                       {product.description}
@@ -205,44 +232,74 @@ export function DraftProductManager({
                 onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
               />
             </div>
+
+            {/* Price + MRP Row */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="prod-price" className="text-xs">
-                  {activeConfig?.formHints.priceLabel || 'Price'} (₹) {requiresPrice ? '*' : '(optional)'}
+                  {activeConfig?.formHints.priceLabel || 'Selling Price'} (₹) {requiresPrice ? '*' : ''}
                 </Label>
                 <Input
                   id="prod-price"
                   type="number"
                   min={0}
-                  placeholder={requiresPrice ? '150' : '0 = Price on request'}
+                  placeholder={requiresPrice ? '150' : '0 = On request'}
                   value={newProduct.price || ''}
                   onChange={(e) =>
                     setNewProduct({ ...newProduct, price: Number(e.target.value) })
                   }
                 />
               </div>
-              {categories.length > 1 && (
-                <div className="space-y-2">
-                  <Label className="text-xs">Category</Label>
-                  <select
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                    value={newProduct.category}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, category: e.target.value })
-                    }
-                  >
-                    {categories.map((c) => {
-                      const catConfig = configs.find(cfg => cfg.category === c);
-                      return (
-                        <option key={c} value={c}>
-                          {catConfig ? `${catConfig.icon} ${catConfig.displayName}` : c.replace(/_/g, ' ')}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="prod-mrp" className="text-xs">MRP (₹) <span className="text-muted-foreground">(optional)</span></Label>
+                <Input
+                  id="prod-mrp"
+                  type="number"
+                  min={0}
+                  placeholder="e.g., 200"
+                  value={newProduct.mrp || ''}
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, mrp: e.target.value ? Number(e.target.value) : null })
+                  }
+                />
+              </div>
             </div>
+
+            {/* Auto-computed discount display */}
+            {computedDiscount !== null && computedDiscount > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20">
+                <Percent size={14} className="text-green-600" />
+                <span className="text-sm font-semibold text-green-600">
+                  {computedDiscount}% OFF
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  (₹{newProduct.mrp! - newProduct.price} savings)
+                </span>
+              </div>
+            )}
+
+            {categories.length > 1 && (
+              <div className="space-y-2">
+                <Label className="text-xs">Category</Label>
+                <select
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  value={newProduct.category}
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, category: e.target.value })
+                  }
+                >
+                  {categories.map((c) => {
+                    const catConfig = configs.find(cfg => cfg.category === c);
+                    return (
+                      <option key={c} value={c}>
+                        {catConfig ? `${catConfig.icon} ${catConfig.displayName}` : c.replace(/_/g, ' ')}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="prod-desc" className="text-xs">Description</Label>
               <Textarea
@@ -256,17 +313,17 @@ export function DraftProductManager({
               />
             </div>
             
-            {/* Image Upload */}
+            {/* Product Image - now using ProductImageUpload with AI tab */}
             <div className="space-y-2">
               <Label className="text-xs">Product Image</Label>
               {user ? (
-                <ImageUpload
+                <ProductImageUpload
                   value={newProduct.image_url || null}
                   onChange={(url) => setNewProduct({ ...newProduct, image_url: url || '' })}
-                  folder="products"
                   userId={user.id}
-                  aspectRatio="square"
-                  placeholder="Upload product image"
+                  productName={newProduct.name}
+                  categoryName={newProduct.category}
+                  description={newProduct.description}
                 />
               ) : (
                 <p className="text-xs text-muted-foreground">Sign in to upload images</p>
@@ -286,7 +343,7 @@ export function DraftProductManager({
             )}
             {showDurationField && (
               <div className="space-y-2">
-                <Label htmlFor="prod-prep" className="text-xs">{activeConfig?.formHints.durationLabel || 'Duration (min)'}</Label>
+                <Label htmlFor="prod-prep" className="text-xs">{activeConfig?.formHints.durationLabel || 'Prep Time (min)'}</Label>
                 <Input
                   id="prod-prep"
                   type="number"
