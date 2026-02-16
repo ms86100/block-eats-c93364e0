@@ -186,6 +186,15 @@ export default function AdminPage() {
           .update({ approval_status: 'approved' } as any)
           .eq('seller_id', id)
           .eq('approval_status', 'pending');
+
+        // Send congratulations notification to seller
+        await supabase.from('user_notifications').insert({
+          user_id: seller.user_id,
+          title: '🎉 Congratulations! Your store is approved!',
+          body: 'Your store has been approved and is now live. You can start adding products to your store and begin selling to your neighbors!',
+          type: 'seller_approved',
+          is_read: false,
+        });
       } else if (status === 'rejected' || status === 'suspended') {
         // Remove seller role when rejected or suspended
         await supabase.from('user_roles').delete()
