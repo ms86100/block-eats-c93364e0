@@ -72,6 +72,7 @@ export default function BecomeSellerPage() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const { parentGroupInfos, groups, isLoading: groupsLoading } = useParentGroups();
+  const { groupedConfigs } = useCategoryConfigs();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingExisting, setIsCheckingExisting] = useState(true);
@@ -490,6 +491,28 @@ export default function BecomeSellerPage() {
               <ArrowLeft size={16} />
               Change categories
             </button>
+
+            {/* Selected group & subcategories summary */}
+            <div className="p-3 bg-muted rounded-lg space-y-2">
+              <div className="flex items-center gap-2">
+                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-lg', selectedGroupInfo?.color)}>
+                  {selectedGroupInfo?.icon}
+                </div>
+                <span className="font-semibold text-sm">{selectedGroupInfo?.label}</span>
+              </div>
+              {formData.categories.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {formData.categories.map((cat) => {
+                    const config = (groupedConfigs[selectedGroup as keyof typeof groupedConfigs] || []).find(c => c.category === cat);
+                    return (
+                      <span key={cat} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-medium">
+                        {config?.icon} {config?.displayName || cat}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="business_name">Business Name *</Label>
