@@ -6,9 +6,10 @@ import { useProductsByCategory } from '@/hooks/queries/useProductsByCategory';
 import { useNearbySocietySellers } from '@/hooks/queries/useStoreDiscovery';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { motion } from 'framer-motion';
+import { Store, Sparkles, Clock } from 'lucide-react';
 
 export default function CategoriesPage() {
   const { user } = useAuth();
@@ -16,7 +17,6 @@ export default function CategoriesPage() {
   const { groups, isLoading: groupsLoading } = useParentGroups();
   const { data: productCategories = [], isLoading: productsLoading } = useProductsByCategory();
 
-  // Check if user has browse_beyond enabled
   const { data: prefs } = useQuery({
     queryKey: ['user-browse-prefs', user?.id],
     queryFn: async () => {
@@ -34,10 +34,8 @@ export default function CategoriesPage() {
   const browseBeyond = prefs?.browse_beyond_community ?? false;
   const { data: nearbyBands = [] } = useNearbySocietySellers();
 
-  // Merge local + nearby categories
   const activeCategorySet = new Set(productCategories.map(c => c.category));
 
-  // Add categories from nearby sellers when browse_beyond is enabled
   if (browseBeyond && nearbyBands.length > 0) {
     for (const band of nearbyBands) {
       for (const society of band.societies) {
@@ -54,7 +52,6 @@ export default function CategoriesPage() {
 
   const isLoading = configsLoading || groupsLoading || productsLoading;
 
-  // Group categories by parent_group
   const grouped = groups
     .filter(g => g.is_active)
     .sort((a, b) => a.sort_order - b.sort_order)
@@ -65,6 +62,8 @@ export default function CategoriesPage() {
         .sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99)),
     }))
     .filter(g => g.categories.length > 0);
+
+  const isEmpty = !isLoading && grouped.length === 0;
 
   return (
     <AppLayout showHeader={false}>
@@ -85,6 +84,50 @@ export default function CategoriesPage() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : isEmpty ? (
+          <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="relative mb-6"
+            >
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                <Store size={40} className="text-primary" />
+              </div>
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                className="absolute -top-2 -right-2"
+              >
+                <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center">
+                  <Sparkles size={16} className="text-warning" />
+                </div>
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="space-y-3"
+            >
+              <h2 className="text-lg font-bold text-foreground">Stay tuned — we're growing!</h2>
+              <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                New sellers are joining your community. Products will be available here very soon.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+              className="mt-6 flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded-full px-4 py-2"
+            >
+              <Clock size={14} />
+              <span>Check back soon for new listings</span>
+            </motion.div>
           </div>
         ) : (
           <div className="space-y-5">
