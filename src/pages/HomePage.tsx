@@ -33,9 +33,12 @@ export default function HomePage() {
   return (
     <AppLayout>
       <div className="pb-4">
-        {/* Gate Entry Button */}
+        {/* ═══ UNIFIED MARKETPLACE ═══ */}
+        <MarketplaceSection />
+
+        {/* Gate Entry — below marketplace */}
         {isFeatureEnabled('resident_identity_verification') && (
-          <div className="px-4 pt-3">
+          <div className="px-4 mt-3">
             <Link to="/gate-entry">
               <div className="bg-card border border-border/40 rounded-2xl p-3.5 flex items-center gap-3 transition-all active:scale-[0.98]">
                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
@@ -50,9 +53,6 @@ export default function HomePage() {
             </Link>
           </div>
         )}
-
-        {/* ═══ UNIFIED MARKETPLACE ═══ */}
-        <MarketplaceSection />
 
         {/* Become a Seller CTA */}
         {!isSeller && (

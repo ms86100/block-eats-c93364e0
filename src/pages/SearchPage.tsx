@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { ProductListingCard, ProductWithSeller } from '@/components/product/ProductListingCard';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
-import { ArrowLeft, Search as SearchIcon, X, Globe, ShoppingBag, Mic } from 'lucide-react';
+import { ArrowLeft, Search as SearchIcon, X, Globe, ShoppingBag } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -238,35 +238,99 @@ export default function SearchPage() {
         ? [selectedCategory, ...filters.categories.filter(c => c !== selectedCategory)]
         : filters.categories;
 
-      // 1) Same-society search via RPC (needs search term)
+      // Deep product-level search: search name, description, brand, tags directly
       if (term.length >= 1) {
-        const { data } = await supabase.rpc('search_marketplace', {
-          search_term: term,
-          user_society_id: effectiveSocietyId || null,
-        });
+        const searchTerm = `%${term.trim()}%`;
+        
+        let q = supabase
+          .from('products')
+          .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, action_type, contact_phone, mrp, brand, unit_type, price_per_unit, stock_quantity, tags, discount_percentage, delivery_time_text, serving_size, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
+          .eq('is_available', true)
+          .eq('approval_status', 'approved')
+          .eq('seller.verification_status', 'approved')
+          .or(`name.ilike.${searchTerm},description.ilike.${searchTerm},brand.ilike.${searchTerm},category.ilike.${searchTerm}`)
+          .order('created_at', { ascending: false })
+          .limit(80);
+
+        if (effectiveSocietyId && !browseBeyond) {
+          q = q.eq('seller.society_id', effectiveSocietyId);
+        }
+
+        if (effectiveCategories.length > 0) {
+          q = q.in('category', effectiveCategories);
+        }
+
+        const { data } = await q;
         if (data) {
-          (data as any[]).forEach((seller) => {
-            const items = (seller.matching_products as any[]) || [];
-            items.forEach((p: any) => {
-              products.push({
-                product_id: p.id,
-                product_name: p.name,
-                price: p.price,
-                image_url: p.image_url,
-                is_veg: p.is_veg,
-                category: p.category,
-                action_type: p.action_type || null,
-                contact_phone: p.contact_phone || null,
-                seller_id: seller.seller_id,
-                seller_name: seller.business_name,
-                seller_rating: seller.rating,
-                seller_reviews: seller.total_reviews,
-                society_name: null,
-                distance_km: null,
-                is_same_society: true,
-              });
+          data.forEach((p: any) => {
+            products.push({
+              product_id: p.id,
+              product_name: p.name,
+              price: p.price,
+              image_url: p.image_url,
+              is_veg: p.is_veg,
+              category: p.category,
+              description: p.description,
+              prep_time_minutes: p.prep_time_minutes,
+              fulfillment_mode: p.seller?.fulfillment_mode || null,
+              delivery_note: p.seller?.delivery_note || null,
+              action_type: p.action_type || null,
+              contact_phone: p.contact_phone || null,
+              seller_id: p.seller?.id || p.seller_id,
+              seller_name: p.seller?.business_name || '',
+              seller_rating: p.seller?.rating || 0,
+              seller_reviews: p.seller?.total_reviews || 0,
+              society_name: null,
+              distance_km: null,
+              is_same_society: !browseBeyond || (effectiveSocietyId ? p.seller?.society_id === effectiveSocietyId : true),
             });
           });
+        }
+
+        // Also search by seller name if few results
+        if (products.length < 10) {
+          let sellerQ = supabase
+            .from('products')
+            .select('id, name, price, description, prep_time_minutes, image_url, is_veg, category, seller_id, action_type, contact_phone, mrp, brand, unit_type, price_per_unit, stock_quantity, tags, discount_percentage, delivery_time_text, serving_size, seller:seller_profiles!inner(id, business_name, rating, total_reviews, society_id, verification_status, fulfillment_mode, delivery_note)')
+            .eq('is_available', true)
+            .eq('approval_status', 'approved')
+            .eq('seller.verification_status', 'approved')
+            .ilike('seller.business_name' as any, searchTerm)
+            .order('created_at', { ascending: false })
+            .limit(30);
+
+          if (effectiveSocietyId && !browseBeyond) {
+            sellerQ = sellerQ.eq('seller.society_id', effectiveSocietyId);
+          }
+
+          const { data: sellerData } = await sellerQ;
+          if (sellerData) {
+            sellerData.forEach((p: any) => {
+              if (!products.some(x => x.product_id === p.id)) {
+                products.push({
+                  product_id: p.id,
+                  product_name: p.name,
+                  price: p.price,
+                  image_url: p.image_url,
+                  is_veg: p.is_veg,
+                  category: p.category,
+                  description: p.description,
+                  prep_time_minutes: p.prep_time_minutes,
+                  fulfillment_mode: p.seller?.fulfillment_mode || null,
+                  delivery_note: p.seller?.delivery_note || null,
+                  action_type: p.action_type || null,
+                  contact_phone: p.contact_phone || null,
+                  seller_id: p.seller?.id || p.seller_id,
+                  seller_name: p.seller?.business_name || '',
+                  seller_rating: p.seller?.rating || 0,
+                  seller_reviews: p.seller?.total_reviews || 0,
+                  society_name: null,
+                  distance_km: null,
+                  is_same_society: true,
+                });
+              }
+            });
+          }
         }
       } else if (selectedCategory || effectiveCategories.length > 0) {
         // Category-only browse (no search term) - direct query
@@ -316,40 +380,7 @@ export default function SearchPage() {
         }
       }
 
-      // 2) Cross-society search
-      if (browseBeyond && effectiveSocietyId && term.length >= 1) {
-        const { data: nearby } = await supabase.rpc('search_nearby_sellers', {
-          _buyer_society_id: effectiveSocietyId,
-          _radius_km: searchRadius,
-          _search_term: term,
-        });
-        if (nearby) {
-          (nearby as any[]).forEach((seller) => {
-            const items = (seller.matching_products as any[]) || [];
-            items.forEach((p: any) => {
-              if (!products.some((x) => x.product_id === p.id)) {
-                products.push({
-                  product_id: p.id,
-                  product_name: p.name,
-                  price: p.price,
-                  image_url: p.image_url,
-                  is_veg: p.is_veg,
-                  category: p.category,
-                  action_type: p.action_type || null,
-                  contact_phone: p.contact_phone || null,
-                  seller_id: seller.seller_id,
-                  seller_name: seller.business_name,
-                  seller_rating: seller.rating,
-                  seller_reviews: seller.total_reviews,
-                  society_name: seller.society_name,
-                  distance_km: seller.distance_km,
-                  is_same_society: false,
-                });
-              }
-            });
-          });
-        }
-      }
+      // Cross-society is handled in main query when browseBeyond is on
 
       // 3) Apply client-side filters
       let filtered = products;
@@ -455,16 +486,11 @@ export default function SearchPage() {
                   className="pl-9 pr-16 h-10 rounded-xl text-sm bg-muted border-0 focus-visible:ring-1"
                   autoFocus
                 />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  {query && (
-                    <button onClick={() => setQuery('')} className="p-1 text-muted-foreground hover:text-foreground">
-                      <X size={14} />
-                    </button>
-                  )}
-                  <button className="p-1 text-muted-foreground">
-                    <Mic size={15} />
+                {query && (
+                  <button onClick={() => setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground">
+                    <X size={14} />
                   </button>
-                </div>
+                )}
               </div>
             </div>
           </div>
