@@ -1,123 +1,101 @@
 
 
-## Fix Plan: 4 Critical Discovery and Visibility Issues
+## Redesigned Seller Onboarding: Guided Step-by-Step Experience
 
-### Issue 1: Sellers Visible Without Approved Products
+### Problem Summary
+The current 5-step flow works functionally, but lacks **contextual guidance**. Steps feel disconnected -- the seller picks a category, then sub-categories, then fills business details without understanding *why* each step matters or *what comes next*. The thin progress bar (5 small dots) gives no sense of journey.
 
-**Root Cause (with evidence):**
-Three components query `seller_profiles` directly without checking if the seller has any approved products:
-
-- `ShopByStore.tsx` (line 16-24): Queries `seller_profiles` filtered only by `verification_status = 'approved'` and `is_available = true`. No product existence check.
-- `useStoreDiscovery.ts` / `useLocalSellers` (line 55-63): Same pattern -- fetches approved sellers without verifying products exist.
-- `useHomeSellers.ts` (all hooks): Same pattern across `useOpenNowSellers`, `useTopRatedSellers`, `useFeaturedSellers`.
-
-**Fix:**
-Add an `!inner` join on products or a subquery filter to ensure only sellers with at least one approved product are returned. For the direct queries, change from:
-```sql
-seller_profiles WHERE verification_status = 'approved'
-```
-to joining with products:
-```sql
-seller_profiles!inner JOIN products ON products.seller_id = seller_profiles.id
-  WHERE products.approval_status = 'approved' AND products.is_available = true
-```
-
-Since Supabase JS doesn't support EXISTS subqueries easily, the cleanest approach is to add an `approved_product_count` column (or use a lightweight RPC). However, the simplest immediate fix is to **post-filter on the client** using a single extra query, or use the `!inner` join pattern already used in SearchPage.
-
-**Concrete change:** In `ShopByStore.tsx`, `useLocalSellers`, and all `useHomeSellers` hooks, add a products subquery with `!inner` to filter out sellers with zero approved products.
+### Design Approach
+Improve guidance and continuity **without adding new features**. Every change below restructures existing UI elements for clarity.
 
 ---
 
-### Issue 2: Search Radius Not Persisting
+### Change 1: Named Progress Stepper (replaces anonymous dots)
 
-**Root Cause (with evidence):**
-In `SearchPage.tsx` (lines 108-109):
-```typescript
-const [searchRadius, setSearchRadiusLocal] = useState(
-  (profile as any)?.search_radius_km ?? 5,
-);
-```
+Replace the 5 anonymous colored bars with a **labeled stepper** showing step names. The seller always knows where they are and what's ahead.
 
-The `profile` object comes from `AuthContext`, which is loaded via `get_user_auth_context` RPC. Looking at `useAuthState.ts`, the fetched profile is stored as `ctx.profile`. However, `browse_beyond_community` and `search_radius_km` are **not included** in the auth context RPC return -- confirmed by searching contexts for these fields (zero matches).
+**Current:** 5 thin colored bars with no labels
+**New:** Horizontal stepper with icons + labels:
+`Category > Specialize > Store Details > Products > Review`
 
-So `(profile as any)?.search_radius_km` is always `undefined`, and the fallback `?? 5` kicks in. The `persistPreference` function (line 112-116) **does write** the value to the DB correctly (confirmed: profile `749b0d70` has `search_radius_km: 10`), but the next page load reads from the profile object which never includes these fields.
+Each step shows its name, a small icon, and completed/active/upcoming state. This gives the seller a mental map of the entire journey.
 
-**Fix:**
-Ensure the `get_user_auth_context` RPC returns `browse_beyond_community` and `search_radius_km` in the profile object. Alternatively, fetch these two fields directly from `profiles` table on SearchPage mount as a one-time read.
-
-The simpler approach: add a small `useQuery` on SearchPage that reads the user's `browse_beyond_community` and `search_radius_km` from `profiles` and initializes state from that.
+**File:** `BecomeSellerPage.tsx` -- replace the step indicator section (lines 391-402)
 
 ---
 
-### Issue 3: Categories Page Missing Nearby Society Categories
+### Change 2: Step-Level Context Headers
 
-**Root Cause (with evidence):**
-`CategoriesPage.tsx` (line 12) uses `useProductsByCategory()` to determine which categories have products. Looking at `useProductsByCategory.ts` (lines 48-49):
-```typescript
-if (effectiveSocietyId) {
-  query = query.eq('seller.society_id', effectiveSocietyId);
-}
-```
-This filters products to **only the user's own society**. It never calls `search_nearby_sellers` RPC. So categories that only exist in nearby societies are invisible on the Categories page, even though they appear via the home page discovery section.
+Replace the generic "Become a Seller" title with **step-specific titles and helper text** that explain what the seller is doing and why.
 
-**Fix:**
-When `browse_beyond_community` is enabled, the Categories page should also include categories from nearby societies. This can be done by:
-1. Making a parallel call to `search_nearby_sellers` RPC (which already returns `matching_products` with category info).
-2. Merging the category set from nearby products into the `activeCategorySet`.
+| Step | Title | Helper Text |
+|------|-------|-------------|
+| 1 | "What will you offer?" | "This determines your store type and the tools available to you." |
+| 2 | "Specialize your store" | "Select the specific categories you'll serve. You can add more later." |
+| 3 | "Set up your store" | "These details help buyers find and trust your business." |
+| 4 | "Add your first products" | "Buyers will see these once your store is approved. Start with 1-2 items." |
+| 5 | "Review and submit" | "Double-check everything. You can edit your store after approval too." |
+
+**File:** `BecomeSellerPage.tsx` -- replace the static header block (lines 380-389)
 
 ---
 
-### Issue 4: Multiple Stores by Same User Not All Visible
+### Change 3: Contextual "What's Next" Hints on Each Step
 
-**Root Cause (with evidence):**
-The `search_nearby_sellers` RPC (see DB functions) queries `seller_profiles` individually -- each row is a separate store. This should return all stores. However, the **client-side hooks** may deduplicate by `user_id` or the query may filter incorrectly.
+Add a small muted info line at the **bottom of each step** (above the Continue button) that tells the seller what happens next. This bridges the gap between steps.
 
-Looking at `ShopByStore.tsx` and `useLocalSellers`: they query `seller_profiles` with standard filters. If a user has two stores (e.g., "Woof" with `primary_group: pets` and "Biryani Hub" with `primary_group: food`), both should appear. The DB data confirms both exist under the same `society_id`.
+- Step 1 bottom: "Next: You'll pick specific categories within [selected group]"
+- Step 2 bottom: "Next: You'll name your store and set operating hours"
+- Step 3 bottom: "Next: Add at least one product or service to your catalog"
+- Step 4 bottom: "Next: Review everything and submit for approval"
 
-The likely issue is the **`sell_beyond_community` flag**. Checking the data:
-- "Woof" has `sell_beyond_community: false`
-- "Biryani Hub" has `sell_beyond_community: true`
-
-So for a buyer in a **different society**, only "Biryani Hub" would appear via `search_nearby_sellers` (which filters `sp.sell_beyond_community = true`). "Woof" would be invisible to cross-society buyers. This is correct behavior for cross-society, but for **local society buyers**, both should appear -- and the `useLocalSellers` query does not filter by `sell_beyond_community`, so both should show locally.
-
-If the newly created store isn't appearing, it may be due to:
-- The store's `is_available` being `false` by default
-- The store lacking approved products (ties back to Issue 1)
-
-**Fix:** The same fix as Issue 1 (filtering sellers by approved product count) will also make the visibility logic consistent -- a new store will appear as soon as it has approved products, not before.
+**File:** `BecomeSellerPage.tsx` -- add text above each step's Continue button
 
 ---
 
-### Implementation Summary
+### Change 4: Persistent Context Breadcrumb
 
-| File | Change |
-|------|--------|
-| `ShopByStore.tsx` | Add products `!inner` join to filter sellers with 0 approved products |
-| `useStoreDiscovery.ts` | Same `!inner` join for local sellers query |
-| `useHomeSellers.ts` | Same `!inner` join for all 4 hooks |
-| `SearchPage.tsx` | Add `useQuery` to load `browse_beyond_community` and `search_radius_km` from profiles on mount; initialize state from cached data |
-| `CategoriesPage.tsx` | When browse-beyond is enabled, merge nearby-society categories into the active set |
-| `useProductsByCategory.ts` | Optionally extend to include nearby products for category visibility |
+Currently, Step 3 shows a summary card of the selected group + subcategories. Extend this pattern to **Steps 4 and 5** as well, so the seller always sees their selections in context. This is already partially done (Step 5 has a summary card) but Steps 4 lacks any reminder of the store name or category.
 
-### Technical Approach for Seller Visibility Fix
+Add a compact breadcrumb-style bar at the top of Steps 3-5:
+`[icon] Food > Bakery, Home Cooking | "Amma's Kitchen"`
 
-The Supabase JS `!inner` join approach will be used. Instead of:
-```typescript
-.from('seller_profiles')
-.select('id, business_name, ...')
-.eq('verification_status', 'approved')
-```
+**File:** `BecomeSellerPage.tsx` -- extract the summary card into a reusable inline component, render it on steps 3, 4, and 5
 
-Change to:
-```typescript
-.from('seller_profiles')
-.select('id, business_name, ..., products!inner(id)')
-.eq('verification_status', 'approved')
-.eq('products.is_available', true)
-.eq('products.approval_status', 'approved')
-```
+---
 
-This ensures the DB only returns sellers who have at least one approved, available product. The `!inner` keyword makes it an INNER JOIN, excluding sellers with zero matching products.
+### Change 5: Encouraging Micro-Copy on Category Selection (Step 1)
 
-For the `search_nearby_sellers` RPC, add a `HAVING` clause or `WHERE EXISTS` to exclude sellers with no approved products from the results (this is partially done already since `matching_products` is computed, but sellers with NULL `matching_products` are still returned).
+When a seller taps a category group in Step 1, instead of immediately jumping to Step 2, show a brief **confirmation moment**: a subtle highlight animation on the selected card with a "Great choice!" micro-interaction before transitioning. This uses framer-motion (already installed) for a 300ms scale + fade transition.
+
+**File:** `BecomeSellerPage.tsx` -- wrap step 1 card click with a short delay and animation
+
+---
+
+### Change 6: Empty State Guidance in Products Step
+
+The DraftProductManager currently shows "Add at least one item to continue" as static text. Enhance this with a friendlier empty state when no products have been added yet:
+- Show an illustration-style icon (Package) with encouraging text: "Your catalog is empty. Add your first product -- even one item is enough to get started!"
+- Once the first product is added, show a success message: "You're on your way! Add more items or continue to review."
+
+**File:** `DraftProductManager.tsx` -- enhance the empty state UI (before the "Add Product" button)
+
+---
+
+### Technical Implementation Details
+
+All changes are **UI-only** within two existing files:
+
+1. **`src/pages/BecomeSellerPage.tsx`**
+   - Replace step indicator with labeled stepper component (inline, not a new file)
+   - Replace static header with dynamic step-aware header
+   - Add "what's next" helper text above each Continue button
+   - Add persistent context breadcrumb to steps 3-5
+   - Add brief selection confirmation animation on step 1
+
+2. **`src/components/seller/DraftProductManager.tsx`**
+   - Enhance empty state with friendlier guidance copy
+   - Add success encouragement after first product is added
+
+No new dependencies, no new files, no database changes. All changes use existing Tailwind classes and framer-motion (already installed).
 
