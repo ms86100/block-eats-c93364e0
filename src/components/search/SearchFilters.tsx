@@ -187,26 +187,6 @@ export function SearchFilters({
             </div>
           </div>
 
-          {/* Categories */}
-          <div>
-            <Label className="text-sm font-semibold">Categories</Label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {allCategories.map((config) => (
-                <button
-                  key={config.category}
-                  onClick={() => toggleCategory(config.category)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    localFilters.categories.includes(config.category)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  <span>{config.icon}</span>
-                  {config.displayName}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Price Range */}
           {showPriceFilter && (

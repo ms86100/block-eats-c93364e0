@@ -512,7 +512,7 @@ export default function SearchPage() {
   // ── Render ───────────────────────────────────────────
   return (
     <AppLayout showHeader={false}>
-      <div className="pb-24">
+      <div className="pb-32">
         {/* ─── Sticky search header ─── */}
         <div className="sticky top-0 z-40 bg-background safe-top">
           <div className="px-4 pt-3 pb-2">
@@ -597,19 +597,8 @@ export default function SearchPage() {
         </div>
 
         <div className="px-4">
-          {/* ─── Category Bubbles ─── */}
-          <CategoryBubbleRow
-            categories={categoryConfigs}
-            selectedCategory={selectedCategory}
-            onCategoryTap={handleCategoryTap}
-            isLoading={categoriesLoading}
-          />
-
-          {/* ─── Filter presets ─── */}
-          <FilterPresets activePreset={activePreset} onPresetSelect={handlePresetSelect} />
-
           {/* ─── Browse-beyond toggle ─── */}
-          <div className="flex items-center justify-between mt-3 mb-1 px-1">
+          <div className="flex items-center justify-between mt-2 mb-2 px-1">
             <button
               onClick={() => setBrowseBeyond(!browseBeyond)}
               className="flex items-center gap-2 text-sm"
@@ -636,6 +625,17 @@ export default function SearchPage() {
               <span className="text-xs font-semibold text-primary w-10 text-right">{searchRadius} km</span>
             </div>
           )}
+
+          {/* ─── Category Bubbles ─── */}
+          <CategoryBubbleRow
+            categories={categoryConfigs}
+            selectedCategory={selectedCategory}
+            onCategoryTap={handleCategoryTap}
+            isLoading={categoriesLoading}
+          />
+
+          {/* ─── Filter presets ─── */}
+          <FilterPresets activePreset={activePreset} onPresetSelect={handlePresetSelect} />
 
           {/* ─── Active filter pills ─── */}
           {pills.length > 0 && (
