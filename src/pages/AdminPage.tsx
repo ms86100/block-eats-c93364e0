@@ -311,13 +311,16 @@ export default function AdminPage() {
           <Card><CardContent className="p-2 text-center"><Flag className="mx-auto text-destructive" size={14} /><p className="text-sm font-bold">{stats.pendingReports}</p><p className="text-[8px] text-muted-foreground">Reports</p></CardContent></Card>
         </div>
 
-        <Tabs defaultValue="users">
-          <TabsList className="w-full grid grid-cols-11">
-            <TabsTrigger value="users" className="text-[10px]">Users</TabsTrigger>
+        <Tabs defaultValue="sellers">
+          <TabsList className="w-full grid grid-cols-6">
             <TabsTrigger value="sellers" className="text-[10px]">Sellers</TabsTrigger>
+            <TabsTrigger value="licenses" className="text-[10px]">Licenses</TabsTrigger>
             <TabsTrigger value="products" className="text-[10px]">Products</TabsTrigger>
+            <TabsTrigger value="users" className="text-[10px]">Users</TabsTrigger>
             <TabsTrigger value="societies" className="text-[10px]">Societies</TabsTrigger>
             <TabsTrigger value="disputes" className="text-[10px]">Disputes</TabsTrigger>
+          </TabsList>
+          <TabsList className="w-full grid grid-cols-6 mt-1">
             <TabsTrigger value="reports" className="text-[10px]">Reports</TabsTrigger>
             <TabsTrigger value="payments" className="text-[10px]">Payments</TabsTrigger>
             <TabsTrigger value="reviews" className="text-[10px]">Reviews</TabsTrigger>
@@ -614,8 +617,11 @@ export default function AdminPage() {
             <FeatureManagement />
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-4 mt-4">
+          <TabsContent value="licenses" className="mt-4">
             <LicenseManager />
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-4 mt-4">
             <ApiKeySettings />
             <CategoryManager />
           </TabsContent>
