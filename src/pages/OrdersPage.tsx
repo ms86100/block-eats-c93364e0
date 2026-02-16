@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReorderButton } from '@/components/order/ReorderButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order, ORDER_STATUS_LABELS } from '@/types/database';
-import { Package, ChevronRight, Loader2 } from 'lucide-react';
+import { Package, ChevronRight, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 const PAGE_SIZE = 20;
@@ -19,74 +19,74 @@ function OrderCard({ order, type }: { order: Order; type: 'buyer' | 'seller' }) 
   const buyer = (order as any).buyer;
   const items = (order as any).items || [];
   const canReorder = type === 'buyer' && (order.status === 'completed' || order.status === 'delivered');
+  const isCompleted = order.status === 'completed' || order.status === 'delivered';
 
   return (
-    <div className="bg-card rounded-xl p-4 shadow-sm mb-3">
-      <Link to={`/orders/${order.id}`}>
+    <Link to={`/orders/${order.id}`} className="block">
+      <div className="bg-card border border-border rounded-xl p-3 mb-2.5 active:scale-[0.99] transition-transform">
         <div className="flex items-start gap-3">
-          <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0">
+          {/* Seller/Buyer thumbnail */}
+          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-muted">
             {seller?.cover_image_url ? (
-              <img
-                src={seller.cover_image_url}
-                alt={seller?.business_name}
-                className="w-full h-full object-cover"
-              />
+              <img src={seller.cover_image_url} alt={seller?.business_name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-muted flex items-center justify-center">
-                <Package size={24} className="text-muted-foreground" />
+              <div className="w-full h-full flex items-center justify-center">
+                <Package size={20} className="text-muted-foreground" />
               </div>
             )}
           </div>
+
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h3 className="font-semibold truncate">
-                  {type === 'buyer' ? seller?.business_name : buyer?.name}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(order.created_at), 'MMM d, yyyy • h:mm a')}
-                </p>
-              </div>
-              <span className={`text-xs px-2 py-1 rounded-full ${statusInfo.color}`}>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold truncate">
+                {type === 'buyer' ? seller?.business_name : buyer?.name}
+              </h3>
+              <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+            </div>
+
+            {/* Status + date row */}
+            <div className="flex items-center gap-2 mt-0.5">
+              {isCompleted && <CheckCircle size={12} className="text-accent shrink-0" />}
+              <span className={`text-[11px] px-1.5 py-0.5 rounded ${statusInfo.color}`}>
                 {statusInfo.label}
               </span>
+              <span className="text-[11px] text-muted-foreground">
+                {format(new Date(order.created_at), 'MMM d')}
+              </span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {items.length} item{items.length > 1 ? 's' : ''} • ₹{order.total_amount}
+
+            {/* Items + price */}
+            <p className="text-xs text-muted-foreground mt-1">
+              {items.length} item{items.length > 1 ? 's' : ''} · ₹{order.total_amount}
             </p>
+
             {type === 'seller' && buyer && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[11px] text-muted-foreground">
                 Block {buyer.block}, {buyer.flat_number}
               </p>
             )}
           </div>
-          <ChevronRight size={20} className="text-muted-foreground shrink-0" />
         </div>
-      </Link>
-      {canReorder && (
-        <div className="mt-3 pt-3 border-t flex justify-end">
-          <ReorderButton
-            orderItems={items}
-            sellerId={order.seller_id}
-            variant="outline"
-            size="sm"
-          />
-        </div>
-      )}
-    </div>
+
+        {/* Reorder row */}
+        {canReorder && (
+          <div className="mt-2.5 pt-2.5 border-t border-border flex justify-end" onClick={(e) => e.preventDefault()}>
+            <ReorderButton orderItems={items} sellerId={order.seller_id} variant="outline" size="sm" />
+          </div>
+        )}
+      </div>
+    </Link>
   );
 }
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="text-center py-12">
-      <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-        <Package size={32} className="text-muted-foreground" />
+    <div className="text-center py-16">
+      <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+        <Package size={28} className="text-muted-foreground" />
       </div>
-      <p className="text-muted-foreground mb-4">{message}</p>
-      <Link to="/">
-        <Button>Browse Sellers</Button>
-      </Link>
+      <p className="text-sm text-muted-foreground mb-4">{message}</p>
+      <Link to="/"><Button size="sm">Browse Sellers</Button></Link>
     </div>
   );
 }
@@ -127,11 +127,8 @@ function OrderList({ type, userId, sellerId }: { type: 'buyer' | 'seller'; userI
       const { data } = await query;
       const results = (data as any) || [];
 
-      if (isInitial) {
-        setOrders(results);
-      } else {
-        setOrders(prev => [...prev, ...results]);
-      }
+      if (isInitial) setOrders(results);
+      else setOrders(prev => [...prev, ...results]);
       setHasMore(results.length === PAGE_SIZE);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -154,8 +151,8 @@ function OrderList({ type, userId, sellerId }: { type: 'buyer' | 'seller'; userI
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
+      <div className="space-y-2.5">
+        {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
       </div>
     );
   }
@@ -169,8 +166,8 @@ function OrderList({ type, userId, sellerId }: { type: 'buyer' | 'seller'; userI
       {orders.map(order => <OrderCard key={order.id} order={order} type={type} />)}
       {hasMore && (
         <div className="flex justify-center py-4">
-          <Button variant="outline" onClick={loadMore} disabled={isLoadingMore}>
-            {isLoadingMore ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</> : 'Load More'}
+          <Button variant="outline" size="sm" onClick={loadMore} disabled={isLoadingMore}>
+            {isLoadingMore ? <><Loader2 className="mr-2 h-3 w-3 animate-spin" /> Loading...</> : 'Load More'}
           </Button>
         </div>
       )}
@@ -184,24 +181,34 @@ export default function OrdersPage() {
   if (!user) return null;
 
   return (
-    <AppLayout headerTitle="My Orders" showLocation={false}>
-      <div className="p-4">
-        {isSeller ? (
-          <Tabs defaultValue="buying" className="w-full">
-            <TabsList className="w-full mb-4">
-              <TabsTrigger value="buying" className="flex-1">My Orders</TabsTrigger>
-              <TabsTrigger value="selling" className="flex-1">Received Orders</TabsTrigger>
-            </TabsList>
-            <TabsContent value="buying">
-              <OrderList type="buyer" userId={user.id} />
-            </TabsContent>
-            <TabsContent value="selling">
-              <OrderList type="seller" userId={user.id} sellerId={currentSellerId || undefined} />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <OrderList type="buyer" userId={user.id} />
-        )}
+    <AppLayout showHeader={false}>
+      <div className="pb-4">
+        {/* Sticky header */}
+        <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 flex items-center gap-3">
+          <Link to="/" className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted shrink-0">
+            <ArrowLeft size={16} />
+          </Link>
+          <h1 className="text-base font-bold">Your Orders</h1>
+        </div>
+
+        <div className="px-4 pt-3">
+          {isSeller ? (
+            <Tabs defaultValue="buying" className="w-full">
+              <TabsList className="w-full mb-3 h-9">
+                <TabsTrigger value="buying" className="flex-1 text-xs">My Orders</TabsTrigger>
+                <TabsTrigger value="selling" className="flex-1 text-xs">Received</TabsTrigger>
+              </TabsList>
+              <TabsContent value="buying">
+                <OrderList type="buyer" userId={user.id} />
+              </TabsContent>
+              <TabsContent value="selling">
+                <OrderList type="seller" userId={user.id} sellerId={currentSellerId || undefined} />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <OrderList type="buyer" userId={user.id} />
+          )}
+        </div>
       </div>
     </AppLayout>
   );

@@ -15,7 +15,7 @@ import { sendOrderStatusNotification } from '@/lib/notifications';
 import { logAudit } from '@/lib/audit';
 import { Order, OrderItem, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, OrderStatus, PaymentStatus, ItemStatus, ITEM_STATUS_LABELS } from '@/types/database';
 import { OrderItemCard } from '@/components/order/OrderItemCard';
-import { ArrowLeft, Phone, MapPin, Check, Star, MessageCircle, CreditCard, AlertTriangle, XCircle, Package } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Check, Star, MessageCircle, CreditCard, XCircle, Package, ChevronRight, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -30,12 +30,10 @@ export default function OrderDetailPage() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [isRejectionDialogOpen, setIsRejectionDialogOpen] = useState(false);
 
-  // Determine if this is an urgent order that needs sound notification
   const seller = (order as any)?.seller;
   const isSellerView = isSeller && seller?.user_id === user?.id;
   const isUrgentOrder = order?.auto_cancel_at && order.status === 'placed' && isSellerView;
   
-  // Play urgent sound for sellers when they have an urgent pending order
   useUrgentOrderSound(!!isUrgentOrder);
 
   useEffect(() => {
@@ -45,60 +43,27 @@ export default function OrderDetailPage() {
     }
   }, [id]);
 
-  // Set up real-time subscription for order updates
   useEffect(() => {
     if (!id) return;
-
     const channel = supabase
       .channel(`order-${id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${id}`,
-        },
-        (payload) => {
-          console.log('Order updated:', payload);
-          setOrder((prev) => prev ? { ...prev, ...payload.new } as Order : null);
-        }
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
+        (payload) => { setOrder((prev) => prev ? { ...prev, ...payload.new } as Order : null); }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [id]);
 
   const fetchOrder = async () => {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          seller:seller_profiles(
-            id, 
-            business_name, 
-            user_id,
-            profile:profiles!seller_profiles_user_id_fkey(name, phone, block, flat_number)
-          ),
-          buyer:profiles!orders_buyer_id_fkey(name, phone, block, flat_number),
-          items:order_items(*)
-        `)
+        .select(`*, seller:seller_profiles(id, business_name, user_id, profile:profiles!seller_profiles_user_id_fkey(name, phone, block, flat_number)), buyer:profiles!orders_buyer_id_fkey(name, phone, block, flat_number), items:order_items(*)`)
         .eq('id', id)
         .single();
-
       if (error) throw error;
       setOrder(data as any);
-
-      // Check if review exists
-      const { data: reviewData } = await supabase
-        .from('reviews')
-        .select('id')
-        .eq('order_id', id)
-        .single();
-      
+      const { data: reviewData } = await supabase.from('reviews').select('id').eq('order_id', id).single();
       setHasReview(!!reviewData);
     } catch (error) {
       console.error('Error fetching order:', error);
@@ -109,67 +74,33 @@ export default function OrderDetailPage() {
 
   const fetchUnreadCount = async () => {
     if (!user || !id) return;
-    
     const { count } = await supabase
       .from('chat_messages')
       .select('id', { count: 'exact', head: true })
       .eq('order_id', id)
       .eq('receiver_id', user.id)
       .eq('read_status', false);
-    
     setUnreadMessages(count || 0);
   };
 
   const updateOrderStatus = async (newStatus: OrderStatus, rejectionReason?: string) => {
     if (!order) return;
-
     setIsUpdating(true);
     try {
-      const updateData: any = { 
-        status: newStatus,
-        auto_cancel_at: null, // Clear the auto-cancel timer when order is acted upon
-      };
-      
-      if (rejectionReason) {
-        updateData.rejection_reason = rejectionReason;
-      }
-
-      const { error } = await supabase
-        .from('orders')
-        .update(updateData)
-        .eq('id', order.id);
-
+      const updateData: any = { status: newStatus, auto_cancel_at: null };
+      if (rejectionReason) updateData.rejection_reason = rejectionReason;
+      const { error } = await supabase.from('orders').update(updateData).eq('id', order.id);
       if (error) throw error;
-      
       setOrder({ ...order, ...updateData });
       toast.success(`Order ${ORDER_STATUS_LABELS[newStatus].label.toLowerCase()}`);
-
-      // Audit log for order status change
       if (order.society_id) {
-        logAudit(
-          `order_${newStatus}`,
-          'order',
-          order.id,
-          order.society_id,
-          { old_status: order.status, new_status: newStatus, rejection_reason: rejectionReason }
-        );
+        logAudit(`order_${newStatus}`, 'order', order.id, order.society_id, { old_status: order.status, new_status: newStatus, rejection_reason: rejectionReason });
       }
-
-      // Send push notification for status change
       const buyerName = buyer?.name || 'Customer';
       const sellerName = seller?.business_name || 'Seller';
       const sellerUserId = seller?.user_id;
-      
       if (order.buyer_id && order.seller_id && sellerUserId) {
-        sendOrderStatusNotification(
-          order.id,
-          newStatus,
-          order.buyer_id,
-          order.seller_id,
-          sellerUserId,
-          sellerName,
-          buyerName
-        );
+        sendOrderStatusNotification(order.id, newStatus, order.buyer_id, order.seller_id, sellerUserId, sellerName, buyerName);
       }
     } catch (error: any) {
       console.error('Error updating order:', error);
@@ -179,24 +110,16 @@ export default function OrderDetailPage() {
     }
   };
 
-  const handleReject = async (reason: string) => {
-    await updateOrderStatus('cancelled', reason);
-  };
-
-  const handleTimeout = () => {
-    // Order will be auto-cancelled by the edge function
-    // Just refresh the order data
-    fetchOrder();
-    toast.error('Order was auto-cancelled due to timeout');
-  };
+  const handleReject = async (reason: string) => { await updateOrderStatus('cancelled', reason); };
+  const handleTimeout = () => { fetchOrder(); toast.error('Order was auto-cancelled due to timeout'); };
 
   if (isLoading) {
     return (
       <AppLayout showHeader={false}>
-        <div className="p-4">
-          <Skeleton className="h-8 w-32 mb-4" />
-          <Skeleton className="h-32 w-full rounded-xl mb-4" />
-          <Skeleton className="h-48 w-full rounded-xl" />
+        <div className="p-4 space-y-3">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
         </div>
       </AppLayout>
     );
@@ -205,11 +128,9 @@ export default function OrderDetailPage() {
   if (!order) {
     return (
       <AppLayout showHeader={false}>
-        <div className="p-4 text-center">
-          <p>Order not found</p>
-          <Link to="/orders">
-            <Button className="mt-4">View Orders</Button>
-          </Link>
+        <div className="p-4 text-center py-16">
+          <p className="text-sm text-muted-foreground">Order not found</p>
+          <Link to="/orders"><Button size="sm" className="mt-4">View Orders</Button></Link>
         </div>
       </AppLayout>
     );
@@ -225,312 +146,280 @@ export default function OrderDetailPage() {
   const statusOrder: OrderStatus[] = ['placed', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered', 'completed'];
   const currentStatusIndex = statusOrder.indexOf(order.status);
   const displayStatuses = ['placed', 'accepted', 'preparing', 'ready'];
-  
-  // Determine next status for seller
+
   const getNextStatus = (): OrderStatus | null => {
     if (order.status === 'cancelled' || order.status === 'completed') return null;
     const nextIndex = currentStatusIndex + 1;
-    if (nextIndex < statusOrder.length) {
-      return statusOrder[nextIndex];
-    }
-    return null;
+    return nextIndex < statusOrder.length ? statusOrder[nextIndex] : null;
   };
 
   const nextStatus = getNextStatus();
   const canReview = isBuyerView && order.status === 'completed' && !hasReview;
   const canChat = !['completed', 'cancelled'].includes(order.status);
   const canReorder = isBuyerView && (order.status === 'completed' || order.status === 'delivered');
-  
-  // Get chat recipient info
   const chatRecipientId = isSellerView ? order.buyer_id : seller?.user_id;
   const chatRecipientName = isSellerView ? buyer?.name : seller?.business_name;
 
+  const copyOrderId = () => {
+    navigator.clipboard.writeText(order.id.slice(0, 8));
+    toast.success('Order ID copied');
+  };
+
   return (
     <AppLayout showHeader={false} showNav={!isSellerView || order.status === 'completed' || order.status === 'cancelled'}>
-      <div className="p-4 pb-24">
-        <div className="flex items-center justify-between mb-4">
-          <Link to="/orders" className="flex items-center gap-2 text-muted-foreground">
-            <ArrowLeft size={20} />
-            <span>Back to Orders</span>
+      <div className="pb-28">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-30 bg-background border-b border-border px-4 py-3 flex items-center gap-3">
+          <Link to="/orders" className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted shrink-0">
+            <ArrowLeft size={16} />
           </Link>
-          
-          {/* Chat Button */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-bold">Order Summary</h1>
+            <button onClick={copyOrderId} className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              #{order.id.slice(0, 8)} <Copy size={10} />
+            </button>
+          </div>
           {canChat && chatRecipientId && (
-            <Button 
-              variant="outline" 
-              size="sm"
+            <button
               onClick={() => setIsChatOpen(true)}
-              className="relative"
+              className="relative inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted"
             >
-              <MessageCircle size={16} className="mr-2" />
-              Chat
+              <MessageCircle size={16} />
               {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
                   {unreadMessages}
                 </span>
               )}
-            </Button>
+            </button>
           )}
         </div>
 
-        {/* Urgent Order Timer for Sellers */}
-        {isUrgentOrder && order.auto_cancel_at && (
-          <div className="mb-4">
-            <UrgentOrderTimer
-              autoCancelAt={order.auto_cancel_at}
-              onTimeout={handleTimeout}
-            />
-          </div>
-        )}
+        <div className="px-4 pt-3 space-y-3">
+          {/* Urgent Timer */}
+          {isUrgentOrder && order.auto_cancel_at && (
+            <UrgentOrderTimer autoCancelAt={order.auto_cancel_at} onTimeout={handleTimeout} />
+          )}
 
-        {/* Rejection Reason Display for Buyers */}
-        {order.status === 'cancelled' && order.rejection_reason && isBuyerView && (
-          <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-4">
-            <div className="flex items-start gap-3">
-              <XCircle className="text-destructive shrink-0 mt-0.5" size={20} />
+          {/* Cancellation banner */}
+          {order.status === 'cancelled' && order.rejection_reason && isBuyerView && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex items-start gap-2.5">
+              <XCircle className="text-destructive shrink-0 mt-0.5" size={16} />
               <div>
-                <p className="font-semibold text-destructive">Order Cancelled</p>
-                <p className="text-sm text-muted-foreground mt-1">{order.rejection_reason}</p>
+                <p className="text-sm font-semibold text-destructive">Order Cancelled</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{order.rejection_reason}</p>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Order Status */}
-        <div className="bg-card rounded-xl p-4 shadow-sm mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <span className={`text-sm px-3 py-1 rounded-full ${statusInfo.color}`}>
+          {/* Status + Timeline Card */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusInfo.color}`}>
                 {statusInfo.label}
               </span>
-              <p className="text-xs text-muted-foreground mt-2">
-                Order #{order.id.slice(0, 8)}
-              </p>
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(order.created_at), 'MMM d, h:mm a')}
+              </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {format(new Date(order.created_at), 'MMM d, h:mm a')}
-            </p>
+
+            {order.status !== 'cancelled' && (
+              <div className="flex items-center justify-between mt-4 gap-1">
+                {displayStatuses.map((status, index) => {
+                  const statusIndex = statusOrder.indexOf(status as OrderStatus);
+                  const isCompleted = statusIndex <= currentStatusIndex;
+                  const isCurrent = statusIndex === currentStatusIndex;
+                  return (
+                    <div key={status} className="flex flex-col items-center flex-1">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold
+                        ${isCompleted ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}
+                        ${isCurrent ? 'ring-2 ring-accent ring-offset-1 ring-offset-background' : ''}
+                      `}>
+                        {isCompleted ? <Check size={14} /> : index + 1}
+                      </div>
+                      <span className="text-[9px] text-center mt-1 text-muted-foreground leading-tight">
+                        {ORDER_STATUS_LABELS[status as OrderStatus].label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* Status Timeline */}
-          {order.status !== 'cancelled' && (
-            <div className="flex items-center justify-between mt-4">
-              {displayStatuses.map((status, index) => {
-                const statusIndex = statusOrder.indexOf(status as OrderStatus);
-                const isCompleted = statusIndex <= currentStatusIndex;
-                const isCurrent = statusIndex === currentStatusIndex;
-                return (
-                  <div key={status} className="flex flex-col items-center flex-1">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        isCompleted
-                          ? 'bg-success text-success-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      } ${isCurrent ? 'ring-2 ring-success ring-offset-2' : ''}`}
-                    >
-                      {isCompleted ? <Check size={16} /> : index + 1}
-                    </div>
-                    <span className="text-[10px] text-center mt-1 text-muted-foreground">
-                      {ORDER_STATUS_LABELS[status as OrderStatus].label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Payment Status */}
-        <div className="bg-card rounded-xl p-4 shadow-sm mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CreditCard size={20} className="text-muted-foreground" />
+          {/* Payment Card */}
+          <div className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <CreditCard size={16} className="text-muted-foreground" />
               <div>
-                <p className="font-semibold text-sm">Payment</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm font-medium">
                   {order.payment_type === 'cod' ? 'Cash on Delivery' : 'UPI Payment'}
                 </p>
               </div>
             </div>
-            <span className={`text-xs px-2 py-1 rounded-full ${paymentStatusInfo.color}`}>
+            <span className={`text-[11px] px-2 py-0.5 rounded-full ${paymentStatusInfo.color}`}>
               {paymentStatusInfo.label}
             </span>
           </div>
-        </div>
 
-        {/* Reorder Button for completed orders */}
-        {canReorder && (
-          <div className="bg-success/10 border border-success/20 rounded-xl p-4 mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
-                  <CreditCard className="text-success" size={20} />
-                </div>
+          {/* Reorder CTA */}
+          {canReorder && (
+            <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Package className="text-accent" size={18} />
                 <div>
-                  <p className="font-semibold">Enjoyed this order?</p>
-                  <p className="text-sm text-muted-foreground">Order the same items again</p>
+                  <p className="text-sm font-semibold">Order again?</p>
+                  <p className="text-[11px] text-muted-foreground">Same items, one tap</p>
                 </div>
               </div>
-              <ReorderButton
-                orderItems={items}
-                sellerId={order.seller_id}
-                size="sm"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Review CTA for completed orders */}
-        {canReview && (
-          <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Star className="text-warning" size={24} />
-                <div>
-                  <p className="font-semibold">Rate your experience</p>
-                  <p className="text-sm text-muted-foreground">Help others by sharing your feedback</p>
-                </div>
-              </div>
-              <ReviewForm
-                orderId={order.id}
-                sellerId={order.seller_id}
-                sellerName={seller?.business_name || 'Seller'}
-                onSuccess={() => setHasReview(true)}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Seller/Buyer Info */}
-        <div className="bg-card rounded-xl p-4 shadow-sm mb-4">
-          <h3 className="font-semibold mb-3">
-            {isSellerView ? 'Customer Details' : 'Seller Details'}
-          </h3>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="font-medium">
-                {isSellerView ? buyer?.name : seller?.business_name}
-              </p>
-              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                <MapPin size={14} />
-                Block {isSellerView ? buyer?.block : sellerProfile?.block}, 
-                {isSellerView ? buyer?.flat_number : sellerProfile?.flat_number}
-              </p>
-            </div>
-            <a
-              href={`tel:${isSellerView ? buyer?.phone : sellerProfile?.phone}`}
-              className="p-2 rounded-full bg-success/10 text-success"
-            >
-              <Phone size={20} />
-            </a>
-          </div>
-        </div>
-
-        {/* Order Items with Per-Item Status */}
-        <div className="bg-card rounded-xl p-4 shadow-sm mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold">Order Items</h3>
-            {items.length > 1 && (
-              <span className="text-xs text-muted-foreground">
-                {items.filter((i: OrderItem) => (i.status || 'pending') === 'delivered').length}/{items.length} completed
-              </span>
-            )}
-          </div>
-          
-          {/* Item Progress Summary for multi-item orders */}
-          {items.length > 1 && (
-            <div className="flex items-center gap-2 mb-3 text-[10px] flex-wrap">
-              {(['pending', 'accepted', 'preparing', 'ready', 'delivered', 'cancelled'] as ItemStatus[]).map((status) => {
-                const count = items.filter((i: OrderItem) => (i.status || 'pending') === status).length;
-                if (count === 0) return null;
-                return (
-                  <span key={status} className={`px-2 py-0.5 rounded-full ${ITEM_STATUS_LABELS[status].color}`}>
-                    {count} {ITEM_STATUS_LABELS[status].label}
-                  </span>
-                );
-              })}
+              <ReorderButton orderItems={items} sellerId={order.seller_id} size="sm" />
             </div>
           )}
 
-          <div className="space-y-3">
-            {items.map((item: OrderItem) => (
-              <OrderItemCard
-                key={item.id}
-                item={item}
-                isSellerView={isSellerView}
-                orderStatus={order.status}
-                onStatusUpdate={(itemId, newStatus) => {
-                  // Update local state
-                  const updatedItems = items.map((i: OrderItem) => 
-                    i.id === itemId ? { ...i, status: newStatus } : i
-                  );
-                  setOrder({ ...order, items: updatedItems } as any);
-                }}
-              />
-            ))}
-            <div className="border-t pt-3 mt-3 flex justify-between font-semibold">
-              <span>Total</span>
-              <span>₹{order.total_amount}</span>
+          {/* Review CTA */}
+          {canReview && (
+            <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Star className="text-warning" size={18} />
+                <div>
+                  <p className="text-sm font-semibold">Rate this order</p>
+                  <p className="text-[11px] text-muted-foreground">Help others with your review</p>
+                </div>
+              </div>
+              <ReviewForm orderId={order.id} sellerId={order.seller_id} sellerName={seller?.business_name || 'Seller'} onSuccess={() => setHasReview(true)} />
+            </div>
+          )}
+
+          {/* Seller/Buyer Info */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              {isSellerView ? 'Customer' : 'Seller'}
+            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold">{isSellerView ? buyer?.name : seller?.business_name}</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <MapPin size={11} />
+                  Block {isSellerView ? buyer?.block : sellerProfile?.block}, {isSellerView ? buyer?.flat_number : sellerProfile?.flat_number}
+                </p>
+              </div>
+              <a
+                href={`tel:${isSellerView ? buyer?.phone : sellerProfile?.phone}`}
+                className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center"
+              >
+                <Phone size={16} className="text-accent" />
+              </a>
             </div>
           </div>
-        </div>
 
-        {/* Notes */}
-        {order.notes && (
-          <div className="bg-card rounded-xl p-4 shadow-sm mb-4">
-            <h3 className="font-semibold mb-2">Special Instructions</h3>
-            <p className="text-sm text-muted-foreground">{order.notes}</p>
+          {/* Order Items */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Items</p>
+              {items.length > 1 && (
+                <span className="text-[11px] text-muted-foreground">
+                  {items.filter((i: OrderItem) => (i.status || 'pending') === 'delivered').length}/{items.length} done
+                </span>
+              )}
+            </div>
+
+            {items.length > 1 && (
+              <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+                {(['pending', 'accepted', 'preparing', 'ready', 'delivered', 'cancelled'] as ItemStatus[]).map((status) => {
+                  const count = items.filter((i: OrderItem) => (i.status || 'pending') === status).length;
+                  if (count === 0) return null;
+                  return (
+                    <span key={status} className={`text-[10px] px-1.5 py-0.5 rounded ${ITEM_STATUS_LABELS[status].color}`}>
+                      {count} {ITEM_STATUS_LABELS[status].label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {items.map((item: OrderItem) => (
+                <OrderItemCard
+                  key={item.id}
+                  item={item}
+                  isSellerView={isSellerView}
+                  orderStatus={order.status}
+                  onStatusUpdate={(itemId, newStatus) => {
+                    const updatedItems = items.map((i: OrderItem) => i.id === itemId ? { ...i, status: newStatus } : i);
+                    setOrder({ ...order, items: updatedItems } as any);
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Bill summary */}
+            <div className="border-t border-border pt-3 mt-3 space-y-1.5 text-sm">
+              {(order as any).discount_amount > 0 && (
+                <div className="flex justify-between text-primary">
+                  <span>Discount</span>
+                  <span>-₹{(order as any).discount_amount}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Delivery</span>
+                <span className="text-primary font-medium">FREE</span>
+              </div>
+              <div className="flex justify-between font-bold pt-1 border-t border-border">
+                <span>Total</span>
+                <span>₹{order.total_amount}</span>
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Notes */}
+          {order.notes && (
+            <div className="bg-card border border-border rounded-xl p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Instructions</p>
+              <p className="text-sm text-muted-foreground">{order.notes}</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Seller Actions */}
+      {/* Seller Action Bar */}
       {isSellerView && order.status !== 'completed' && order.status !== 'cancelled' && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-card border-t safe-bottom">
-          <div className="flex gap-3">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border safe-bottom">
+          <div className="px-4 py-3 flex gap-3">
             {order.status === 'placed' && (
               <Button
                 variant="outline"
                 className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                 onClick={() => setIsRejectionDialogOpen(true)}
                 disabled={isUpdating}
+                size="sm"
               >
-                <XCircle size={16} className="mr-2" />
+                <XCircle size={14} className="mr-1.5" />
                 Reject
               </Button>
             )}
             {nextStatus && (
               <Button
-                className="flex-1"
+                className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
                 onClick={() => updateOrderStatus(nextStatus)}
                 disabled={isUpdating}
+                size="sm"
               >
-                {isUpdating ? 'Updating...' : `Mark as ${ORDER_STATUS_LABELS[nextStatus].label}`}
+                {isUpdating ? 'Updating...' : `Mark ${ORDER_STATUS_LABELS[nextStatus].label}`}
+                <ChevronRight size={14} className="ml-1" />
               </Button>
             )}
           </div>
         </div>
       )}
 
-      {/* Rejection Dialog */}
-      <OrderRejectionDialog
-        open={isRejectionDialogOpen}
-        onOpenChange={setIsRejectionDialogOpen}
-        onReject={handleReject}
-        orderNumber={order.id}
-      />
+      <OrderRejectionDialog open={isRejectionDialogOpen} onOpenChange={setIsRejectionDialogOpen} onReject={handleReject} orderNumber={order.id} />
 
-      {/* Chat Component */}
       {chatRecipientId && (
         <OrderChat
           orderId={order.id}
           otherUserId={chatRecipientId}
           otherUserName={chatRecipientName || 'User'}
           isOpen={isChatOpen}
-          onClose={() => {
-            setIsChatOpen(false);
-            fetchUnreadCount();
-          }}
+          onClose={() => { setIsChatOpen(false); fetchUnreadCount(); }}
           disabled={!canChat}
         />
       )}
