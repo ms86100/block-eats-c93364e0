@@ -1,141 +1,84 @@
 
 
-# Mobile UI/UX Readiness Audit -- Round 9 (End-to-End Buyer + Seller)
+# Fix: Email/Phone Uniqueness, Preference Persistence, and Nearby Seller Display
 
-## Mobile Design Thinking Maturity Assessment
+## Issue 1 -- Email and Phone Not Enforced as Unique
 
-| Phase | Rating | Justification |
-|-------|--------|---------------|
-| Empathize | High | Rounds 5-8 fixed back arrow tap targets across all major pages. Remaining: BecomeSellerPage back arrow (line 488, 563) uses bare icon without tap target container; WorkerHirePage "Post Job" button uses `size="sm"`. |
-| Define | High | All screens have clear intent. No new gaps. |
-| Ideate | High | Draft saving and back navigation are solid. No new gaps. |
-| Prototype | Medium-High | Remaining: MySubscriptionsPage "Cancel" subscription has no confirmation dialog -- a destructive action triggered by a single tap. |
-| Test | High | Toast feedback and loading states are thorough. No new gaps. |
+**Root cause:** The `profiles` table has no unique indexes on `email` or `phone`. The database allows duplicate values in both columns.
+
+**Fix:** Add unique indexes on `profiles.email` and `profiles.phone` via a database migration:
+
+```sql
+CREATE UNIQUE INDEX idx_profiles_email_unique ON public.profiles (email) WHERE email IS NOT NULL AND email != '';
+CREATE UNIQUE INDEX idx_profiles_phone_unique ON public.profiles (phone) WHERE phone IS NOT NULL AND phone != '';
+```
+
+Partial unique indexes are used so that NULL/empty values don't conflict, but any real email or phone can only belong to one user.
+
+Additionally, add client-side validation in the signup form to show a clear error message when a duplicate is detected (the database will reject it, but the user should see a friendly message).
 
 ---
 
-## Key Gaps (New -- Not Previously Addressed)
+## Issue 2 -- Nearby Society Preferences Not Auto-Saved
 
-### Gap 1 -- BecomeSellerPage Back Arrows Missing Tap Targets (Empathize / Seller)
+**Root cause:** This is actually already implemented correctly. The `SearchPage` reads `browse_beyond_community` and `search_radius_km` from the `profiles` table on mount (lines 109-123), and persists changes via `supabase.from('profiles').update(...)` (lines 125-147). Both columns exist in the database (`browse_beyond_community: boolean NOT NULL`, `search_radius_km: integer NOT NULL`).
 
-**Files:** `src/pages/BecomeSellerPage.tsx` (lines 488-490 and 563-565)
-**Issue:** Two separate back arrow instances use bare `<ArrowLeft size={20}>` inside `<Link>` elements without tap target containers. These follow the exact pattern fixed on SellerSettings, SellerProducts, SellerEarnings (Round 8), and Favorites (Round 7). The seller onboarding flow is critical and visited by every new seller.
-**User impact:** Unreliable one-handed back navigation during the most important seller flow.
-**Fix:** Wrap each back arrow in a `<span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted shrink-0">` container and reduce icon to `size={18}`.
+However, the `ShopByStoreDiscovery` component on the Home Page does NOT use these persisted preferences. It has its own `useNearbySocietySellers` hook that always uses a hardcoded radius of 10 km and doesn't check the user's `browse_beyond_community` preference. Similarly, the `useNearbySellers` hook takes a radius parameter but is not connected to the profile preference.
 
-### Gap 2 -- MySubscriptionsPage Cancel Without Confirmation (Prototype / Buyer)
+**Fix:** Update `ShopByStoreDiscovery` to read the user's `browse_beyond_community` and `search_radius_km` from their profile and use those values to control whether the "Nearby Societies" section renders and what radius it queries.
 
-**File:** `src/pages/MySubscriptionsPage.tsx` (lines 110-113)
-**Issue:** The "Cancel" subscription button calls `updateStatus(sub.id, 'cancelled')` directly with a single tap. This is an irreversible action (cancelling a subscription) with no confirmation dialog. This is the same pattern fixed on CartPage (Round 6) where "Clear" required confirmation. Cancelling a subscription is arguably more consequential than clearing a cart.
-**User impact:** Accidental subscription cancellation with no undo path. The Pause/Resume buttons sit adjacent (lines 99-108), making accidental taps between them likely.
-**Fix:** Wrap the Cancel action in an `AlertDialog` confirmation, consistent with the CartPage pattern.
-
-### Gap 3 -- WorkerHirePage "Post Job" Button Too Small (Empathize / Buyer)
-
-**File:** `src/pages/WorkerHirePage.tsx` (line 18)
-**Issue:** The "Post Job" button uses `size="sm"` (h-9, 36px). This is the primary action on the page and follows the same pattern fixed on SellerProductsPage (Round 8) where "Add Product" was upgraded from `size="sm"` to default.
-**User impact:** The primary action for posting a job request is undersized for reliable one-handed tapping.
-**Fix:** Remove `size="sm"` to default to `size="default"` (h-10, 40px).
-
-### Gap 4 -- MySubscriptionsPage Action Buttons Too Small (Empathize / Buyer)
-
-**File:** `src/pages/MySubscriptionsPage.tsx` (lines 101, 106, 111)
-**Issue:** Pause, Resume, and Cancel buttons all use `size="sm"` (h-9, 36px). These are the only actions available per subscription card. Given their importance and proximity to each other, they should meet at least the default 40px height.
-**User impact:** Mis-taps between adjacent small action buttons, especially between Pause and Cancel which are right next to each other.
-**Fix:** Remove `size="sm"` from all three buttons, defaulting to `size="default"`.
-
-### Gap 5 -- NotificationInboxPage "Mark all read" Button Too Small (Empathize / Buyer)
-
-**File:** `src/pages/NotificationInboxPage.tsx` (line 29)
-**Issue:** The "Mark all read" button uses `variant="ghost" size="sm" className="text-xs"`. While this is a secondary action, it is the only batch action available and uses extremely small text (text-xs) combined with `size="sm"`. The effective tap area is approximately 30px tall.
-**User impact:** Users with many notifications struggle to tap this reliably.
-**Fix:** Remove `size="sm"` and change `text-xs` to `text-sm` for better readability and tap target.
+- In `useStoreDiscovery.ts`, modify `useNearbySocietySellers` to accept `radiusKm` and `enabled` parameters instead of hardcoding `_radius_km: 10`.
+- In `ShopByStoreDiscovery`, read the profile preferences and pass them to the hook.
 
 ---
 
-## Implementation Priority
+## Issue 3 -- Nearby Sellers Not Displayed to Buyers
 
-| Priority | Gap | Effort | Impact |
-|----------|-----|--------|--------|
-| 1 | Gap 2 -- Subscription cancel confirmation | Small | High (irreversible action) |
-| 2 | Gap 1 -- BecomeSellerPage back arrows | Small | High (onboarding flow) |
-| 3 | Gap 4 -- Subscription action button sizes | Small | Medium (tap safety) |
-| 4 | Gap 3 -- WorkerHire "Post Job" button | Small | Medium (primary action) |
-| 5 | Gap 5 -- Notification "Mark all read" | Small | Low (secondary action) |
+**Root cause:** Multiple factors are preventing nearby sellers from appearing:
+
+### Factor A -- No approved products
+The only cross-society seller ("Sagar's Kitchen" in Prestige Tranquility) has `sell_beyond_community = true` and `delivery_radius_km = 8`, but both of its products have `approval_status = 'draft'`. The `search_nearby_sellers` RPC function explicitly requires `EXISTS (SELECT 1 FROM products WHERE is_available = true AND approval_status = 'approved')`. No approved products means the seller is correctly hidden.
+
+### Factor B -- `browse_beyond_community` defaults to false
+The profile column `browse_beyond_community` defaults to `false`. On the Search Page, nearby products only load when `browseBeyond` is `true` (line 197). On the Home Page, `ShopByStoreDiscovery` ignores this preference entirely and always queries for nearby sellers, but they won't appear due to Factor A.
+
+### Factor C -- Distance filtering is double-gated
+The `search_nearby_sellers` function requires the distance to be within BOTH the seller's `delivery_radius_km` AND the buyer's requested `_radius_km`. If a buyer's society is 9 km away but the seller's delivery radius is 8 km, the seller won't appear even if the buyer requests 10 km.
+
+**Fix (code-side):**
+1. No code changes needed for Factor A -- this is correct behavior (don't show empty stores). The real fix is operational: sellers need to submit products for approval.
+2. For Factor B: ensure the "Browse nearby" toggle on the Search Page is more visible and consider defaulting new users to `true` to showcase the feature.
+3. For Factor C: no code change needed -- this is intended business logic.
+
+**Recommendation:** The primary reason buyers see no nearby sellers is that no sellers have approved products with `sell_beyond_community = true`. This is a data/operational issue, not a code bug. However, the Home Page `ShopByStoreDiscovery` should respect the user's persisted preferences, which is a code fix.
 
 ---
 
-## Technical Details
+## Technical Implementation
 
-### Gap 1 -- BecomeSellerPage back arrows
-In `BecomeSellerPage.tsx` (line 488-490):
-```diff
-- <Link to="/" className="flex items-center gap-2 text-muted-foreground mb-6">
--   <ArrowLeft size={20} />
--   <span>Back</span>
-- </Link>
-+ <Link to="/" className="flex items-center gap-2 text-muted-foreground mb-6">
-+   <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted shrink-0">
-+     <ArrowLeft size={18} />
-+   </span>
-+   <span>Back</span>
-+ </Link>
+### Migration (Issue 1)
+
+```sql
+-- Enforce unique email and phone on profiles
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_email_unique 
+  ON public.profiles (email) WHERE email IS NOT NULL AND email != '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_phone_unique 
+  ON public.profiles (phone) WHERE phone IS NOT NULL AND phone != '';
 ```
 
-Same fix at line 563-565 (main flow back arrow).
+### Code Changes
 
-### Gap 2 -- Subscription cancel confirmation
-In `MySubscriptionsPage.tsx` (lines 110-113):
-```diff
-- {sub.status !== 'cancelled' && (
--   <Button variant="ghost" size="sm" className="gap-1 text-xs text-destructive" onClick={() => updateStatus(sub.id, 'cancelled')}>
--     <X size={12} /> Cancel
--   </Button>
-- )}
-+ {sub.status !== 'cancelled' && (
-+   <AlertDialog>
-+     <AlertDialogTrigger asChild>
-+       <Button variant="ghost" className="gap-1 text-xs text-destructive">
-+         <X size={14} /> Cancel
-+       </Button>
-+     </AlertDialogTrigger>
-+     <AlertDialogContent>
-+       <AlertDialogHeader>
-+         <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
-+         <AlertDialogDescription>
-+           This will cancel your subscription for {sub.product?.name}. You can subscribe again later from the seller's page.
-+         </AlertDialogDescription>
-+       </AlertDialogHeader>
-+       <AlertDialogFooter>
-+         <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-+         <AlertDialogAction onClick={() => updateStatus(sub.id, 'cancelled')}>
-+           Yes, Cancel
-+         </AlertDialogAction>
-+       </AlertDialogFooter>
-+     </AlertDialogContent>
-+   </AlertDialog>
-+ )}
-```
+**File: `src/hooks/queries/useStoreDiscovery.ts`**
+- Modify `useNearbySocietySellers()` to accept `radiusKm` and `enabled` parameters
+- Pass `radiusKm` to the RPC call instead of hardcoded `10`
+- Use `enabled` to control whether the query runs
 
-### Gap 3 -- WorkerHirePage "Post Job" button
-In `WorkerHirePage.tsx` (line 18):
-```diff
-- <Button size="sm" onClick={() => navigate('/worker-hire/create')}>
-+ <Button onClick={() => navigate('/worker-hire/create')}>
-```
+**File: `src/components/home/ShopByStoreDiscovery.tsx`**
+- Read `profile.browse_beyond_community` and `profile.search_radius_km` from auth context or a direct profile query
+- Pass these to `useNearbySocietySellers(radiusKm, enabled)`
+- Only render the "Nearby Societies" section when the user has opted in
 
-### Gap 4 -- Subscription action button sizes
-In `MySubscriptionsPage.tsx` (lines 101, 106):
-```diff
-- <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={...}>
-+ <Button variant="outline" className="gap-1 text-xs" onClick={...}>
-```
-Apply to both Pause and Resume buttons (remove `size="sm"`).
-
-### Gap 5 -- Notification "Mark all read" button
-In `NotificationInboxPage.tsx` (line 29):
-```diff
-- <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={...}>
-+ <Button variant="ghost" className="text-sm gap-1" onClick={...}>
-```
+**File: `src/pages/AuthPage.tsx` (or signup handler)**
+- Add error handling for unique constraint violations on email/phone
+- Show user-friendly messages like "This email is already registered" or "This phone number is already in use"
 
