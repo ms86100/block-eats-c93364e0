@@ -743,7 +743,7 @@ export default function SearchPage() {
               showCount={isSearchActive}
             />
           ) : isSearchActive ? (
-            <EmptyState />
+            <EmptyState browseBeyond={browseBeyond} onEnableBrowseBeyond={() => setBrowseBeyond(true)} />
           ) : (
             <EmptyMarketplace />
           )}
@@ -898,12 +898,23 @@ function ProductGridByCategory({
 }
 
 // ── Empty / Idle states ────────────────────────────────
-function EmptyState() {
+function EmptyState({ browseBeyond, onEnableBrowseBeyond }: { browseBeyond?: boolean; onEnableBrowseBeyond?: () => void } = {}) {
   return (
     <div className="text-center py-16">
       <SearchIcon className="mx-auto text-muted-foreground mb-3" size={28} />
       <p className="font-semibold text-sm text-foreground">No products found</p>
-      <p className="text-xs text-muted-foreground mt-1">Try a different term or tap a category above</p>
+      <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mx-auto">
+        Try searching for something else, or browse by category above
+      </p>
+      {!browseBeyond && onEnableBrowseBeyond && (
+        <button
+          onClick={onEnableBrowseBeyond}
+          className="mt-3 text-xs text-primary font-medium flex items-center gap-1 mx-auto"
+        >
+          <Globe size={12} />
+          Enable nearby communities to see more
+        </button>
+      )}
     </div>
   );
 }

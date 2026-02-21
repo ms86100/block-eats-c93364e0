@@ -18,6 +18,7 @@ import { OrderItemCard } from '@/components/order/OrderItemCard';
 import { ArrowLeft, Phone, MapPin, Check, Star, MessageCircle, CreditCard, XCircle, Package, ChevronRight, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { FeedbackSheet } from '@/components/feedback/FeedbackSheet';
 
 export default function OrderDetailPage() {
   const { id } = useParams();
@@ -285,6 +286,23 @@ export default function OrderDetailPage() {
                 </div>
               </div>
               <ReorderButton orderItems={items} sellerId={order.seller_id} size="sm" />
+            </div>
+          )}
+
+          {/* Contextual Feedback Prompt */}
+          {isBuyerView && (order.status === 'completed' || order.status === 'delivered') && !localStorage.getItem(`feedback_prompted_${order.id}`) && (
+            <div className="bg-secondary/50 border border-border rounded-xl p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">💬</span>
+                <div>
+                  <p className="text-sm font-semibold">How was your experience?</p>
+                  <p className="text-[11px] text-muted-foreground">Share feedback to help us improve</p>
+                </div>
+              </div>
+              <FeedbackSheet
+                triggerLabel="Share"
+                onSubmitted={() => localStorage.setItem(`feedback_prompted_${order.id}`, 'true')}
+              />
             </div>
           )}
 

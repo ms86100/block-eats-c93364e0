@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { QrCode, RefreshCw, Shield, Clock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import QRCode from '@/components/security/QRCodeDisplay';
 import { ManualEntryApproval } from '@/components/security/ManualEntryApproval';
 import { ResidentConfirmation } from '@/components/security/ResidentConfirmation';
@@ -43,7 +44,7 @@ export default function GateEntryPage() {
       setExpiresAt(result.expires_at);
       setTimeLeft(60);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to generate gate code');
+      toast.error(friendlyError(error));
     } finally {
       setIsGenerating(false);
     }

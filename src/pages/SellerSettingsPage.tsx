@@ -20,7 +20,7 @@ import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft, Loader2, PauseCircle, PlayCircle, Clock, Smartphone, Banknote, AlertTriangle, Building2, Globe, Truck, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, friendlyError } from '@/lib/utils';
 import { logAudit } from '@/lib/audit';
 import { LicenseUpload } from '@/components/seller/LicenseUpload';
 
@@ -266,7 +266,7 @@ export default function SellerSettingsPage() {
       }
     } catch (error: any) {
       console.error('Error saving:', error);
-      toast.error(error.message || 'Failed to save settings');
+      toast.error(friendlyError(error));
     } finally {
       setIsSaving(false);
     }

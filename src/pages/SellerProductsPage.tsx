@@ -32,6 +32,7 @@ import { ParentGroup } from '@/types/categories';
 import { SellerSwitcher } from '@/components/seller/SellerSwitcher';
 import { ArrowLeft, Plus, Edit, Trash2, Loader2, Star, Award, Bell, AlertTriangle, Store, ShieldAlert, Upload, Send, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import { BulkProductUpload } from '@/components/seller/BulkProductUpload';
 
 export default function SellerProductsPage() {
@@ -283,7 +284,7 @@ export default function SellerProductsPage() {
       if (sellerProfile) fetchData(sellerProfile.id);
     } catch (error: any) {
       console.error('Error saving product:', error);
-      toast.error(error.message || 'Failed to save product');
+      toast.error(friendlyError(error));
     } finally {
       setIsSaving(false);
     }

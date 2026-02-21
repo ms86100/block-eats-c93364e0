@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { sendOrderStatusNotification } from '@/lib/notifications';
 import { PaymentMethod } from '@/types/database';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 
 export default function CartPage() {
@@ -135,7 +136,7 @@ export default function CartPage() {
         setShowRazorpayCheckout(true);
       } catch (error: any) {
         console.error('Error creating orders:', error);
-        toast.error(error.message || 'Failed to create order');
+        toast.error(friendlyError(error));
       } finally {
         setIsPlacingOrder(false);
       }
@@ -157,7 +158,7 @@ export default function CartPage() {
       }
     } catch (error: any) {
       console.error('Error placing order:', error);
-      toast.error(error.message || 'Failed to place order');
+      toast.error(friendlyError(error));
     } finally {
       setIsPlacingOrder(false);
     }

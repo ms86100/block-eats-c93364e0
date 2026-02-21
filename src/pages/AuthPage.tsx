@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import { Mail, ArrowRight, Loader2, Eye, EyeOff, CheckCircle2, User, Search, MapPin, Building2, Plus, Navigation, Key, ShieldCheck, Sparkles, Home, ArrowLeft, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import authHero from '@/assets/auth-hero.jpg';
@@ -169,7 +170,7 @@ export default function AuthPage() {
       } else if (error.message.includes('Invalid login')) {
         toast.error('Invalid email or password. If you just signed up, please verify your email first by clicking the link we sent to your inbox.', { duration: 6000 });
       } else {
-        toast.error(error.message || 'Failed to login');
+        toast.error(friendlyError(error));
       }
     } finally { setIsLoading(false); }
   };
@@ -191,7 +192,7 @@ export default function AuthPage() {
       setResetEmailSent(true);
       toast.success('Password reset email sent! Check your inbox.');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to send reset email');
+      toast.error(friendlyError(error));
     } finally { setIsLoading(false); }
   };
 
@@ -330,7 +331,7 @@ export default function AuthPage() {
       if (error.message.includes('already registered')) {
         toast.error('This email is already registered. Please login instead.');
         setAuthMode('login'); setSignupStep('credentials');
-      } else { toast.error(error.message || 'Failed to create account'); }
+      } else { toast.error(friendlyError(error)); }
     } finally { setIsLoading(false); }
   };
 

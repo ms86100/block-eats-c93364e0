@@ -9,7 +9,12 @@ import { MessageSquareHeart } from 'lucide-react';
 
 const EMOJIS = ['😞', '😐', '🙂', '😊', '🤩'];
 
-export function FeedbackSheet() {
+interface FeedbackSheetProps {
+  triggerLabel?: string;
+  onSubmitted?: () => void;
+}
+
+export function FeedbackSheet({ triggerLabel, onSubmitted }: FeedbackSheetProps = {}) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(0);
@@ -31,6 +36,7 @@ export function FeedbackSheet() {
       setOpen(false);
       setRating(0);
       setMessage('');
+      onSubmitted?.();
     } catch {
       toast.error('Failed to submit feedback. Please try again.');
     } finally {
@@ -43,7 +49,7 @@ export function FeedbackSheet() {
       <SheetTrigger asChild>
         <button className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors w-full">
           <MessageSquareHeart size={18} className="text-muted-foreground shrink-0" />
-          <span className="flex-1 text-sm font-medium text-left">Share Feedback</span>
+          <span className="flex-1 text-sm font-medium text-left">{triggerLabel || 'Share Feedback'}</span>
           <span className="text-muted-foreground">›</span>
         </button>
       </SheetTrigger>

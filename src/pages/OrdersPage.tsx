@@ -79,13 +79,18 @@ function OrderCard({ order, type }: { order: Order; type: 'buyer' | 'seller' }) 
   );
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({ message, type }: { message: string; type?: 'buyer' | 'seller' }) {
   return (
     <div className="text-center py-16">
       <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
         <Package size={28} className="text-muted-foreground" />
       </div>
-      <p className="text-sm text-muted-foreground mb-4">{message}</p>
+      <p className="text-sm text-muted-foreground mb-1">{message}</p>
+      {type === 'seller' && (
+        <p className="text-xs text-muted-foreground mb-4 max-w-[220px] mx-auto">
+          Share your store link with neighbors to get your first order
+        </p>
+      )}
       <Link to="/"><Button size="sm">Browse Sellers</Button></Link>
     </div>
   );
@@ -158,7 +163,7 @@ function OrderList({ type, userId, sellerId }: { type: 'buyer' | 'seller'; userI
   }
 
   if (orders.length === 0) {
-    return <EmptyState message={type === 'buyer' ? "You haven't placed any orders yet" : "No orders received yet"} />;
+    return <EmptyState message={type === 'buyer' ? "You haven't placed any orders yet" : "No orders received yet"} type={type} />;
   }
 
   return (

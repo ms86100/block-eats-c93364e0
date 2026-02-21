@@ -10,6 +10,7 @@ import { Package, Loader2, Eye, Star, Clock, CheckCircle, XCircle, ShieldCheck }
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import { logAudit } from '@/lib/audit';
 
 // Import refactored components
@@ -99,7 +100,7 @@ export default function SellerDashboardPage() {
       }
     } catch (error) {
       console.error('Error toggling availability:', error);
-      toast.error('Failed to update availability');
+      toast.error(friendlyError(error));
     }
   };
 
@@ -119,8 +120,11 @@ export default function SellerDashboardPage() {
     return (
       <AppLayout headerTitle="Seller Dashboard" showLocation={false}>
         <div className="p-4 text-center py-12">
-          <p className="text-muted-foreground mb-4">
+          <p className="text-muted-foreground mb-2">
             You haven't set up your seller profile yet
+          </p>
+          <p className="text-xs text-muted-foreground mb-4">
+            Sell homemade food, groceries, or services to your community
           </p>
           <Link to="/become-seller">
             <Button>Become a Seller</Button>

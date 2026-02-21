@@ -71,10 +71,12 @@ export default function DisputesPage() {
           <div className="text-center py-12">
             <ShieldAlert size={32} className="mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground text-sm">
-              {tab === 'open' ? 'No open concerns' : 'No resolved concerns'}
+              {tab === 'open' ? 'No open concerns' : 'No resolved concerns yet'}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Raise a concern privately to the committee
+            <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mx-auto">
+              {tab === 'open'
+                ? 'Use this to raise concerns about orders, payments, or community issues — privately to the committee'
+                : 'Resolved concerns will appear here'}
             </p>
           </div>
         ) : (
