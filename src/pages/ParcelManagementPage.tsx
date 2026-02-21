@@ -13,6 +13,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import { Package, Plus, CheckCircle, Clock, PackageOpen } from 'lucide-react';
 
 type ParcelStatus = 'received' | 'notified' | 'collected' | 'returned';
@@ -67,7 +68,10 @@ export default function ParcelManagementPage() {
     }
 
     const { data, error } = await query.limit(50);
-    if (error) console.error(error);
+    if (error) {
+      toast.error('Could not load parcels. Please try again.');
+      console.error(error);
+    }
     setParcels((data as ParcelEntry[]) || []);
     setIsLoading(false);
   }, [effectiveSocietyId, user, activeTab]);
@@ -89,7 +93,7 @@ export default function ParcelManagementPage() {
     });
 
     if (error) {
-      toast.error('Failed to log parcel');
+      toast.error(friendlyError(error));
       console.error(error);
     } else {
       toast.success('Parcel logged');
@@ -175,6 +179,7 @@ export default function ParcelManagementPage() {
               <div className="text-center py-12 text-muted-foreground">
                 <PackageOpen className="mx-auto mb-3" size={32} />
                 <p className="text-sm">{activeTab === 'pending' ? 'No pending parcels' : 'No collection history'}</p>
+                <p className="text-xs mt-1">Parcels logged by security or yourself will appear here for easy tracking.</p>
               </div>
             ) : (
               parcels.map(parcel => (

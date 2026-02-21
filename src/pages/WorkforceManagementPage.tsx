@@ -11,6 +11,10 @@ import { FeatureGate } from '@/components/ui/FeatureGate';
 import { WorkerRegistrationSheet } from '@/components/workforce/WorkerRegistrationSheet';
 import { WorkerCategoryManager } from '@/components/workforce/WorkerCategoryManager';
 import { WorkerCard } from '@/components/workforce/WorkerCard';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -23,6 +27,7 @@ export default function WorkforceManagementPage() {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
   const [filterType, setFilterType] = useState<string>('all');
+  const [confirmAction, setConfirmAction] = useState<{ workerId: string; workerName: string; action: 'suspended' | 'blacklisted' } | null>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['worker-categories', effectiveSocietyId],
@@ -169,6 +174,7 @@ export default function WorkforceManagementPage() {
                   <div className="text-center py-12 text-muted-foreground">
                     <Users className="mx-auto mb-3" size={32} />
                     <p className="text-sm">No {tab} workers</p>
+                    <p className="text-xs mt-1">Register and manage domestic workers, security, and maintenance staff for your community.</p>
                   </div>
                 ) : (
                   workers.map(worker => (
@@ -177,8 +183,8 @@ export default function WorkforceManagementPage() {
                       worker={worker}
                       flatAssignments={flatAssignments.filter(fa => fa.worker_id === worker.id)}
                       showActions={canManage}
-                      onSuspend={() => updateWorkerStatus(worker.id, 'suspended', 'Admin action')}
-                      onBlacklist={() => updateWorkerStatus(worker.id, 'blacklisted', 'Admin action')}
+                      onSuspend={() => setConfirmAction({ workerId: worker.id, workerName: worker.worker_type + ' worker', action: 'suspended' })}
+                      onBlacklist={() => setConfirmAction({ workerId: worker.id, workerName: worker.worker_type + ' worker', action: 'blacklisted' })}
                       onReactivate={() => updateWorkerStatus(worker.id, 'active')}
                     />
                   ))
@@ -193,6 +199,36 @@ export default function WorkforceManagementPage() {
             onSuccess={refresh}
             categories={categories.map(c => ({ id: c.id, name: c.name, entry_type: c.entry_type }))}
           />
+
+          {/* Confirmation dialog for suspend/blacklist */}
+          <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {confirmAction?.action === 'suspended' ? 'Suspend' : 'Blacklist'} "{confirmAction?.workerName}"?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {confirmAction?.action === 'suspended'
+                    ? 'This worker will be temporarily suspended and won\'t be able to enter the premises until reactivated.'
+                    : 'This worker will be blacklisted and permanently blocked from entry. This action can be reversed by an admin.'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className={confirmAction?.action === 'blacklisted' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+                  onClick={() => {
+                    if (confirmAction) {
+                      updateWorkerStatus(confirmAction.workerId, confirmAction.action, 'Admin action');
+                      setConfirmAction(null);
+                    }
+                  }}
+                >
+                  {confirmAction?.action === 'suspended' ? 'Suspend' : 'Blacklist'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </FeatureGate>
     </AppLayout>

@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { Car, Bike, AlertTriangle, Plus, ParkingSquare, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 
 interface ParkingSlot {
   id: string;
@@ -70,6 +71,7 @@ export default function VehicleParkingPage() {
       setSlots((slotsRes.data as ParkingSlot[]) || []);
       setViolations((violationsRes.data as ParkingViolation[]) || []);
     } catch (error) {
+      toast.error('Could not load parking data. Please try again.');
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
@@ -95,7 +97,7 @@ export default function VehicleParkingPage() {
       fetchData();
     } catch (error: any) {
       if (error?.code === '23505') toast.error('Slot number already exists');
-      else toast.error('Failed to add slot');
+      else toast.error(friendlyError(error));
     }
   };
 
@@ -116,7 +118,7 @@ export default function VehicleParkingPage() {
       setViolationDesc('');
       fetchData();
     } catch {
-      toast.error('Failed to report');
+      toast.error('Failed to report violation. Please try again.');
     }
   };
 
@@ -131,7 +133,7 @@ export default function VehicleParkingPage() {
       toast.success(`Violation ${status}`);
       fetchData();
     } catch {
-      toast.error('Failed to update');
+      toast.error('Failed to update violation. Please try again.');
     }
   };
 
@@ -274,8 +276,8 @@ export default function VehicleParkingPage() {
                     </div>
                     {v.status === 'open' && canManage && (
                       <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => resolveViolation(v.id, 'dismissed')}><X size={12} /></Button>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary" onClick={() => resolveViolation(v.id, 'resolved')}><Check size={12} /></Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs text-destructive" onClick={() => resolveViolation(v.id, 'dismissed')}>Dismiss</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs text-primary" onClick={() => resolveViolation(v.id, 'resolved')}>Resolve</Button>
                       </div>
                     )}
                   </div>
@@ -283,7 +285,10 @@ export default function VehicleParkingPage() {
               </Card>
             ))}
             {violations.length === 0 && (
-              <p className="text-center text-muted-foreground py-8 text-sm">No violations reported</p>
+              <div className="text-center text-muted-foreground py-8">
+                <p className="text-sm">No violations reported</p>
+                <p className="text-xs mt-1">Report unauthorized parking or blocking issues for committee review.</p>
+              </div>
             )}
           </TabsContent>
         </Tabs>

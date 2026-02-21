@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import { Loader2, Sparkles, Upload } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUpload } from '@/components/ui/image-upload';
@@ -62,7 +63,7 @@ export function ProductImageUpload({
       }
     } catch (err: any) {
       console.error('AI image generation error:', err);
-      toast.error(err.message || 'Failed to generate image');
+      toast.error(friendlyError(err));
     } finally {
       setIsGenerating(false);
     }

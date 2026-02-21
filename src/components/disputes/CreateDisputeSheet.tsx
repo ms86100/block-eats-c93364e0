@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { friendlyError } from '@/lib/utils';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { notifySocietyAdmins } from '@/lib/society-notifications';
 import { disputeSchema, validateForm } from '@/lib/validation-schemas';
@@ -71,7 +72,7 @@ export function CreateDisputeSheet({ open, onOpenChange, onCreated }: Props) {
       onOpenChange(false);
       onCreated();
     } catch (err: any) {
-      toast({ title: 'Failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed', description: friendlyError(err), variant: 'destructive' });
     } finally {
       setSaving(false);
     }

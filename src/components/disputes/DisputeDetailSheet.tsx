@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { friendlyError } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Loader2, Send } from 'lucide-react';
 
@@ -77,7 +78,7 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
       setNewComment('');
       fetchComments();
     } catch (err: any) {
-      toast({ title: 'Failed to send', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed to send', description: friendlyError(err), variant: 'destructive' });
     } finally {
       setSending(false);
     }
@@ -108,7 +109,7 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
       setResolutionNote('');
       onUpdated();
     } catch (err: any) {
-      toast({ title: 'Failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed', description: friendlyError(err), variant: 'destructive' });
     } finally {
       setUpdating(false);
     }

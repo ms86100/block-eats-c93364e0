@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { friendlyError } from '@/lib/utils';
 import { SpendingPieChart } from '@/components/finances/SpendingPieChart';
 import { ExpenseList } from '@/components/finances/ExpenseList';
 import { AddExpenseSheet } from '@/components/finances/AddExpenseSheet';
@@ -84,7 +85,7 @@ export default function SocietyFinancesPage() {
       setFlagExpenseId(null);
       setFlagReason('');
     } catch (err: any) {
-      toast({ title: 'Failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed', description: friendlyError(err), variant: 'destructive' });
     } finally {
       setFlagging(false);
     }

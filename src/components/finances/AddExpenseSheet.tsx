@@ -8,6 +8,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { friendlyError } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 const EXPENSE_CATEGORIES = [
@@ -79,7 +80,7 @@ export function AddExpenseSheet({ open, onOpenChange, onCreated, type }: Props) 
       onOpenChange(false);
       onCreated();
     } catch (err: any) {
-      toast({ title: 'Failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed', description: friendlyError(err), variant: 'destructive' });
     } finally {
       setSaving(false);
     }

@@ -16,6 +16,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import { UserPlus, Phone, LogIn, LogOut, CheckCircle, Calendar, Users } from 'lucide-react';
 
 type HelpType = 'maid' | 'cook' | 'driver' | 'nanny' | 'gardener' | 'other';
@@ -97,7 +98,7 @@ export default function DomesticHelpPage() {
     });
 
     if (error) {
-      toast.error('Failed to add');
+      toast.error(friendlyError(error));
       console.error(error);
     } else {
       toast.success('Helper added');
@@ -117,7 +118,7 @@ export default function DomesticHelpPage() {
       date: today,
     });
     if (!error) { toast.success('Checked in'); fetchData(); }
-    else toast.error('Failed to check in');
+    else toast.error(friendlyError(error));
   };
 
   const handleCheckOut = async (attendanceId: string) => {
@@ -201,6 +202,7 @@ export default function DomesticHelpPage() {
               <div className="text-center py-12 text-muted-foreground">
                 <Users className="mx-auto mb-3" size={32} />
                 <p className="text-sm">No domestic help registered yet</p>
+                <p className="text-xs mt-1">Add your maid, cook, driver, or other helpers to track their daily attendance.</p>
               </div>
             ) : (
               helpers.map(helper => {

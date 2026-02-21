@@ -7,8 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import { CheckCircle2, Clock, AlertTriangle, Plus } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface MaintenanceDue {
   id: string;
@@ -57,11 +62,34 @@ export default function MaintenancePage() {
     fetchDues();
   };
 
+  const [residentCount, setResidentCount] = useState<number | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const fetchResidentCount = async () => {
+    if (!profile?.society_id || !generateMonth || !generateAmount) return;
+    setGenerating(true);
+    try {
+      const { data: residents, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('society_id', profile.society_id)
+        .eq('verification_status', 'approved');
+      if (error) throw error;
+      if (!residents?.length) { toast.error('No approved residents found'); setGenerating(false); return; }
+      setResidentCount(residents.length);
+      setShowConfirm(true);
+    } catch (err: any) {
+      toast.error(friendlyError(err));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleBulkGenerate = async () => {
     if (!generateMonth || !generateAmount || !profile?.society_id) return;
     setGenerating(true);
+    setShowConfirm(false);
     try {
-      // Get all approved residents
       const { data: residents } = await supabase
         .from('profiles')
         .select('id, block, flat_number')
@@ -85,9 +113,10 @@ export default function MaintenancePage() {
       setSheetOpen(false);
       setGenerateMonth('');
       setGenerateAmount('');
+      setResidentCount(null);
       fetchDues();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(friendlyError(err));
     } finally {
       setGenerating(false);
     }
@@ -139,13 +168,31 @@ export default function MaintenancePage() {
                     placeholder="5000" 
                   />
                 </div>
-                <Button className="w-full" disabled={generating || !generateMonth || !generateAmount} onClick={handleBulkGenerate}>
-                  {generating ? 'Generating...' : 'Generate for All Flats'}
+                <Button className="w-full" disabled={generating || !generateMonth || !generateAmount} onClick={fetchResidentCount}>
+                  {generating ? 'Checking...' : 'Preview & Generate'}
                 </Button>
               </div>
             </SheetContent>
           </Sheet>
         )}
+
+        {/* Confirmation dialog for bulk generation */}
+        <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Dues Generation</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will create dues for <strong>{residentCount}</strong> flats, totaling <strong>₹{((residentCount || 0) * parseFloat(generateAmount || '0')).toLocaleString()}</strong> for {generateMonth || 'the selected month'}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleBulkGenerate}>
+                Generate for All Flats
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">Loading...</div>

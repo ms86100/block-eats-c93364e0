@@ -16,6 +16,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 import {
   UserPlus, Shield, Clock, Car, Phone, Truck, Users,
   CheckCircle, XCircle, Copy, RefreshCw, LogIn, LogOut
@@ -104,6 +105,7 @@ export default function VisitorManagementPage() {
 
     const { data, error } = await query.limit(50);
     if (error) {
+      toast.error('Could not load visitors. Please try again.');
       console.error('Fetch visitors error:', error);
     }
     setVisitors((data as VisitorEntry[]) || []);
@@ -136,7 +138,7 @@ export default function VisitorManagementPage() {
     });
 
     if (error) {
-      toast.error('Failed to add visitor');
+      toast.error(friendlyError(error));
       console.error(error);
     } else {
       toast.success(`Visitor added! ${isPreapproved ? `OTP: ${otp}` : ''}`);
@@ -281,6 +283,7 @@ export default function VisitorManagementPage() {
               <div className="text-center py-12 text-muted-foreground">
                 <Users className="mx-auto mb-3" size={32} />
                 <p className="text-sm">No visitors {activeTab === 'today' ? 'expected today' : activeTab === 'upcoming' ? 'upcoming' : 'in history'}</p>
+                <p className="text-xs mt-1">Pre-approve visitors with an OTP so they can enter smoothly at the gate.</p>
               </div>
             ) : (
               visitors.map(visitor => (

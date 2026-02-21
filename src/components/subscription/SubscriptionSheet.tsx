@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, friendlyError } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -47,7 +47,7 @@ export function SubscriptionSheet({ open, onOpenChange, product }: SubscriptionS
       toast({ title: 'Subscribed!', description: `You'll receive ${product.name} ${frequency}` });
       onOpenChange(false);
     } catch (err: any) {
-      toast({ title: 'Failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed', description: friendlyError(err), variant: 'destructive' });
     } finally {
       setLoading(false);
     }

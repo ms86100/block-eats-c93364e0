@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { CATEGORY_CONFIG, type BulletinCategory } from './CategoryFilter';
-import { cn } from '@/lib/utils';
+import { cn, friendlyError } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -131,7 +131,7 @@ export function CreatePostSheet({ open, onOpenChange, onCreated }: CreatePostShe
       onOpenChange(false);
       onCreated();
     } catch (err: any) {
-      toast({ title: 'Failed to create post', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed to create post', description: friendlyError(err), variant: 'destructive' });
     } finally {
       setLoading(false);
     }

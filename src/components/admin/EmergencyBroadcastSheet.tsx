@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { notifySocietyMembers } from '@/lib/society-notifications';
 import { Megaphone, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 
 const BROADCAST_CATEGORIES = [
   { value: 'water_shutdown', label: '💧 Water Shutdown', emoji: '💧' },
@@ -60,7 +61,7 @@ export function EmergencyBroadcastSheet() {
       setCategory('general');
       setOpen(false);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to send broadcast');
+      toast.error(friendlyError(err));
     } finally {
       setSending(false);
     }

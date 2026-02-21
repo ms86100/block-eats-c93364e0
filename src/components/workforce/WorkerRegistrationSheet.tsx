@@ -10,6 +10,7 @@ import { LiveCameraCapture } from './LiveCameraCapture';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logAudit } from '@/lib/audit';
+import { friendlyError } from '@/lib/utils';
 
 const DEFAULT_TYPES = ['maid', 'cook', 'driver', 'nanny', 'gardener', 'electrician', 'plumber', 'caretaker', 'other'];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -105,7 +106,7 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
       resetForm();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || 'Failed to register worker');
+      toast.error(friendlyError(err));
     } finally {
       setIsSubmitting(false);
     }

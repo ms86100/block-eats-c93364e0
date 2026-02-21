@@ -513,7 +513,7 @@ export function CategoryManager() {
         }
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to add category');
+      toast.error(friendlyError(error));
     } finally {
       setIsSaving(false);
     }
@@ -590,7 +590,7 @@ export function CategoryManager() {
       await refreshGroups();
       setIsGroupDialogOpen(false);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save group');
+      toast.error(friendlyError(error));
     } finally {
       setIsSaving(false);
     }

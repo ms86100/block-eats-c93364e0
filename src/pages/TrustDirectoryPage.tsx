@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { escapeIlike } from '@/lib/query-utils';
 import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, friendlyError } from '@/lib/utils';
 import { Search, Plus, Loader2, Award, ThumbsUp, Star } from 'lucide-react';
 
 interface SkillListing {
@@ -82,7 +82,7 @@ export default function TrustDirectoryPage() {
       setShowAdd(false);
       fetchSkills();
     } catch (err: any) {
-      toast({ title: 'Failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Failed', description: friendlyError(err), variant: 'destructive' });
     } finally {
       setSaving(false);
     }
