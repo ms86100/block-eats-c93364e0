@@ -16,9 +16,11 @@ import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 export function ShopByStoreDiscovery() {
-  const { effectiveSociety } = useAuth();
+  const { effectiveSociety, profile } = useAuth();
+  const browseBeyond = profile?.browse_beyond_community ?? false;
+  const radiusKm = profile?.search_radius_km ?? 5;
   const { data: localGrouped = {}, isLoading: loadingLocal } = useLocalSellers();
-  const { data: nearbyBands = [], isLoading: loadingNearby } = useNearbySocietySellers();
+  const { data: nearbyBands = [], isLoading: loadingNearby } = useNearbySocietySellers(radiusKm, browseBeyond);
 
   const hasLocal = Object.keys(localGrouped).length > 0;
   const hasNearby = nearbyBands.length > 0;

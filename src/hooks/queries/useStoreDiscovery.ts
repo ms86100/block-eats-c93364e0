@@ -80,17 +80,17 @@ export function useLocalSellers() {
   });
 }
 
-export function useNearbySocietySellers() {
+export function useNearbySocietySellers(radiusKm: number = 10, enabled: boolean = true) {
   const { effectiveSocietyId, isApproved } = useAuth();
 
   return useQuery({
-    queryKey: ['store-discovery', 'nearby', effectiveSocietyId],
+    queryKey: ['store-discovery', 'nearby', effectiveSocietyId, radiusKm],
     queryFn: async () => {
       if (!effectiveSocietyId) return [];
 
       const { data, error } = await supabase.rpc('search_nearby_sellers', {
         _buyer_society_id: effectiveSocietyId,
-        _radius_km: 10,
+        _radius_km: radiusKm,
       });
 
       if (error) {
@@ -136,7 +136,7 @@ export function useNearbySocietySellers() {
 
       return bands;
     },
-    enabled: !!isApproved && !!effectiveSocietyId,
+    enabled: !!isApproved && !!effectiveSocietyId && enabled,
     staleTime: jitteredStaleTime(60_000),
   });
 }

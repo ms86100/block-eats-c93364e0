@@ -81,6 +81,8 @@ export interface Profile {
   society_id: string | null;
   created_at: string;
   updated_at: string;
+  browse_beyond_community?: boolean;
+  search_radius_km?: number;
   // Joined data
   society?: Society;
 }

@@ -322,7 +322,15 @@ export default function AuthPage() {
           if (!profileError) {
             await supabase.from('user_roles').insert({ user_id: data.user.id, role: 'buyer' });
           }
-        } catch (e) {
+        } catch (e: any) {
+          const msg = e?.message || e?.details || '';
+          if (msg.includes('idx_profiles_email_unique') || msg.includes('profiles_email')) {
+            toast.error('This email is already registered. Please login instead.');
+            setAuthMode('login'); setSignupStep('credentials'); return;
+          } else if (msg.includes('idx_profiles_phone_unique') || msg.includes('profiles_phone')) {
+            toast.error('This phone number is already in use by another account.');
+            return;
+          }
           console.warn('Profile creation during signup failed, will be auto-created on login:', e);
         }
         setSignupStep('verification');
