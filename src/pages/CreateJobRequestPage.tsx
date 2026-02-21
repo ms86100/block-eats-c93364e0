@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { jobRequestSchema, validateForm } from '@/lib/validation-schemas';
+import { friendlyError } from '@/lib/utils';
 
 const JOB_TYPES = [
   { value: 'maid', label: '🧹 Maid / Cleaning' },
@@ -72,7 +73,7 @@ export default function CreateJobRequestPage() {
       queryClient.invalidateQueries({ queryKey: ['resident-job-requests'] });
       navigate('/worker-hire');
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(friendlyError(error)),
   });
 
   return (

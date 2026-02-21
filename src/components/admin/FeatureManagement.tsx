@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Package, Layers, Building2, Trash2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAudit } from '@/lib/audit';
+import { friendlyError } from '@/lib/utils';
 
 interface PlatformFeature {
   id: string;
@@ -89,7 +90,7 @@ export function FeatureManagement() {
   const createFeature = async () => {
     if (!newFeature.feature_key || !newFeature.feature_name) return;
     const { error } = await supabase.from('platform_features').insert(newFeature);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(friendlyError(error)); return; }
     await logAudit('feature_created', 'platform_feature', '', null, { feature_key: newFeature.feature_key });
     toast.success('Feature created');
     setNewFeatureOpen(false);
@@ -106,7 +107,7 @@ export function FeatureManagement() {
   const createPackage = async () => {
     if (!newPkg.package_name) return;
     const { error } = await supabase.from('feature_packages').insert(newPkg);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(friendlyError(error)); return; }
     await logAudit('package_created', 'feature_package', '', null, { name: newPkg.package_name });
     toast.success('Package created');
     setNewPkgOpen(false);
@@ -150,7 +151,7 @@ export function FeatureManagement() {
     });
     if (error) {
       if (error.code === '23505') toast.error('Already assigned');
-      else toast.error(error.message);
+      else toast.error(friendlyError(error));
       return;
     }
     await logAudit('package_assigned_to_builder', 'builder_feature_package', assignBuilder, null, { package_id: assignPackage });

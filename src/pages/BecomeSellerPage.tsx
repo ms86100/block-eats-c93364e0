@@ -437,11 +437,12 @@ export default function BecomeSellerPage() {
 
       if (prodError) console.error('Failed to transition products:', prodError);
       await refreshProfile();
+      localStorage.setItem('seller_onboarding_completed', 'true');
       toast.success('Application submitted! Awaiting admin approval.');
       navigate('/profile');
     } catch (error: any) {
       console.error('Error submitting application:', error);
-      toast.error(error.message || 'Failed to submit application');
+      toast.error(friendlyError(error));
     } finally {
       setIsLoading(false);
     }

@@ -268,6 +268,11 @@ export default function SellerDashboardPage() {
               <p className="text-sm text-muted-foreground">
                 No {orderFilter !== 'all' ? orderFilter : ''} orders
               </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {orderFilter === 'all'
+                  ? 'Share your store link with neighbors to get your first order'
+                  : 'Orders in this status will appear here as buyers place them'}
+              </p>
             </div>
           )}
         </div>

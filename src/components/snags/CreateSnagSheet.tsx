@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { notifySocietyAdmins } from '@/lib/society-notifications';
+import { friendlyError } from '@/lib/utils';
 
 export function CreateSnagSheet({ onCreated }: { onCreated: () => void }) {
   const { user, profile, viewAsSocietyId } = useAuth();
@@ -48,7 +49,7 @@ export function CreateSnagSheet({ onCreated }: { onCreated: () => void }) {
       setOpen(false);
       onCreated();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to report');
+      toast.error(friendlyError(error));
     } finally {
       setIsSubmitting(false);
     }

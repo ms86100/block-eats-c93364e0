@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Trash2, Loader2, Package, Percent, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
+import { friendlyError } from '@/lib/utils';
 
 interface DraftProduct {
   id?: string;
@@ -131,7 +132,7 @@ export function DraftProductManager({
       toast.success('Product added');
     } catch (error: any) {
       console.error('Error adding product:', error);
-      toast.error(error.message || 'Failed to add product');
+      toast.error(friendlyError(error));
     } finally {
       setIsSaving(false);
     }

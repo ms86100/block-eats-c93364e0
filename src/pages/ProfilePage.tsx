@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -40,6 +40,15 @@ export default function ProfilePage() {
   });
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
   const [skillBadges, setSkillBadges] = useState<{ skill_name: string; trust_score: number; endorsement_count: number }[]>([]);
+  const [showOnboardingFeedback, setShowOnboardingFeedback] = useState(false);
+
+  // Check for post-seller-onboarding feedback prompt
+  useEffect(() => {
+    if (localStorage.getItem('seller_onboarding_completed') === 'true') {
+      setShowOnboardingFeedback(true);
+      localStorage.removeItem('seller_onboarding_completed');
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -233,7 +242,7 @@ export default function ProfilePage() {
               </div>
             </Link>
           ))}
-          <FeedbackSheet />
+          <FeedbackSheet triggerOpen={showOnboardingFeedback} onOpenChange={() => setShowOnboardingFeedback(false)} />
         </div>
 
         {/* Sign Out */}

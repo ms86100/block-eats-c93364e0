@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { friendlyError } from '@/lib/utils';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   accepted: { label: 'Active', color: 'bg-blue-100 text-blue-800' },
@@ -55,7 +56,7 @@ export default function WorkerMyJobsPage() {
       toast.success('Job marked as completed!');
       queryClient.invalidateQueries({ queryKey: ['worker-my-jobs'] });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(friendlyError(error)),
   });
 
   if (!isWorker) {

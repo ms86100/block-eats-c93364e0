@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Star, Clock, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { friendlyError } from '@/lib/utils';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -137,7 +138,7 @@ function RateWorkerDialog({ jobId }: { jobId: string }) {
       queryClient.invalidateQueries({ queryKey: ['resident-job-requests'] });
       setOpen(false);
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(friendlyError(error)),
   });
 
   return (

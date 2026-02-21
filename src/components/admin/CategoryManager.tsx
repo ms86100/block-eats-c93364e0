@@ -34,7 +34,7 @@ import {
 import { toast } from 'sonner';
 import { Loader2, Grid3X3, GripVertical, Edit2, Save, X, Plus, Trash2, Sparkles, ImageIcon } from 'lucide-react';
 import { useParentGroups, ParentGroupRow } from '@/hooks/useParentGroups';
-import { cn } from '@/lib/utils';
+import { cn, friendlyError } from '@/lib/utils';
 
 import {
   DndContext,
@@ -132,7 +132,7 @@ function GenerateImageButton({
       }
     } catch (err: any) {
       console.error('Image generation error:', err);
-      toast.error(err.message || 'Failed to generate image');
+      toast.error(friendlyError(err));
     } finally {
       setIsGenerating(false);
     }

@@ -15,6 +15,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -290,21 +300,24 @@ export default function SellerProductsPage() {
     }
   };
 
-  const handleDelete = async (product: Product) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', product.id);
+        .eq('id', deleteTarget.id);
 
       if (error) throw error;
       toast.success('Product deleted');
       if (sellerProfile) fetchData(sellerProfile.id);
     } catch (error) {
       console.error('Error deleting product:', error);
-      toast.error('Failed to delete product');
+      toast.error(friendlyError(error));
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -787,7 +800,7 @@ export default function SellerProductsPage() {
                             size="sm"
                             variant="ghost"
                             className="text-destructive"
-                            onClick={() => handleDelete(product)}
+                            onClick={() => setDeleteTarget(product)}
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -838,6 +851,24 @@ export default function SellerProductsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This product will be permanently removed. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Product</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

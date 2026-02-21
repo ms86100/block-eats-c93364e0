@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Upload, X, Loader2, Camera, ImageIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, friendlyError } from '@/lib/utils';
 
 interface ImageUploadProps {
   value?: string | null;
@@ -103,7 +103,7 @@ export function ImageUpload({
       toast.success('Image uploaded successfully');
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error(error.message || 'Failed to upload image');
+      toast.error(friendlyError(error));
     } finally {
       setIsUploading(false);
       // Reset input

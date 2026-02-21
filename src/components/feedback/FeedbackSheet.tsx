@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,14 +12,20 @@ const EMOJIS = ['😞', '😐', '🙂', '😊', '🤩'];
 interface FeedbackSheetProps {
   triggerLabel?: string;
   onSubmitted?: () => void;
+  triggerOpen?: boolean;
+  onOpenChange?: () => void;
 }
 
-export function FeedbackSheet({ triggerLabel, onSubmitted }: FeedbackSheetProps = {}) {
+export function FeedbackSheet({ triggerLabel, onSubmitted, triggerOpen, onOpenChange }: FeedbackSheetProps = {}) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (triggerOpen) setOpen(true);
+  }, [triggerOpen]);
 
   const handleSubmit = async () => {
     if (!user || rating === 0) return;
@@ -45,7 +51,7 @@ export function FeedbackSheet({ triggerLabel, onSubmitted }: FeedbackSheetProps 
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) onOpenChange?.(); }}>
       <SheetTrigger asChild>
         <button className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors w-full">
           <MessageSquareHeart size={18} className="text-muted-foreground shrink-0" />

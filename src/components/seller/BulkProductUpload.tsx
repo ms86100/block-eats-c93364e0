@@ -31,6 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Upload, Download, Plus, Trash2, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategoryConfig } from '@/types/categories';
+import { friendlyError } from '@/lib/utils';
 
 interface BulkRow {
   name: string;
@@ -220,7 +221,7 @@ export function BulkProductUpload({ isOpen, onClose, sellerId, allowedCategories
       }, 1500);
     } catch (error: any) {
       console.error('Bulk save error:', error);
-      toast.error(error.message || 'Failed to save products');
+      toast.error(friendlyError(error));
       setSaveResult({ success: 0, errors: rows.length });
     } finally {
       setIsSaving(false);

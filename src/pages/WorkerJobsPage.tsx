@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Briefcase, Clock, MapPin, IndianRupee, Zap, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { friendlyError } from '@/lib/utils';
 
 const JOB_TYPE_LABELS: Record<string, string> = {
   maid: '🧹 Maid / Cleaning',
@@ -82,13 +83,13 @@ export default function WorkerJobsPage() {
       return result;
     },
     onSuccess: () => {
-      toast.success('Job accepted!');
+      toast.success('Job accepted! The resident will be notified.');
       queryClient.invalidateQueries({ queryKey: ['worker-open-jobs'] });
       queryClient.invalidateQueries({ queryKey: ['worker-my-jobs'] });
       setAcceptingId(null);
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(friendlyError(error));
       setAcceptingId(null);
     },
   });

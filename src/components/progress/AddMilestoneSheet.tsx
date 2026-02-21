@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { notifySocietyMembers } from '@/lib/society-notifications';
+import { friendlyError } from '@/lib/utils';
 
 interface Tower {
   id: string;
@@ -61,7 +62,7 @@ export function AddMilestoneSheet({ onAdded, towers = [] }: AddMilestoneSheetPro
         );
       }
 
-      toast.success('Milestone added');
+      toast.success('Milestone added! Your entry will appear in the timeline.');
       setTitle('');
       setDescription('');
       setStage('foundation');
@@ -70,7 +71,7 @@ export function AddMilestoneSheet({ onAdded, towers = [] }: AddMilestoneSheetPro
       setOpen(false);
       onAdded();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to add milestone');
+      toast.error(friendlyError(error));
     } finally {
       setIsSubmitting(false);
     }

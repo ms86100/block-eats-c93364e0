@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 
 interface AskQuestionSheetProps {
   onAsked: () => void;
@@ -48,7 +49,7 @@ export function AskQuestionSheet({ onAsked, existingQuestions }: AskQuestionShee
       setOpen(false);
       onAsked();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to post');
+      toast.error(friendlyError(error));
     } finally {
       setIsSubmitting(false);
     }

@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/lib/utils';
 
 export function AddDocumentSheet({ onAdded }: { onAdded: () => void }) {
   const { user, profile, viewAsSocietyId } = useAuth();
@@ -34,12 +35,12 @@ export function AddDocumentSheet({ onAdded }: { onAdded: () => void }) {
       });
       if (error) throw error;
 
-      toast.success('Document uploaded');
+      toast.success('Document uploaded! It will appear in the vault shortly.');
       setTitle(''); setDescription(''); setCategory('other'); setFileUrl(null);
       setOpen(false);
       onAdded();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to upload');
+      toast.error(friendlyError(error));
     } finally {
       setIsSubmitting(false);
     }
