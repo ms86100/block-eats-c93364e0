@@ -94,7 +94,7 @@ export function Header({
                     onClick={() => selectionChanged()}
                   >
                     <Building size={12} className="text-muted-foreground shrink-0" />
-                    <span className="text-[11px] font-semibold text-foreground truncate max-w-[200px]">
+                    <span className="text-[11px] font-semibold text-foreground truncate max-w-[65vw]">
                       {displaySociety.name}
                     </span>
                     <ChevronDown size={12} className="text-muted-foreground shrink-0" />

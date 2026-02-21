@@ -254,7 +254,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Delete Account */}
-        <div className="px-4 mt-3">
+        <div className="px-4 mt-8">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2 px-1">Danger Zone</p>
           <DeleteAccountDialog />
         </div>
 

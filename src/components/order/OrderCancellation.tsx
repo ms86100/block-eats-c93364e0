@@ -108,7 +108,7 @@ export function OrderCancellation({ orderId, orderStatus, onCancelled }: OrderCa
           Cancel Order
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="text-warning" size={20} />
