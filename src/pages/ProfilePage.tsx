@@ -142,9 +142,9 @@ export default function ProfilePage() {
                 <p className="text-xs text-primary font-medium mt-0.5">{society.name}</p>
               )}
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                <MapPin size={12} />
-                <span className="line-clamp-2">
-                  {[profile?.flat_number, profile?.block && `Block ${profile.block}`, profile?.phase, society?.name, society?.address].filter(Boolean).join(', ')}
+                <MapPin size={12} className="shrink-0" />
+                <span className="line-clamp-1">
+                  {[profile?.flat_number, profile?.block && `Block ${profile.block}`, profile?.phase].filter(Boolean).join(', ')}
                 </span>
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
