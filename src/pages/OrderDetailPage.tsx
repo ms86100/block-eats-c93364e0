@@ -244,6 +244,19 @@ export default function OrderDetailPage() {
                 })}
               </div>
             )}
+
+            {/* Status reassurance message */}
+            {order.status !== 'cancelled' && isBuyerView && (
+              <p className="text-xs text-muted-foreground mt-3 bg-muted/50 rounded-lg px-3 py-2">
+                {order.status === 'placed' && '⏳ Waiting for seller to accept. Most sellers respond within 5 minutes.'}
+                {order.status === 'accepted' && '✅ Great! Your order has been confirmed and will be prepared soon.'}
+                {order.status === 'preparing' && '👨‍🍳 Your order is being prepared. Sit tight!'}
+                {order.status === 'ready' && '📦 Your order is ready! Head to pickup or wait for delivery.'}
+                {order.status === 'picked_up' && '🚚 Your order is on the way!'}
+                {order.status === 'delivered' && '🎉 Your order has been delivered. Enjoy!'}
+                {order.status === 'completed' && '⭐ Order completed. Thank you for your purchase!'}
+              </p>
+            )}
           </div>
 
           {/* Payment Card */}

@@ -4606,6 +4606,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          page_context: string | null
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          page_context?: string | null
+          rating: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          page_context?: string | null
+          rating?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_notifications: {
         Row: {
           body: string

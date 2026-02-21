@@ -478,8 +478,9 @@ export default function BecomeSellerPage() {
     );
   }
 
-  // ── Already registered for this group ─────────────────────────────────
+  // ── Already registered for this group (including rejected) ──────────
   if (existingSeller && selectedGroup) {
+    const isRejected = (existingSeller as any).verification_status === 'rejected';
     return (
       <AppLayout showHeader={false} showNav={false}>
         <div className="p-4 safe-top">
@@ -488,31 +489,64 @@ export default function BecomeSellerPage() {
             <span>Back</span>
           </Link>
           <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/20 flex items-center justify-center">
-              <Store className="text-success" size={32} />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">Already Registered!</h1>
-            <p className="text-muted-foreground mb-6">
-              You already have a business in this category:{' '}
-              <strong>{existingSeller.business_name}</strong>
-            </p>
-            <div className="space-y-3">
-              <Button className="w-full" size="lg" onClick={() => navigate('/seller/settings')}>
-                <Settings size={18} className="mr-2" />
-                Edit {existingSeller.business_name}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setSelectedGroup(null);
-                  setExistingSeller(null);
-                  setStep(1);
-                }}
-              >
-                Choose Different Category
-              </Button>
-            </div>
+            {isRejected ? (
+              <>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/20 flex items-center justify-center">
+                  <Store className="text-destructive" size={32} />
+                </div>
+                <h1 className="text-2xl font-bold mb-2">Application Not Approved</h1>
+                <p className="text-muted-foreground mb-2">
+                  Your seller application for <strong>{existingSeller.business_name}</strong> was not approved.
+                </p>
+                <p className="text-sm text-muted-foreground mb-6">
+                  You can update your details and resubmit your application.
+                </p>
+                <div className="space-y-3">
+                  <Button className="w-full" size="lg" onClick={() => {
+                    setExistingSeller(null);
+                    setDraftSellerId((existingSeller as any).id);
+                    setStep(3);
+                  }}>
+                    Update & Resubmit
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => {
+                    setSelectedGroup(null);
+                    setExistingSeller(null);
+                    setStep(1);
+                  }}>
+                    Choose Different Category
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/20 flex items-center justify-center">
+                  <Store className="text-success" size={32} />
+                </div>
+                <h1 className="text-2xl font-bold mb-2">Already Registered!</h1>
+                <p className="text-muted-foreground mb-6">
+                  You already have a business in this category:{' '}
+                  <strong>{existingSeller.business_name}</strong>
+                </p>
+                <div className="space-y-3">
+                  <Button className="w-full" size="lg" onClick={() => navigate('/seller/settings')}>
+                    <Settings size={18} className="mr-2" />
+                    Edit {existingSeller.business_name}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setSelectedGroup(null);
+                      setExistingSeller(null);
+                      setStep(1);
+                    }}
+                  >
+                    Choose Different Category
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </AppLayout>

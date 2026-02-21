@@ -565,11 +565,14 @@ export default function AuthPage() {
                       onChange={(e) => setAgeConfirmed(e.target.checked)}
                       className="mt-1 h-4 w-4 rounded border-input accent-primary"
                     />
-                    <label htmlFor="age-confirm" className="text-xs text-muted-foreground leading-snug">
-                      I confirm that I am <strong>18 years of age or older</strong> and agree to the{' '}
-                      <a href="#/terms" target="_blank" className="text-primary underline">Terms & Conditions</a> and{' '}
-                      <a href="#/privacy-policy" target="_blank" className="text-primary underline">Privacy Policy</a>.
-                    </label>
+                    <div>
+                      <label htmlFor="age-confirm" className="text-xs text-muted-foreground leading-snug">
+                        I confirm that I am <strong>18 years of age or older</strong> and agree to the{' '}
+                        <a href="#/terms" target="_blank" className="text-primary underline">Terms & Conditions</a> and{' '}
+                        <a href="#/privacy-policy" target="_blank" className="text-primary underline">Privacy Policy</a>.
+                      </label>
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">Required to comply with marketplace regulations</p>
+                    </div>
                   </div>
                   <Button onClick={handleCredentialsNext} disabled={!email || password.length < 6 || !ageConfirmed} className="w-full h-12 rounded-xl text-base font-semibold">
                     <ArrowRight className="mr-2" size={18} /> Continue
@@ -730,7 +733,7 @@ export default function AuthPage() {
                           <div className="space-y-2">
                             <Label htmlFor="invite_code" className="flex items-center gap-1"><Key size={14} /> Invite Code *</Label>
                             <Input id="invite_code" placeholder="Enter society invite code" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} className="h-12 rounded-xl" />
-                            <p className="text-[10px] text-muted-foreground">Ask your society admin for the invite code</p>
+                            <p className="text-[10px] text-muted-foreground">Your society admin can share this code with you</p>
                           </div>
                         )}
 
@@ -797,15 +800,18 @@ export default function AuthPage() {
                     <Input id="phase" placeholder="e.g., Phase 1, Wing A" value={profileData.phase} onChange={(e) => setProfileData({ ...profileData, phase: e.target.value })} className="h-12 rounded-xl" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="block">Block / Tower *</Label>
-                      <Input id="block" placeholder="e.g., A, B, T1" value={profileData.block} onChange={(e) => setProfileData({ ...profileData, block: e.target.value })} className="h-12 rounded-xl" />
+                  <div className="space-y-1">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="block">Block / Tower *</Label>
+                        <Input id="block" placeholder="e.g., A, B, T1" value={profileData.block} onChange={(e) => setProfileData({ ...profileData, block: e.target.value })} className="h-12 rounded-xl" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="flat">Flat Number *</Label>
+                        <Input id="flat" placeholder="e.g., 101" value={profileData.flat_number} onChange={(e) => setProfileData({ ...profileData, flat_number: e.target.value })} className="h-12 rounded-xl" />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="flat">Flat Number *</Label>
-                      <Input id="flat" placeholder="e.g., 101" value={profileData.flat_number} onChange={(e) => setProfileData({ ...profileData, flat_number: e.target.value })} className="h-12 rounded-xl" />
-                    </div>
+                    <p className="text-[10px] text-muted-foreground/60 px-1">Used for delivery and identity verification within your society</p>
                   </div>
 
                   <div className="flex gap-2">

@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { Textarea } from '@/components/ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { PaymentMethodSelector } from '@/components/payment/PaymentMethodSelector';
 import { RazorpayCheckout } from '@/components/payment/RazorpayCheckout';
 import { CouponInput } from '@/components/cart/CouponInput';
@@ -26,6 +27,7 @@ export default function CartPage() {
   const [showRazorpayCheckout, setShowRazorpayCheckout] = useState(false);
   const [pendingOrderIds, setPendingOrderIds] = useState<string[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discountAmount: number } | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const finalAmount = appliedCoupon ? Math.max(0, totalAmount - appliedCoupon.discountAmount) : totalAmount;
 
@@ -407,7 +409,7 @@ export default function CartPage() {
           <Button
             className="px-8 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 font-bold"
             size="lg"
-            onClick={handlePlaceOrder}
+            onClick={() => setShowConfirmDialog(true)}
             disabled={isPlacingOrder}
           >
             {isPlacingOrder ? 'Placing...' : 'Place Order'}
@@ -415,6 +417,44 @@ export default function CartPage() {
           </Button>
         </div>
       </div>
+
+      {/* Order Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Your Order</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Items</span>
+                  <span className="font-medium">{itemCount} item{itemCount !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Payment</span>
+                  <span className="font-medium">{paymentMethod === 'cod' ? 'Cash on Delivery' : 'UPI'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Deliver to</span>
+                  <span className="font-medium text-right">Block {profile?.block}, {profile?.flat_number}</span>
+                </div>
+                {sellerGroups.length > 1 && (
+                  <p className="text-xs text-muted-foreground">
+                    {sellerGroups.length} separate orders will be created.
+                  </p>
+                )}
+                <div className="flex justify-between border-t border-border pt-2 font-bold">
+                  <span>Total</span>
+                  <span>₹{finalAmount.toFixed(0)}</span>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Review Cart</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePlaceOrder}>Confirm Order</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Razorpay Checkout */}
       {pendingOrderIds.length > 0 && (

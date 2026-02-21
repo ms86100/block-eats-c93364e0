@@ -26,6 +26,7 @@ import {
   Repeat,
   Award,
 } from 'lucide-react';
+import { FeedbackSheet } from '@/components/feedback/FeedbackSheet';
 import { toast } from 'sonner';
 
 const APP_VERSION = '2.0.0';
@@ -232,6 +233,7 @@ export default function ProfilePage() {
               </div>
             </Link>
           ))}
+          <FeedbackSheet />
         </div>
 
         {/* Sign Out */}

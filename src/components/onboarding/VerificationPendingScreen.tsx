@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
-import { Clock, Users, Shield, Building2, ShieldCheck, Activity } from 'lucide-react';
+import { Clock, Users, Shield, Building2, ShieldCheck, Activity, HelpCircle, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PreviewData {
   queuePosition: number;
@@ -19,13 +22,31 @@ export function VerificationPendingScreen() {
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Auto-refresh verification status every 60s
+  const checkVerificationStatus = useCallback(async () => {
+    if (!profile?.id) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('verification_status')
+      .eq('id', profile.id)
+      .single();
+    if (data?.verification_status === 'approved') {
+      toast.success('🎉 You have been verified! Welcome to your community.');
+      window.location.reload();
+    }
+  }, [profile?.id]);
+
   useEffect(() => {
     if (!profile?.society_id) {
       setLoading(false);
       return;
     }
     fetchPreviewData();
-  }, [profile?.society_id]);
+
+    // Poll verification status every 60s
+    const interval = setInterval(checkVerificationStatus, 60000);
+    return () => clearInterval(interval);
+  }, [profile?.society_id, checkVerificationStatus]);
 
   const fetchPreviewData = async () => {
     const sid = profile!.society_id;
@@ -102,7 +123,38 @@ export function VerificationPendingScreen() {
           <p className="text-sm text-muted-foreground mt-1">
             Your community admin will verify your details shortly.
           </p>
+          <p className="text-xs text-muted-foreground/60 mt-2">Auto-checking status every minute</p>
         </div>
+
+        {/* What happens next? */}
+        <Collapsible>
+          <CollapsibleTrigger className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 text-sm font-medium">
+            <span className="flex items-center gap-2">
+              <HelpCircle size={16} className="text-primary" />
+              What happens next?
+            </span>
+            <ChevronDown size={16} className="text-muted-foreground" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 bg-card border border-border rounded-xl px-4 py-3 space-y-2 text-sm text-muted-foreground">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 size={14} className="text-primary mt-0.5 shrink-0" />
+              <p>Your society admin reviews your Block & Flat details.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 size={14} className="text-primary mt-0.5 shrink-0" />
+              <p>Once approved, you'll get full access to the marketplace, bulletin, and community features.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 size={14} className="text-primary mt-0.5 shrink-0" />
+              <p>This page auto-refreshes — no need to keep checking manually.</p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Need help? */}
+        <Link to="/help" className="block text-center text-sm text-primary font-medium hover:underline">
+          Need help? Contact support →
+        </Link>
 
         {/* Queue & Timing Info */}
         {loading ? (
