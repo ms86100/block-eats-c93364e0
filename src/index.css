@@ -46,6 +46,7 @@
     --success: 130 82% 28%;
     --warning: 38 95% 52%;
     --info: 200 90% 50%;
+    --favorite: 250 55% 55%;
 
     /* Category tint colors */
     --tint-food: 0 0% 95%;
@@ -82,59 +83,60 @@
   }
 
   .dark {
-    /* Blinkit dark — deep charcoal */
-    --background: 0 0% 7%;
+    /* Blinkit dark — charcoal (#1a1a1a base) */
+    --background: 0 0% 10%;
     --foreground: 0 0% 93%;
 
-    --card: 0 0% 11%;
+    --card: 0 0% 16.5%;
     --card-foreground: 0 0% 93%;
 
-    --popover: 0 0% 11%;
+    --popover: 0 0% 16.5%;
     --popover-foreground: 0 0% 93%;
 
-    /* Primary: Blinkit green — slightly brighter for dark */
-    --primary: 130 75% 35%;
+    /* Primary: Blinkit green — brighter for dark readability */
+    --primary: 130 75% 38%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Dark surface */
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 80%;
+    /* Secondary: Elevated dark surface (#2f2f2f) */
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 0 0% 82%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 48%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 50%;
 
     /* Accent: Blinkit green ADD button */
-    --accent: 130 75% 35%;
+    --accent: 130 75% 38%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 130 75% 35%;
+    --border: 0 0% 20%;
+    --input: 0 0% 23%;
+    --ring: 130 75% 38%;
 
     /* Semantic */
-    --veg: 130 75% 35%;
+    --veg: 130 75% 38%;
     --non-veg: 0 75% 50%;
-    --success: 130 75% 35%;
+    --success: 130 75% 38%;
     --warning: 38 95% 52%;
     --info: 200 85% 55%;
+    --favorite: 250 60% 60%;
 
     /* Dark mode tints — subtle */
-    --tint-food: 0 0% 13%;
-    --tint-services: 200 15% 12%;
-    --tint-personal: 310 10% 13%;
-    --tint-resale: 38 15% 12%;
-    --tint-events: 260 10% 13%;
-    --tint-default: 0 0% 12%;
+    --tint-food: 0 0% 15%;
+    --tint-services: 200 12% 14%;
+    --tint-personal: 310 8% 15%;
+    --tint-resale: 38 12% 14%;
+    --tint-events: 260 8% 15%;
+    --tint-default: 0 0% 14%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(130 75% 35%) 0%, hsl(140 65% 32%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(130 75% 35%) 0%, hsl(145 60% 32%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(130 75% 38%) 0%, hsl(140 65% 34%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(130 75% 38%) 0%, hsl(145 60% 34%) 100%);
     --gradient-warm: linear-gradient(135deg, hsl(38 95% 52%) 0%, hsl(20 90% 55%) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(130 75% 35% / 0.08) 0%, hsl(0 0% 7%) 60%);
-    --gradient-glass: linear-gradient(135deg, hsl(0 0% 11% / 0.95) 0%, hsl(0 0% 9% / 0.8) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(130 75% 38% / 0.08) 0%, hsl(0 0% 10%) 60%);
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 16.5% / 0.95) 0%, hsl(0 0% 12% / 0.8) 100%);
 
     /* Shadows */
     --shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.4);
@@ -142,18 +144,18 @@
     --shadow-lg: 0 12px 36px hsl(0 0% 0% / 0.6);
     --shadow-card: 0 2px 10px hsl(0 0% 0% / 0.3);
     --shadow-elevated: 0 8px 28px hsl(0 0% 0% / 0.5);
-    --shadow-glow: 0 0 24px hsl(130 75% 35% / 0.2);
-    --shadow-glow-green: 0 0 16px hsl(130 75% 35% / 0.3);
+    --shadow-glow: 0 0 24px hsl(130 75% 38% / 0.2);
+    --shadow-glow-green: 0 0 16px hsl(130 75% 38% / 0.3);
     --shadow-glow-accent: 0 0 16px hsl(38 95% 52% / 0.3);
 
-    --sidebar-background: 0 0% 9%;
+    --sidebar-background: 0 0% 12%;
     --sidebar-foreground: 0 0% 93%;
-    --sidebar-primary: 130 75% 35%;
+    --sidebar-primary: 130 75% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-accent-foreground: 0 0% 80%;
-    --sidebar-border: 0 0% 16%;
-    --sidebar-ring: 130 75% 35%;
+    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent-foreground: 0 0% 82%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 130 75% 38%;
   }
 }
 
