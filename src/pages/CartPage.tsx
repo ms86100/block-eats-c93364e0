@@ -94,6 +94,15 @@ export default function CartPage() {
   const handlePlaceOrderInner = async () => {
     if (!user || !profile || sellerGroups.length === 0) return;
 
+    // Validate minimum order amounts
+    for (const group of sellerGroups) {
+      const minOrder = (group.items[0]?.product?.seller as any)?.minimum_order_amount;
+      if (minOrder && group.subtotal < minOrder) {
+        toast.error(`${group.sellerName} requires a minimum order of ₹${minOrder}. Your current total is ₹${group.subtotal.toFixed(0)}.`);
+        return;
+      }
+    }
+
     // Pre-checkout: validate product availability
     setIsPlacingOrder(true);
     try {
@@ -270,6 +279,35 @@ export default function CartPage() {
             </div>
           </div>
         )}
+
+        {/* Fulfillment Conflict Warnings */}
+        {sellerGroups.map((group) => {
+          const modes = new Set(group.items.map(i => (i.product?.seller as any)?.fulfillment_mode).filter(Boolean));
+          const hasMixedFulfillment = group.items.some(i => {
+            const sellerMode = (i.product?.seller as any)?.fulfillment_mode;
+            return sellerMode && sellerMode !== 'both' && modes.size > 0;
+          });
+          const minOrder = (group.items[0]?.product?.seller as any)?.minimum_order_amount;
+          const belowMinimum = minOrder && group.subtotal < minOrder;
+          
+          if (!hasMixedFulfillment && !belowMinimum) return null;
+
+          return (
+            <div key={`warn-${group.sellerId}`} className="mx-4 mt-3 space-y-2">
+              {belowMinimum && (
+                <div className="bg-warning/10 border border-warning/30 rounded-xl p-3 flex items-start gap-3">
+                  <Store className="text-warning shrink-0 mt-0.5" size={16} />
+                  <div className="text-xs">
+                    <p className="font-medium text-warning-foreground">{group.sellerName}: Minimum order ₹{minOrder}</p>
+                    <p className="text-muted-foreground mt-0.5">
+                      Add ₹{(minOrder - group.subtotal).toFixed(0)} more to place this order
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* Cart Items by Seller */}
         <div className="mt-4 space-y-3 px-4">

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { VegBadge } from '@/components/ui/veg-badge';
@@ -56,6 +57,24 @@ export function ProductDetailSheet({
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [similarProducts, setSimilarProducts] = useState<any[]>([]);
+
+  // Fetch similar products from same category
+  useEffect(() => {
+    if (!product || !open) return;
+    const fetchSimilar = async () => {
+      const { data } = await supabase
+        .from('products')
+        .select('id, name, price, image_url, is_veg, seller_id, seller:seller_profiles!products_seller_id_fkey(business_name)')
+        .eq('category', product.category as string)
+        .eq('is_available', true)
+        .eq('approval_status', 'approved')
+        .neq('id', product.product_id)
+        .limit(6);
+      setSimilarProducts(data || []);
+    };
+    fetchSimilar();
+  }, [product?.product_id, open]);
 
   if (!product) return null;
 
@@ -276,6 +295,29 @@ export function ProductDetailSheet({
               <ChevronRight size={16} className="text-muted-foreground shrink-0" />
             </Link>
           </div>
+
+          {/* Similar Products */}
+          {similarProducts.length > 0 && (
+            <div className="px-4 pb-3">
+              <h4 className="text-xs font-bold text-foreground mb-2 uppercase tracking-wide">Similar in {categoryName || 'this category'}</h4>
+              <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
+                {similarProducts.map((sp) => (
+                  <div key={sp.id} className="shrink-0 w-28">
+                    <div className="w-28 h-28 rounded-xl bg-muted overflow-hidden mb-1.5">
+                      {sp.image_url ? (
+                        <img src={sp.image_url} alt={sp.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-2xl">🛍️</div>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-medium line-clamp-1">{sp.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{sp.seller?.business_name}</p>
+                    {sp.price > 0 && <p className="text-xs font-bold">₹{sp.price}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Report button — above sticky CTA */}
           <div className="px-6 pb-3">

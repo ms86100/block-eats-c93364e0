@@ -545,9 +545,11 @@ export type Database = {
       }
       category_config: {
         Row: {
+          accepts_preorders: boolean
           category: string
           color: string
           created_at: string | null
+          default_sort: string
           description_placeholder: string | null
           display_name: string
           display_order: number | null
@@ -565,9 +567,11 @@ export type Database = {
           is_negotiable: boolean
           is_physical_product: boolean
           layout_type: string
+          lead_time_hours: number | null
           name_placeholder: string | null
           parent_group: string
           placeholder_emoji: string | null
+          preorder_cutoff_time: string | null
           price_label: string | null
           price_prefix: string | null
           primary_button_label: string
@@ -576,6 +580,7 @@ export type Database = {
           requires_preparation: boolean
           requires_price: boolean
           requires_time_slot: boolean
+          review_dimensions: string[] | null
           show_duration_field: boolean
           show_veg_toggle: boolean
           supports_brand_display: boolean
@@ -585,9 +590,11 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          accepts_preorders?: boolean
           category: string
           color: string
           created_at?: string | null
+          default_sort?: string
           description_placeholder?: string | null
           display_name: string
           display_order?: number | null
@@ -605,9 +612,11 @@ export type Database = {
           is_negotiable?: boolean
           is_physical_product?: boolean
           layout_type?: string
+          lead_time_hours?: number | null
           name_placeholder?: string | null
           parent_group: string
           placeholder_emoji?: string | null
+          preorder_cutoff_time?: string | null
           price_label?: string | null
           price_prefix?: string | null
           primary_button_label?: string
@@ -616,6 +625,7 @@ export type Database = {
           requires_preparation?: boolean
           requires_price?: boolean
           requires_time_slot?: boolean
+          review_dimensions?: string[] | null
           show_duration_field?: boolean
           show_veg_toggle?: boolean
           supports_brand_display?: boolean
@@ -625,9 +635,11 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          accepts_preorders?: boolean
           category?: string
           color?: string
           created_at?: string | null
+          default_sort?: string
           description_placeholder?: string | null
           display_name?: string
           display_order?: number | null
@@ -645,9 +657,11 @@ export type Database = {
           is_negotiable?: boolean
           is_physical_product?: boolean
           layout_type?: string
+          lead_time_hours?: number | null
           name_placeholder?: string | null
           parent_group?: string
           placeholder_emoji?: string | null
+          preorder_cutoff_time?: string | null
           price_label?: string | null
           price_prefix?: string | null
           primary_button_label?: string
@@ -656,6 +670,7 @@ export type Database = {
           requires_preparation?: boolean
           requires_price?: boolean
           requires_time_slot?: boolean
+          review_dimensions?: string[] | null
           show_duration_field?: boolean
           show_veg_toggle?: boolean
           supports_brand_display?: boolean
@@ -2784,6 +2799,7 @@ export type Database = {
           is_veg: boolean | null
           listing_type: string | null
           location_required: boolean | null
+          low_stock_threshold: number | null
           max_rental_duration: number | null
           min_rental_duration: number | null
           minimum_charge: number | null
@@ -2801,6 +2817,7 @@ export type Database = {
           specifications: Json | null
           spice_level: string | null
           stock_quantity: number | null
+          subcategory_id: string | null
           tags: string[] | null
           unit_type: string | null
           updated_at: string | null
@@ -2833,6 +2850,7 @@ export type Database = {
           is_veg?: boolean | null
           listing_type?: string | null
           location_required?: boolean | null
+          low_stock_threshold?: number | null
           max_rental_duration?: number | null
           min_rental_duration?: number | null
           minimum_charge?: number | null
@@ -2850,6 +2868,7 @@ export type Database = {
           specifications?: Json | null
           spice_level?: string | null
           stock_quantity?: number | null
+          subcategory_id?: string | null
           tags?: string[] | null
           unit_type?: string | null
           updated_at?: string | null
@@ -2882,6 +2901,7 @@ export type Database = {
           is_veg?: boolean | null
           listing_type?: string | null
           location_required?: boolean | null
+          low_stock_threshold?: number | null
           max_rental_duration?: number | null
           min_rental_duration?: number | null
           minimum_charge?: number | null
@@ -2899,6 +2919,7 @@ export type Database = {
           specifications?: Json | null
           spice_level?: string | null
           stock_quantity?: number | null
+          subcategory_id?: string | null
           tags?: string[] | null
           unit_type?: string | null
           updated_at?: string | null
@@ -2911,6 +2932,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
             referencedColumns: ["id"]
           },
         ]
@@ -3529,6 +3557,7 @@ export type Database = {
           is_available: boolean | null
           is_featured: boolean | null
           last_active_at: string | null
+          minimum_order_amount: number | null
           operating_days: string[] | null
           primary_group: string | null
           profile_image_url: string | null
@@ -3573,6 +3602,7 @@ export type Database = {
           is_available?: boolean | null
           is_featured?: boolean | null
           last_active_at?: string | null
+          minimum_order_amount?: number | null
           operating_days?: string[] | null
           primary_group?: string | null
           profile_image_url?: string | null
@@ -3617,6 +3647,7 @@ export type Database = {
           is_available?: boolean | null
           is_featured?: boolean | null
           last_active_at?: string | null
+          minimum_order_amount?: number | null
           operating_days?: string[] | null
           primary_group?: string | null
           profile_image_url?: string | null
@@ -4442,6 +4473,50 @@ export type Database = {
             columns: ["society_id"]
             isOneToOne: false
             referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcategories: {
+        Row: {
+          category_config_id: string
+          created_at: string
+          display_name: string
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          category_config_id: string
+          created_at?: string
+          display_name: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          category_config_id?: string
+          created_at?: string
+          display_name?: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcategories_category_config_id_fkey"
+            columns: ["category_config_id"]
+            isOneToOne: false
+            referencedRelation: "category_config"
             referencedColumns: ["id"]
           },
         ]

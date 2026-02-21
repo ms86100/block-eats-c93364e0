@@ -345,7 +345,14 @@ export default function SellerDetailPage() {
             </div>
           )}
 
-          {/* Operating Days */}
+          {/* Minimum Order Amount */}
+          {(seller as any).minimum_order_amount != null && (seller as any).minimum_order_amount > 0 && (
+            <div className="flex items-center gap-2 mt-3 text-sm">
+              <Badge variant="outline" className="text-[10px]">
+                Min. order ₹{(seller as any).minimum_order_amount}
+              </Badge>
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-3">
             <Calendar size={14} className="text-muted-foreground" />
             <div className="flex gap-1">

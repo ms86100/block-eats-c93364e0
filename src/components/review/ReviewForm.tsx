@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,17 +12,36 @@ interface ReviewFormProps {
   orderId: string;
   sellerId: string;
   sellerName: string;
+  category?: string;
   onSuccess?: () => void;
   trigger?: React.ReactNode;
 }
 
-export function ReviewForm({ orderId, sellerId, sellerName, onSuccess, trigger }: ReviewFormProps) {
+export function ReviewForm({ orderId, sellerId, sellerName, category, onSuccess, trigger }: ReviewFormProps) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewDimensions, setReviewDimensions] = useState<string[]>([]);
+  const [dimensionRatings, setDimensionRatings] = useState<Record<string, number>>({});
+
+  // Fetch category-specific review dimensions from DB
+  useEffect(() => {
+    if (!category || !isOpen) return;
+    const fetchDimensions = async () => {
+      const { data } = await supabase
+        .from('category_config')
+        .select('review_dimensions')
+        .eq('category', category)
+        .maybeSingle();
+      if (data?.review_dimensions && Array.isArray(data.review_dimensions)) {
+        setReviewDimensions(data.review_dimensions as string[]);
+      }
+    };
+    fetchDimensions();
+  }, [category, isOpen]);
 
   const handleSubmit = async () => {
     if (!user || rating === 0) {
@@ -32,13 +51,19 @@ export function ReviewForm({ orderId, sellerId, sellerName, onSuccess, trigger }
 
     setIsSubmitting(true);
     try {
+      // Build metadata with dimension ratings
+      const metadata = reviewDimensions.length > 0
+        ? { dimension_ratings: dimensionRatings }
+        : undefined;
+
       const { error } = await supabase.from('reviews').insert({
         order_id: orderId,
         buyer_id: user.id,
         seller_id: sellerId,
         rating,
         comment: comment.trim() || null,
-      });
+        ...(metadata ? { metadata } : {}),
+      } as any);
 
       if (error) throw error;
 
@@ -46,6 +71,7 @@ export function ReviewForm({ orderId, sellerId, sellerName, onSuccess, trigger }
       setIsOpen(false);
       setRating(0);
       setComment('');
+      setDimensionRatings({});
       onSuccess?.();
     } catch (error: any) {
       console.error('Error submitting review:', error);
@@ -107,6 +133,38 @@ export function ReviewForm({ orderId, sellerId, sellerName, onSuccess, trigger }
               {rating === 5 && 'Excellent'}
             </p>
           </div>
+
+          {/* Category-Specific Dimension Ratings */}
+          {reviewDimensions.length > 0 && rating > 0 && (
+            <div className="space-y-3 p-3 bg-muted rounded-lg">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Rate specific aspects</p>
+              {reviewDimensions.map((dim) => (
+                <div key={dim} className="flex items-center justify-between">
+                  <span className="text-sm capitalize">{dim}</span>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setDimensionRatings(prev => ({ ...prev, [dim]: star }))}
+                        className="p-0.5"
+                      >
+                        <Star
+                          size={18}
+                          className={cn(
+                            'transition-colors',
+                            (dimensionRatings[dim] || 0) >= star
+                              ? 'fill-warning text-warning'
+                              : 'text-muted-foreground/30'
+                          )}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Comment */}
           <div>

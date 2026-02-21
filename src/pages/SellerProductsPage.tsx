@@ -74,6 +74,8 @@ export default function SellerProductsPage() {
     image_url: null as string | null,
     action_type: 'add_to_cart' as ProductActionType,
     contact_phone: '',
+    stock_quantity: '' as string,
+    low_stock_threshold: '5',
   });
 
   // Get the active category config for dynamic form hints
@@ -191,6 +193,8 @@ export default function SellerProductsPage() {
       image_url: null,
       action_type: 'add_to_cart',
       contact_phone: '',
+      stock_quantity: '',
+      low_stock_threshold: '5',
     });
     setEditingProduct(null);
   };
@@ -213,6 +217,8 @@ export default function SellerProductsPage() {
       image_url: product.image_url,
       action_type: (product as any).action_type || 'add_to_cart',
       contact_phone: (product as any).contact_phone || '',
+      stock_quantity: (product as any).stock_quantity?.toString() || '',
+      low_stock_threshold: (product as any).low_stock_threshold?.toString() || '5',
     });
     setIsDialogOpen(true);
   };
@@ -254,6 +260,8 @@ export default function SellerProductsPage() {
       const prepTime = formData.prep_time_minutes ? parseInt(formData.prep_time_minutes) : null;
       const mrp = formData.mrp ? parseFloat(formData.mrp) : null;
       const discountPct = formData.discount_percentage ? parseFloat(formData.discount_percentage) : null;
+      const stockQty = formData.stock_quantity ? parseInt(formData.stock_quantity) : null;
+      const lowStockThreshold = formData.low_stock_threshold ? parseInt(formData.low_stock_threshold) : 5;
       const productData = {
         seller_id: sellerProfile.id,
         name: formData.name.trim(),
@@ -271,6 +279,8 @@ export default function SellerProductsPage() {
         image_url: formData.image_url,
         action_type: formData.action_type,
         contact_phone: formData.contact_phone.trim() || null,
+        stock_quantity: (stockQty !== null && !isNaN(stockQty) && stockQty >= 0) ? stockQty : null,
+        low_stock_threshold: lowStockThreshold,
         ...(editingProduct ? { approval_status: 'pending' } : { approval_status: 'draft' }),
       };
 
@@ -590,6 +600,46 @@ export default function SellerProductsPage() {
                       setFormData({ ...formData, is_urgent: checked })
                     }
                   />
+                </div>
+
+                {/* Stock Quantity Tracking */}
+                <div className="p-3 bg-muted rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium block">Track Stock Quantity</span>
+                      <span className="text-xs text-muted-foreground">Auto-marks unavailable when stock hits zero</span>
+                    </div>
+                    <Switch
+                      checked={formData.stock_quantity !== ''}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, stock_quantity: checked ? '10' : '' })
+                      }
+                    />
+                  </div>
+                  {formData.stock_quantity !== '' && (
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Current Stock</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="e.g. 50"
+                          value={formData.stock_quantity}
+                          onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Low Stock Alert</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 5"
+                          value={formData.low_stock_threshold}
+                          onChange={(e) => setFormData({ ...formData, low_stock_threshold: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">

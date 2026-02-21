@@ -68,16 +68,14 @@ export default function SellerSettingsPage() {
     is_available: true,
     cover_image_url: null as string | null,
     profile_image_url: null as string | null,
-    // Bank account details for Razorpay payouts
     bank_account_number: '',
     bank_ifsc_code: '',
     bank_account_holder: '',
-    // Cross-society commerce
     sell_beyond_community: false,
     delivery_radius_km: 5,
-    // Fulfillment mode
     fulfillment_mode: 'self_pickup' as string,
     delivery_note: '',
+    minimum_order_amount: '',
   });
 
   useEffect(() => {
@@ -124,6 +122,7 @@ export default function SellerSettingsPage() {
           delivery_radius_km: profile.delivery_radius_km ?? 5,
           fulfillment_mode: profile.fulfillment_mode || 'self_pickup',
           delivery_note: profile.delivery_note || '',
+          minimum_order_amount: profile.minimum_order_amount?.toString() || '',
         });
       }
     } catch (error) {
@@ -225,6 +224,7 @@ export default function SellerSettingsPage() {
 
     setIsSaving(true);
     try {
+      const minOrder = formData.minimum_order_amount ? parseFloat(formData.minimum_order_amount) : null;
       const { error } = await supabase
         .from('seller_profiles')
         .update({
@@ -247,6 +247,7 @@ export default function SellerSettingsPage() {
           delivery_radius_km: formData.delivery_radius_km,
           fulfillment_mode: formData.fulfillment_mode,
           delivery_note: formData.delivery_note.trim() || null,
+          minimum_order_amount: (minOrder !== null && !isNaN(minOrder) && minOrder > 0) ? minOrder : null,
         } as any)
         .eq('id', sellerProfile.id);
 
@@ -563,6 +564,43 @@ export default function SellerSettingsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, upi_id: e.target.value })
                     }
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Minimum Order Amount */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Banknote size={16} className="text-muted-foreground" />
+              <Label>Minimum Order Amount</Label>
+            </div>
+            <div className="p-4 bg-muted rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Set minimum order value</p>
+                  <p className="text-xs text-muted-foreground">
+                    Buyers must meet this amount to place an order
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.minimum_order_amount !== ''}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, minimum_order_amount: checked ? '100' : '' })
+                  }
+                />
+              </div>
+              {formData.minimum_order_amount !== '' && (
+                <div className="space-y-2 pt-2 border-t">
+                  <Label htmlFor="min_order" className="text-xs">Minimum Amount (₹)</Label>
+                  <Input
+                    id="min_order"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 100"
+                    value={formData.minimum_order_amount}
+                    onChange={(e) => setFormData({ ...formData, minimum_order_amount: e.target.value })}
                   />
                 </div>
               )}
