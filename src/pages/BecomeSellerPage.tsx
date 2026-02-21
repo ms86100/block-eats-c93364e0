@@ -196,6 +196,48 @@ export default function BecomeSellerPage() {
     fetchLicenseStatus();
   }, [fetchLicenseStatus]);
 
+  // ── Auto-save draft when business name is filled on Step 3 (for license upload) ──
+  useEffect(() => {
+    if (step !== 3) return;
+    if (draftSellerId) return; // Already have a draft
+    if (!formData.business_name.trim()) return;
+    if (!selectedGroup) return;
+    // Only auto-save if the group requires a license
+    const groupRow = groups.find((g) => g.slug === selectedGroup);
+    if (!groupRow || !(groupRow as any).requires_license) return;
+
+    const timer = setTimeout(async () => {
+      if (!user || draftSellerId) return;
+      try {
+        const { data, error } = await supabase
+          .from('seller_profiles')
+          .insert({
+            user_id: user.id,
+            business_name: formData.business_name.trim(),
+            description: formData.description.trim() || null,
+            categories: formData.categories,
+            primary_group: selectedGroup,
+            availability_start: formData.availability_start,
+            availability_end: formData.availability_end,
+            accepts_cod: formData.accepts_cod,
+            sell_beyond_community: formData.sell_beyond_community,
+            delivery_radius_km: formData.delivery_radius_km,
+            society_id: profile?.society_id || null,
+            verification_status: 'draft' as any,
+          } as any)
+          .select('id')
+          .single();
+        if (!error && data) {
+          setDraftSellerId(data.id);
+        }
+      } catch (err) {
+        console.error('Auto-save draft failed:', err);
+      }
+    }, 800); // Debounce 800ms
+
+    return () => clearTimeout(timer);
+  }, [step, formData.business_name, draftSellerId, selectedGroup, groups, user, profile]);
+
   // ── Category change handler ───────────────────────────────────────────
   const handleCategoryChange = (category: ServiceCategory, checked: boolean) => {
     if (checked) {
