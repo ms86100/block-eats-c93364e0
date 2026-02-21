@@ -99,7 +99,7 @@ export function SellerOrderCard({ order }: SellerOrderCardProps) {
             <div className="space-y-1.5">
               {items.slice(0, 3).map((item) => (
                 <div key={item.id} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground truncate max-w-[60%]">
+                  <span className="text-muted-foreground line-clamp-1 max-w-[65%]">
                     {item.quantity}x {item.product_name}
                   </span>
                   <OrderItemStatusBadge status={(item.status || 'pending') as ItemStatus} />

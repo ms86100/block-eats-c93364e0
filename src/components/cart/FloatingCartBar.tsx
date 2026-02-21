@@ -28,7 +28,7 @@ export function FloatingCartBar({ className }: FloatingCartBarProps) {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        className={cn('fixed bottom-16 left-0 right-0 z-40 px-3 pb-2 safe-bottom', className)}
+        className={cn('fixed bottom-20 left-0 right-0 z-40 px-3 pb-2 safe-bottom', className)}
       >
         <Link to="/cart">
           <motion.div

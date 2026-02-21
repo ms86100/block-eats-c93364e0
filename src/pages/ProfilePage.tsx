@@ -235,9 +235,19 @@ export default function ProfilePage() {
         {/* Menu List */}
         <div className="mt-4 px-4 space-y-px">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Your Information</p>
-          {menuItems.map(({ icon: Icon, label, to }) => (
+          {menuItems.slice(0, menuItems.findIndex(m => m.label === 'Privacy Policy')).map(({ icon: Icon, label, to }) => (
             <Link key={to} to={to}>
-              <div className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors">
+              <div className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors">
+                <Icon size={18} className="text-muted-foreground shrink-0" />
+                <span className="flex-1 text-sm font-medium">{label}</span>
+                <ChevronRight size={16} className="text-muted-foreground" />
+              </div>
+            </Link>
+          ))}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 mt-4 px-1">Legal & Support</p>
+          {menuItems.slice(menuItems.findIndex(m => m.label === 'Privacy Policy')).map(({ icon: Icon, label, to }) => (
+            <Link key={to} to={to}>
+              <div className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors">
                 <Icon size={18} className="text-muted-foreground shrink-0" />
                 <span className="flex-1 text-sm font-medium">{label}</span>
                 <ChevronRight size={16} className="text-muted-foreground" />

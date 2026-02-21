@@ -21,7 +21,7 @@ import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 export default function CartPage() {
   const navigate = useNavigate();
   const { user, profile, society } = useAuth();
-  const { items, totalAmount, sellerGroups, updateQuantity, removeItem, clearCart, refresh } = useCart();
+  const { items, totalAmount, sellerGroups, updateQuantity, removeItem, clearCart, refresh, addItem } = useCart();
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -320,7 +320,14 @@ export default function CartPage() {
                           <Plus size={14} className="text-accent-foreground" />
                         </button>
                       </div>
-                      <button className="h-8 w-8 flex items-center justify-center text-muted-foreground" onClick={() => removeItem(item.product_id)}>
+                      <button className="h-8 w-8 flex items-center justify-center text-muted-foreground" onClick={() => {
+                        const name = item.product?.name || 'Item';
+                        removeItem(item.product_id);
+                        toast(`${name} removed`, {
+                          action: { label: 'Undo', onClick: () => addItem(item.product as any) },
+                          duration: 4000,
+                        });
+                      }}>
                         <Trash2 size={15} />
                       </button>
                     </div>

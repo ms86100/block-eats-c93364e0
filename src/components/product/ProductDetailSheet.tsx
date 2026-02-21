@@ -106,7 +106,7 @@ export function ProductDetailSheet({
           </SheetHeader>
 
           {/* Image — full width carousel style */}
-          <div className="relative w-full aspect-square bg-muted">
+          <div className="relative w-full aspect-[4/3] max-h-[45vh] bg-muted">
             {product.image_url ? (
               <img
                 src={product.image_url}
