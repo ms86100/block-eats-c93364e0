@@ -80,7 +80,7 @@ export function useLocalSellers() {
   });
 }
 
-export function useNearbySocietySellers(radiusKm: number = 10, enabled: boolean = true) {
+export function useNearbySocietySellers(radiusKm: number = 5, enabled: boolean = true) {
   const { effectiveSocietyId, isApproved } = useAuth();
 
   return useQuery({
@@ -100,11 +100,12 @@ export function useNearbySocietySellers(radiusKm: number = 10, enabled: boolean 
 
       const sellers = (data as NearbySeller[]) || [];
 
-      const BANDS: { label: string; minKm: number; maxKm: number }[] = [
+      const ALL_BANDS: { label: string; minKm: number; maxKm: number }[] = [
         { label: 'Within 2 km', minKm: 0, maxKm: 2 },
         { label: 'Within 5 km', minKm: 2, maxKm: 5 },
         { label: 'Within 10 km', minKm: 5, maxKm: 10 },
       ];
+      const BANDS = ALL_BANDS.filter(b => b.minKm < radiusKm);
 
       const bands: DistanceBand[] = BANDS.map(band => {
         const bandSellers = sellers.filter(
