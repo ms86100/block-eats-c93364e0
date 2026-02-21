@@ -1,121 +1,123 @@
 
 
-# Design Thinking Integrity Audit -- Round 3 Gap Analysis
+# Design Thinking Integrity Audit -- Round 4 Gap Analysis
 
 ## Design Thinking Maturity Assessment
 
 | Phase | Rating | Justification |
 |-------|--------|---------------|
-| Empathize | Medium-High | Previous rounds added verification reassurance, order status messages, signup field context, and search recovery. However, 85+ raw `error.message` toast calls remain across 14 files (worker, progress, admin, snags, image upload, drafts, bulk upload, seller onboarding). The friendlyError utility exists but was only adopted in 8 files. |
-| Define | High | Empty states now have actionable guidance. Seller onboarding has step-by-step helper text. Dispute empty states explain purpose. Minor gap: seller dashboard "orders" empty state still lacks context when filtered (e.g., "No preparing orders" gives no guidance). |
-| Ideate | Medium-High | Order cancellation now has undo. Cart is DB-backed. Seller drafts exist. Remaining gap: bulletin post deletion has no undo, and product deletion by sellers is immediate with no recovery. |
-| Prototype | High | Order confirmation dialog, bulletin preview, seller draft flow all exist. Minor gap: product edit/delete in SellerProductsPage has no confirmation before destructive delete. |
-| Test | Medium | Feedback sheet exists on Profile and contextually on OrderDetailPage. But feedback is never prompted after seller onboarding completion or after first bulletin post -- two high-emotion moments. |
+| Empathize | Medium-High | `friendlyError` adopted in 14 files from Round 3, but 12 more files still expose raw `err.message` via both `toast.error()` and `toast({ description: err.message })` patterns. Also, several society management pages (Parking, Maintenance, Workforce) have silent error handling (`console.error` only) with no user-facing feedback at all. |
+| Define | High | Empty states now have guidance across marketplace and seller flows. Minor gap: society management pages (Workforce, Parking, Domestic Help) have empty states with no explanation of feature purpose for first-time users. |
+| Ideate | High | Undo on cancellation, seller drafts, bulletin preview all exist. Minor gap: worker suspension/blacklisting in WorkforceManagementPage is immediate with no confirmation dialog -- an irreversible admin action. |
+| Prototype | High | Product delete confirmation added in Round 3. Remaining gap: parking violation resolve/dismiss buttons are tiny icon-only buttons with no confirmation and no label text, risking accidental taps. |
+| Test | Medium-High | Feedback prompts on OrderDetail and post-seller-onboarding exist. Remaining gap: SocietyFinancesPage uses the old `toast()` hook instead of `sonner` toast, creating inconsistent error presentation. |
 
 ---
 
 ## Key Gaps
 
-### Gap 1 -- friendlyError Still Not Adopted in 14 Files (Empathize)
+### Gap 1 -- Raw `err.message` Still Exposed in 12 Files (Empathize)
 
-**Description:** 85+ instances of `toast.error(error.message)` or `toast.error(error.message || '...')` remain in 14 files. These files were not addressed in previous rounds because they were considered lower-traffic, but they still expose technical jargon to users.
+**Description:** 12 files still pass raw error messages to users via `toast.error(err.message)` or `toast({ description: err.message, variant: 'destructive' })`. These were missed in previous rounds because they use different variable names (`err` vs `error`) or the shadcn toast hook instead of sonner.
 
 **Files affected:**
-- `src/pages/CreateJobRequestPage.tsx`
-- `src/pages/WorkerJobsPage.tsx`
-- `src/pages/WorkerMyJobsPage.tsx`
-- `src/pages/BecomeSellerPage.tsx` (line 444 -- missed in previous round)
-- `src/components/seller/DraftProductManager.tsx`
-- `src/components/seller/BulkProductUpload.tsx`
-- `src/components/worker/ResidentJobsList.tsx`
-- `src/components/progress/AddMilestoneSheet.tsx`
-- `src/components/progress/AddDocumentSheet.tsx`
-- `src/components/progress/AskQuestionSheet.tsx`
-- `src/components/snags/CreateSnagSheet.tsx`
-- `src/components/ui/image-upload.tsx`
-- `src/components/admin/CategoryManager.tsx`
-- `src/components/admin/FeatureManagement.tsx`
+- `src/hooks/useRazorpay.ts`
+- `src/components/admin/CategoryManager.tsx` (2 remaining instances)
+- `src/pages/MaintenancePage.tsx`
+- `src/components/admin/EmergencyBroadcastSheet.tsx`
+- `src/components/ui/product-image-upload.tsx`
+- `src/components/workforce/WorkerRegistrationSheet.tsx`
+- `src/components/bulletin/CreateHelpSheet.tsx`
+- `src/components/subscription/SubscriptionSheet.tsx`
+- `src/pages/SocietyFinancesPage.tsx`
+- `src/components/disputes/DisputeDetailSheet.tsx` (2 instances)
+- `src/components/disputes/CreateDisputeSheet.tsx`
+- `src/components/bulletin/CreatePostSheet.tsx`
+- `src/pages/TrustDirectoryPage.tsx`
+- `src/components/finances/AddExpenseSheet.tsx`
 
-**User impact:** Users in worker, progress, snag, and admin flows still see raw database errors.
-**Violation:** System-centric error handling instead of human-centered communication.
+**User impact:** Users see raw database/network error jargon in society management, disputes, finances, and subscription flows.
+**Violation:** System-centric error handling.
 
-**Guidance:** Import `friendlyError` from `@/lib/utils` and replace `toast.error(error.message || '...')` with `toast.error(friendlyError(error))` in all 14 files.
-**Risk:** Low -- purely string mapping.
+**Guidance:** Import `friendlyError` from `@/lib/utils` and replace all instances. For files using the shadcn toast hook, replace `description: err.message` with `description: friendlyError(err)`.
+**Risk:** Low.
 **Measure:** Zero raw technical strings in any user-facing toast.
 
 ---
 
-### Gap 2 -- Product Deletion Has No Confirmation (Prototype)
+### Gap 2 -- Silent Failures in Society Management Pages (Empathize)
 
-**Description:** In `SellerProductsPage.tsx`, deleting a product is immediate with no confirmation dialog. A single tap on the delete icon permanently removes the product and its data. There is no undo.
+**Description:** Several pages swallow errors with only `console.error`:
+- `VehicleParkingPage.tsx` line 72: `fetchData` catches errors silently
+- `VisitorManagementPage.tsx` line 107: `fetchVisitors` logs error but shows nothing to user
+- `ParcelManagementPage.tsx` line 70: same pattern
 
-**User impact:** Accidental deletion of products, loss of reviews and order history references, anxiety and regret.
-**Violation:** Users are locked into an irreversible action without preview or confirmation.
+**User impact:** Users see an empty screen with no indication that data failed to load. They may assume no data exists rather than a network/permission error.
+**Violation:** Silent failures violate the Test principle -- users get no feedback.
 
-**Guidance:** Add an `AlertDialog` confirmation before product deletion, showing the product name and a warning that this cannot be undone. Two buttons: "Keep Product" and "Delete".
-**Files:** `src/pages/SellerProductsPage.tsx`
+**Guidance:** Add a user-facing toast on fetch failure: `toast.error('Could not load data. Pull down to refresh.')` or show an inline error state.
+**Files:** `VehicleParkingPage.tsx`, `VisitorManagementPage.tsx`, `ParcelManagementPage.tsx`
 **Risk:** Low.
-**Measure:** Reduction in re-created products (same seller, same name within 24 hours).
+**Measure:** Reduction in blank-screen confusion.
 
 ---
 
-### Gap 3 -- Seller Dashboard Filtered Orders Empty State Lacks Context (Define)
+### Gap 3 -- Worker Suspension/Blacklisting Has No Confirmation (Prototype)
 
-**Description:** When a seller filters orders (e.g., "Preparing", "Ready") and no orders match, the empty state shows "No preparing orders" with no guidance. Sellers don't know if this is expected behavior or a problem.
+**Description:** In `WorkforceManagementPage.tsx`, the "Suspend" and "Blacklist" actions on workers execute immediately via `updateWorkerStatus()` with no confirmation dialog. These are serious, reputation-affecting actions.
 
-**User impact:** Confusion about whether the filter is working or whether something is wrong.
-**Violation:** Empty state exists for system reasons (filter result) without user-centered explanation.
+**User impact:** Accidental suspension of a worker, potential trust damage, anxiety for admins.
+**Violation:** Irreversible action without confirmation violates Prototype principle.
 
-**Guidance:** Add a brief contextual line below the empty state: "Orders in this status will appear here as buyers place them" or similar, depending on the filter.
-**Files:** `src/pages/SellerDashboardPage.tsx` (lines 266-272)
-**Risk:** Low -- copy-only change.
-**Measure:** N/A (clarity improvement).
-
----
-
-### Gap 4 -- No Feedback Prompt After Seller Onboarding Submission (Test)
-
-**Description:** After a seller completes the 6-step onboarding and submits their application on `BecomeSellerPage`, there is no feedback prompt. This is a high-emotion moment (excitement, anxiety about approval) where a feedback signal would be valuable.
-
-**User impact:** Product team misses a critical signal about the seller onboarding experience.
-**Violation:** Missed opportunity to learn from users at a moment of high engagement.
-
-**Guidance:** After successful submission (the "Application submitted!" toast), set a localStorage flag. On the next visit to ProfilePage or SellerDashboardPage, if the flag is set and no feedback has been given, show the existing `FeedbackSheet` contextually.
-**Files:** `src/pages/BecomeSellerPage.tsx`, `src/pages/ProfilePage.tsx`
+**Guidance:** Add an `AlertDialog` confirmation before suspend/blacklist, showing the worker's name and the action being taken.
+**Files:** `src/pages/WorkforceManagementPage.tsx`
 **Risk:** Low.
-**Measure:** Feedback submission rate from new sellers.
+**Measure:** N/A (safety improvement).
 
 ---
 
-### Gap 5 -- Waiting States in Worker and Progress Flows Lack Reassurance (Empathize)
+### Gap 4 -- Society Management Empty States Lack Purpose (Define)
 
-**Description:** Several flows have waiting/processing states with no reassurance:
-- `WorkerJobsPage`: After accepting a job, no message about what happens next (does the resident confirm? When does work start?)
-- `AddMilestoneSheet` / `AddDocumentSheet`: After submission, only a generic success toast -- no guidance on who reviews or when it appears
+**Description:** Several society pages show empty states with no explanation of what the feature does:
+- Workforce: "No active workers" -- no guidance on what workforce management is for
+- Parking violations: "No violations reported" -- no explanation of reporting purpose
+- Parcels (pending): "No pending parcels" -- no guidance on how parcels get logged
 
-**User impact:** Uncertainty about next steps after taking action.
-**Violation:** System provides no visibility into what happens after the user's action.
+**User impact:** First-time users don't understand the feature's purpose.
+**Violation:** Empty states serve system needs (no data) without user-centered framing.
 
-**Guidance:**
-- Worker job acceptance: Change success toast to include next step: "Job accepted! The resident will be notified."
-- Milestone/document submission: Change toast to "Added! Your entry will appear in the timeline."
-**Files:** `src/pages/WorkerJobsPage.tsx`, `src/components/progress/AddMilestoneSheet.tsx`, `src/components/progress/AddDocumentSheet.tsx`
+**Guidance:** Add a one-line description below each empty state:
+- Workforce: "Register and manage domestic workers, security, and maintenance staff for your community."
+- Parking violations: "Report unauthorized parking or blocking issues for committee review."
+- Parcels: "Parcels logged by security or yourself will appear here for easy tracking."
+**Files:** `WorkforceManagementPage.tsx`, `VehicleParkingPage.tsx`, `ParcelManagementPage.tsx`
 **Risk:** Low -- copy-only.
-**Measure:** N/A (reassurance improvement).
 
 ---
 
-### Gap 6 -- Image Upload Failure Gives No Recovery Guidance (Empathize)
+### Gap 5 -- Parking Violation Resolve/Dismiss Uses Unlabeled Icon Buttons (Prototype)
 
-**Description:** When image upload fails in `image-upload.tsx`, the toast says "Failed to upload image" with no guidance. Users don't know if the file was too large, the format was wrong, or if it was a network issue.
+**Description:** In `VehicleParkingPage.tsx` lines 277-278, violation resolve/dismiss uses tiny 28px icon-only buttons (✓ and ✗) with no labels or tooltips. On mobile, these are easy to mis-tap and the difference between "resolved" and "dismissed" is unclear.
 
-**User impact:** Repeated failed attempts, frustration, abandonment of the flow.
-**Violation:** Error handling is generic and system-centric.
+**User impact:** Accidental wrong action on violation reports; confusion about what each icon means.
+**Violation:** Commitment without clarity violates Prototype principle.
 
-**Guidance:** Use `friendlyError(error)` for the toast, and add a brief helper below the upload area: "Supported: JPG, PNG, WebP. Max 5 MB."
-**Files:** `src/components/ui/image-upload.tsx`
+**Guidance:** Replace icon-only buttons with labeled buttons: "Resolve" and "Dismiss", or add tooltips. Consider adding a brief confirmation for dismiss.
+**Files:** `src/pages/VehicleParkingPage.tsx`
 **Risk:** Low.
-**Measure:** Reduction in repeated upload attempts.
+
+---
+
+### Gap 6 -- Maintenance Dues Generation Has No Preview (Prototype)
+
+**Description:** In `MaintenancePage.tsx`, "Generate for All Flats" immediately creates dues for every approved resident. There is no preview of how many flats will be affected or the total amount before committing.
+
+**User impact:** Admin anxiety about bulk action consequences; no way to verify before committing.
+**Violation:** Early over-commitment on a bulk action.
+
+**Guidance:** After clicking "Generate", show a brief summary before final confirmation: "This will create dues for X flats, totaling ₹Y for {month}. Continue?"
+**Files:** `src/pages/MaintenancePage.tsx`
+**Risk:** Low.
 
 ---
 
@@ -123,11 +125,11 @@
 
 | Phase | Currently Measured | Should Measure | Missing Signal |
 |-------|-------------------|----------------|----------------|
-| Empathize | friendlyError in 8 files | friendlyError adoption rate (target: 100% of catch blocks) | Files still showing raw error.message |
-| Define | Empty state guidance on 3 pages | Guidance coverage across all empty states | Filtered empty states in seller dashboard |
-| Ideate | Undo on order cancellation | Undo/confirmation coverage on all destructive actions | Product deletion, bulletin post deletion |
-| Prototype | Order confirmation dialog, bulletin preview | Confirmation before all irreversible actions | Product deletion without confirmation |
-| Test | Feedback on Profile + OrderDetail | Feedback prompt after all high-emotion moments | Post-seller-onboarding, post-first-bulletin |
+| Empathize | friendlyError in 22 files | 100% adoption across all catch blocks | 12 files still using raw err.message |
+| Define | Empty state guidance on marketplace pages | Guidance on all empty states including society management | Workforce, parking, parcel empty states |
+| Ideate | Undo on cancellation, seller drafts | Confirmation on all destructive admin actions | Worker suspend/blacklist without confirmation |
+| Prototype | Product delete + order confirmation dialogs | Confirmation/preview on all bulk and admin actions | Maintenance dues generation, violation resolve |
+| Test | Feedback on Profile + OrderDetail + post-onboarding | Error visibility on all data fetch failures | Silent console.error on 3 society pages |
 
 ---
 
@@ -135,51 +137,44 @@
 
 | Priority | Gap | Effort | Impact |
 |----------|-----|--------|--------|
-| 1 | Gap 1 -- friendlyError in remaining 14 files | Small | High |
-| 2 | Gap 2 -- Product delete confirmation | Small | Medium |
-| 3 | Gap 5 -- Waiting state reassurance (worker/progress) | Small | Medium |
-| 4 | Gap 6 -- Image upload guidance | Small | Medium |
-| 5 | Gap 3 -- Filtered orders empty state | Small | Low |
-| 6 | Gap 4 -- Post-onboarding feedback prompt | Small | Low |
+| 1 | Gap 1 -- friendlyError in remaining 12 files | Small | High |
+| 2 | Gap 2 -- Silent failure feedback on 3 pages | Small | Medium |
+| 3 | Gap 3 -- Worker suspend/blacklist confirmation | Small | Medium |
+| 4 | Gap 4 -- Society management empty state guidance | Small | Low |
+| 5 | Gap 5 -- Parking violation button labels | Small | Low |
+| 6 | Gap 6 -- Maintenance dues generation preview | Small | Low |
 
 ---
 
 ## Technical Details
 
-### Gap 1 -- friendlyError adoption (14 files)
-In each file, add `import { friendlyError } from '@/lib/utils';` and replace:
+### Gap 1 -- friendlyError adoption (12 files)
+Two patterns to fix:
+
+**Pattern A (sonner toast):**
 ```typescript
-toast.error(error.message || 'Failed to X');
+toast.error(err.message || 'Failed to X');
 // becomes
-toast.error(friendlyError(error));
+toast.error(friendlyError(err));
 ```
-For React Query `onError` callbacks:
+
+**Pattern B (shadcn toast hook):**
 ```typescript
-onError: (error: Error) => toast.error(error.message)
+toast({ title: 'Failed', description: err.message, variant: 'destructive' });
 // becomes
-onError: (error: Error) => toast.error(friendlyError(error))
+toast({ title: 'Failed', description: friendlyError(err), variant: 'destructive' });
 ```
 
-### Gap 2 -- Product delete confirmation
-Wrap the existing delete handler in an `AlertDialog`:
-```tsx
-<AlertDialog>
-  <AlertDialogTrigger asChild>
-    <button>...</button>
-  </AlertDialogTrigger>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Delete "{product.name}"?</AlertDialogTitle>
-      <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Keep</AlertDialogCancel>
-      <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+### Gap 2 -- Silent failure feedback
+Add toast on fetch error:
+```typescript
+if (error) {
+  toast.error('Could not load data. Please try again.');
+}
 ```
 
-### Gaps 3, 5, 6 -- Copy-only changes
-Pure text/JSX additions with no logic modifications.
+### Gap 3 -- Worker confirmation
+Use existing `AlertDialog` pattern from SellerProductsPage.
 
+### Gap 6 -- Dues generation preview
+Before inserting, show count: fetch residents first, display summary, then confirm.
