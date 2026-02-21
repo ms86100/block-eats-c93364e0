@@ -46,6 +46,8 @@ export interface ProductWithSeller {
   service_duration_minutes?: number | null;
   prep_time_minutes?: number | null;
   warranty_period?: string | null;
+  lead_time_hours?: number | null;
+  accepts_preorders?: boolean;
   seller_name?: string;
   seller_rating?: number;
   seller_reviews?: number;
@@ -295,6 +297,20 @@ export function ProductListingCard({
           </div>
         )}
 
+        {/* Lead time & Pre-order badges */}
+        {product.lead_time_hours != null && product.lead_time_hours > 0 && (
+          <div className="flex items-center gap-0.5 mb-0.5">
+            <Clock size={7} className="text-primary" />
+            <span className="text-[8px] font-medium text-muted-foreground leading-none">
+              Order {product.lead_time_hours}h ahead
+            </span>
+          </div>
+        )}
+        {product.accepts_preorders && (
+          <span className="inline-block bg-accent/20 text-accent-foreground text-[7px] font-bold px-1 py-px rounded w-fit mb-0.5">
+            Pre-order
+          </span>
+        )}
         <div className="flex-1 min-h-0.5" />
 
         {/* Discount row */}

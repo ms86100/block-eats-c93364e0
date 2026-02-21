@@ -2774,6 +2774,7 @@ export type Database = {
       }
       products: {
         Row: {
+          accepts_preorders: boolean
           action_type: string
           approval_status: string
           available_slots: Json | null
@@ -2797,6 +2798,7 @@ export type Database = {
           is_recommended: boolean | null
           is_urgent: boolean | null
           is_veg: boolean | null
+          lead_time_hours: number | null
           listing_type: string | null
           location_required: boolean | null
           low_stock_threshold: number | null
@@ -2805,6 +2807,7 @@ export type Database = {
           minimum_charge: number | null
           mrp: number | null
           name: string
+          preorder_cutoff_time: string | null
           prep_time_minutes: number | null
           price: number
           price_per_unit: string | null
@@ -2825,6 +2828,7 @@ export type Database = {
           warranty_period: string | null
         }
         Insert: {
+          accepts_preorders?: boolean
           action_type?: string
           approval_status?: string
           available_slots?: Json | null
@@ -2848,6 +2852,7 @@ export type Database = {
           is_recommended?: boolean | null
           is_urgent?: boolean | null
           is_veg?: boolean | null
+          lead_time_hours?: number | null
           listing_type?: string | null
           location_required?: boolean | null
           low_stock_threshold?: number | null
@@ -2856,6 +2861,7 @@ export type Database = {
           minimum_charge?: number | null
           mrp?: number | null
           name: string
+          preorder_cutoff_time?: string | null
           prep_time_minutes?: number | null
           price: number
           price_per_unit?: string | null
@@ -2876,6 +2882,7 @@ export type Database = {
           warranty_period?: string | null
         }
         Update: {
+          accepts_preorders?: boolean
           action_type?: string
           approval_status?: string
           available_slots?: Json | null
@@ -2899,6 +2906,7 @@ export type Database = {
           is_recommended?: boolean | null
           is_urgent?: boolean | null
           is_veg?: boolean | null
+          lead_time_hours?: number | null
           listing_type?: string | null
           location_required?: boolean | null
           low_stock_threshold?: number | null
@@ -2907,6 +2915,7 @@ export type Database = {
           minimum_charge?: number | null
           mrp?: number | null
           name?: string
+          preorder_cutoff_time?: string | null
           prep_time_minutes?: number | null
           price?: number
           price_per_unit?: string | null

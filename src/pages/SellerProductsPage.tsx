@@ -44,6 +44,7 @@ import { ArrowLeft, Plus, Edit, Trash2, Loader2, Star, Award, Bell, AlertTriangl
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/utils';
 import { BulkProductUpload } from '@/components/seller/BulkProductUpload';
+import { useSubcategories } from '@/hooks/useSubcategories';
 
 export default function SellerProductsPage() {
   const { user, sellerProfiles, currentSellerId } = useAuth();
@@ -76,6 +77,9 @@ export default function SellerProductsPage() {
     contact_phone: '',
     stock_quantity: '' as string,
     low_stock_threshold: '5',
+    subcategory_id: '' as string,
+    lead_time_hours: '' as string,
+    accepts_preorders: false,
   });
 
   // Get the active category config for dynamic form hints
@@ -101,6 +105,10 @@ export default function SellerProductsPage() {
     if (!primaryGroup || !groupedConfigs[primaryGroup]) return [];
     return groupedConfigs[primaryGroup];
   }, [primaryGroup, groupedConfigs]);
+
+  // Subcategories for the selected category
+  const activeCategoryConfigId = activeCategoryConfig?.id || null;
+  const { data: subcategories = [] } = useSubcategories(activeCategoryConfigId);
 
   useEffect(() => {
     if (user && currentSellerId) {
@@ -195,6 +203,9 @@ export default function SellerProductsPage() {
       contact_phone: '',
       stock_quantity: '',
       low_stock_threshold: '5',
+      subcategory_id: '',
+      lead_time_hours: '',
+      accepts_preorders: false,
     });
     setEditingProduct(null);
   };
@@ -219,6 +230,9 @@ export default function SellerProductsPage() {
       contact_phone: (product as any).contact_phone || '',
       stock_quantity: (product as any).stock_quantity?.toString() || '',
       low_stock_threshold: (product as any).low_stock_threshold?.toString() || '5',
+      subcategory_id: (product as any).subcategory_id || '',
+      lead_time_hours: (product as any).lead_time_hours?.toString() || '',
+      accepts_preorders: (product as any).accepts_preorders || false,
     });
     setIsDialogOpen(true);
   };
@@ -281,6 +295,9 @@ export default function SellerProductsPage() {
         contact_phone: formData.contact_phone.trim() || null,
         stock_quantity: (stockQty !== null && !isNaN(stockQty) && stockQty >= 0) ? stockQty : null,
         low_stock_threshold: lowStockThreshold,
+        subcategory_id: formData.subcategory_id || null,
+        lead_time_hours: formData.lead_time_hours ? parseInt(formData.lead_time_hours) : null,
+        accepts_preorders: formData.accepts_preorders,
         ...(editingProduct ? { approval_status: 'pending' } : { approval_status: 'draft' }),
       };
 
@@ -539,6 +556,60 @@ export default function SellerProductsPage() {
                   ) : null}
                 </div>
 
+                {/* Subcategory Picker (DB-driven) */}
+                {subcategories.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Subcategory</Label>
+                    <Select
+                      value={formData.subcategory_id || 'none'}
+                      onValueChange={(v) => setFormData({ ...formData, subcategory_id: v === 'none' ? '' : v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select subcategory (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {subcategories.map(sub => (
+                          <SelectItem key={sub.id} value={sub.id}>
+                            {sub.icon || '📂'} {sub.display_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Lead Time & Pre-order Config */}
+                <div className="p-3 bg-muted rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium block">Lead Time</span>
+                      <span className="text-xs text-muted-foreground">How many hours in advance must buyers order?</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Hours in advance</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 2"
+                        value={formData.lead_time_hours}
+                        onChange={(e) => setFormData({ ...formData, lead_time_hours: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div>
+                      <span className="text-sm font-medium block">Accept Pre-orders</span>
+                      <span className="text-xs text-muted-foreground">Allow buyers to order for future dates</span>
+                    </div>
+                    <Switch
+                      checked={formData.accepts_preorders}
+                      onCheckedChange={(checked) => setFormData({ ...formData, accepts_preorders: checked })}
+                    />
+                  </div>
+                </div>
 
                 {showVegToggle && (
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">

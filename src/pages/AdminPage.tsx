@@ -28,6 +28,7 @@ import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiKeySettings } from '@/components/admin/ApiKeySettings';
 import { CategoryManager } from '@/components/admin/CategoryManager';
+import { SubcategoryManager } from '@/components/admin/SubcategoryManager';
 import { SellerApplicationReview } from '@/components/admin/SellerApplicationReview';
 import { AdminDisputesTab } from '@/components/admin/AdminDisputesTab';
 import { EmergencyBroadcastSheet } from '@/components/admin/EmergencyBroadcastSheet';
@@ -600,6 +601,7 @@ export default function AdminPage() {
           <TabsContent value="settings" className="space-y-4 mt-4">
             <ApiKeySettings />
             <CategoryManager />
+            <SubcategoryManager />
           </TabsContent>
         </Tabs>
 
