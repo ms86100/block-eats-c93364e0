@@ -83,10 +83,20 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-2">9. Order Cancellation</h3>
+              <h3 className="font-semibold mb-2">9. Order Cancellation & Refund Policy</h3>
               <p className="text-muted-foreground">
                 Orders may be cancelled before the seller starts preparing. Once preparation begins, cancellation may not be possible. Sellers have the right to cancel orders if unable to fulfill them. Time-sensitive orders may be auto-cancelled if not accepted within the specified timeframe.
               </p>
+              <p className="text-muted-foreground mt-2">
+                <strong>Refund Policy:</strong> All products sold on Sociva are physical goods or in-person services fulfilled directly by independent sellers within your residential community. Sociva does not sell digital goods or digital content.
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
+                <li>If an order is cancelled before preparation, no charge will apply</li>
+                <li>If a seller cancels after acceptance, any payment collected will be refunded to the buyer</li>
+                <li>Refunds for COD orders require no action; UPI refunds are processed within 5–7 business days</li>
+                <li>Disputes regarding product quality or non-delivery can be raised through the app's Help & Support section or the in-app dispute resolution feature</li>
+                <li>Sociva acts solely as an intermediary and does not guarantee refunds on behalf of sellers</li>
+              </ul>
             </section>
 
             <section>

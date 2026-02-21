@@ -26,22 +26,15 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claims, error: claimsError } = await supabaseUser.auth.getClaims(token);
-    if (claimsError || !claims?.claims) {
+    const { data: { user: authUser }, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !authUser) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const userId = claims.claims.sub;
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'No user ID in token' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const userId = authUser.id;
 
     // Use service role to delete the auth user
     const supabaseAdmin = createClient(
