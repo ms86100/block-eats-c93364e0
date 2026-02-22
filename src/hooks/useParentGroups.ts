@@ -16,6 +16,7 @@ export interface ParentGroupRow {
   license_mandatory: boolean;
   license_type_name: string | null;
   license_description: string | null;
+  placeholder_hint: string | null;
   created_at: string;
   updated_at: string;
 }

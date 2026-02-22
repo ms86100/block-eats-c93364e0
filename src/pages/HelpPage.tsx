@@ -14,6 +14,9 @@ import {
   ChevronRight,
   BookOpen,
   RefreshCw,
+  Package, Users, Wrench, Car, Bell, MapPin, Home, Settings,
+  DoorOpen, ClipboardCheck, Landmark, Bug, Scale, IndianRupee,
+  Building2, Briefcase, HardHat, Truck, Calendar, Star,
   type LucideIcon,
 } from 'lucide-react';
 import { useOnboarding } from '@/components/onboarding/OnboardingWalkthrough';
@@ -85,7 +88,13 @@ export default function HelpPage({ sections: customSections }: HelpPageProps) {
     if (settings.helpSectionsJson) {
       try {
         const parsed = JSON.parse(settings.helpSectionsJson) as { icon: string; title: string; items: string[] }[];
-        const ICON_MAP: Record<string, LucideIcon> = { ShoppingBag, Store, CreditCard, MessageCircle, Shield, HelpCircle };
+        const ICON_MAP: Record<string, LucideIcon> = {
+          ShoppingBag, Store, CreditCard, MessageCircle, Shield, HelpCircle,
+          Package, Users, Wrench, Car, Bell, MapPin, Home, Settings,
+          DoorOpen, ClipboardCheck, Landmark, Bug, Scale, IndianRupee,
+          Building2, Briefcase, HardHat, Truck, Calendar, Star,
+          BookOpen, RefreshCw, ArrowLeft, ChevronRight,
+        };
         return parsed.map(s => ({
           icon: ICON_MAP[s.icon] || HelpCircle,
           title: s.title,

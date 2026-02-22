@@ -12,6 +12,15 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+interface LandingSlideConfig {
+  key: string;
+  heading: string;
+  subheading?: string;
+  highlight?: string;
+  bullets?: string[];
+  cta?: { label: string; link: string };
+}
+
 const AUTOPLAY_INTERVAL = 8000;
 
 function useAutoplay(emblaApi: any, interval: number) {
@@ -46,7 +55,17 @@ export default function LandingPage() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [stats, setStats] = useState({ societies: 0, sellers: 0, categories: 0 });
   const { parentGroupInfos } = useParentGroups();
-  const { platformName } = useSystemSettings();
+  const settings = useSystemSettings();
+  const { platformName, landingSlidesJson } = settings;
+
+  // Parse CMS slides config if available
+  const cmsSlides = useMemo<LandingSlideConfig[] | null>(() => {
+    if (!landingSlidesJson) return null;
+    try {
+      const parsed = JSON.parse(landingSlidesJson);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+    } catch { return null; }
+  }, [landingSlidesJson]);
 
   const displayGroups = useMemo(() => {
     const active = parentGroupInfos.filter(g => g.label);
@@ -79,7 +98,35 @@ export default function LandingPage() {
     fetchStats();
   }, []);
 
-  const slides = [
+  // CMS-driven slide renderer
+  const renderCmsSlide = (slide: LandingSlideConfig, index: number) => (
+    <div key={slide.key || index} className="min-h-[100dvh] flex flex-col justify-center items-center text-center px-6 bg-gradient-to-br from-primary/10 via-background to-accent/10">
+      <div className="max-w-sm mx-auto">
+        <h2 className="text-3xl font-bold mb-4">{slide.heading}</h2>
+        {slide.highlight && <p className="text-primary text-xl font-semibold mb-2">{slide.highlight}</p>}
+        {slide.subheading && <p className="text-muted-foreground text-base mb-6">{slide.subheading}</p>}
+        {slide.bullets && slide.bullets.length > 0 && (
+          <div className="space-y-3 mb-6 text-left">
+            {slide.bullets.map((b, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                  <ChevronRight className="text-primary" size={14} />
+                </div>
+                <span className="text-sm">{b}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {slide.cta && (
+          <Link to={slide.cta.link || '/auth'}>
+            <Button size="lg" className="w-full font-semibold">{slide.cta.label}</Button>
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+
+  const defaultSlides = [
     // Slide 1: Hero
     <div key="hero" className="min-h-[100dvh] flex flex-col justify-center items-center text-center px-6 bg-gradient-to-br from-primary/10 via-background to-accent/10">
       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/15 border border-primary/20 mb-6">
@@ -214,6 +261,8 @@ export default function LandingPage() {
       </div>
     </div>,
   ];
+
+  const slides = cmsSlides ? cmsSlides.map(renderCmsSlide) : defaultSlides;
 
   return (
     <div className="min-h-screen bg-background">

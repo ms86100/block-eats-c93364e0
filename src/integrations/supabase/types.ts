@@ -2689,6 +2689,7 @@ export type Database = {
           license_mandatory: boolean
           license_type_name: string | null
           name: string
+          placeholder_hint: string | null
           requires_license: boolean
           slug: string
           sort_order: number
@@ -2706,6 +2707,7 @@ export type Database = {
           license_mandatory?: boolean
           license_type_name?: string | null
           name: string
+          placeholder_hint?: string | null
           requires_license?: boolean
           slug: string
           sort_order?: number
@@ -2723,6 +2725,7 @@ export type Database = {
           license_mandatory?: boolean
           license_type_name?: string | null
           name?: string
+          placeholder_hint?: string | null
           requires_license?: boolean
           slug?: string
           sort_order?: number

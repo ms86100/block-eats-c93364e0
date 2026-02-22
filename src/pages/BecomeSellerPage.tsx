@@ -755,10 +755,8 @@ export default function BecomeSellerPage() {
               <Input
                 id="business_name"
                 placeholder={
-                  selectedGroup === 'food' ? "e.g., Amma's Kitchen, Fresh Bakes"
-                  : selectedGroup === 'services' ? "e.g., QuickFix Repairs, Yoga with Priya"
-                  : selectedGroup === 'shopping' ? "e.g., Style Corner, TechMart"
-                  : "e.g., Your Store Name"
+                  groups.find(g => g.slug === selectedGroup)?.placeholder_hint
+                  || "e.g., Your Store Name"
                 }
                 value={formData.business_name}
                 onChange={(e) =>
