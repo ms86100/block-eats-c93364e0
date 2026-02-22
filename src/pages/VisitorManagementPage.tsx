@@ -25,15 +25,21 @@ import {
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { exportVisitorLog } from '@/lib/csv-export';
+import { useQuery } from '@tanstack/react-query';
 
-type VisitorType = 'guest' | 'delivery' | 'cab' | 'domestic_help' | 'contractor';
 type VisitorStatus = 'expected' | 'checked_in' | 'checked_out' | 'cancelled' | 'expired';
+
+interface VisitorTypeConfig {
+  type_key: string;
+  label: string;
+  icon: string | null;
+}
 
 interface VisitorEntry {
   id: string;
   visitor_name: string;
   visitor_phone: string | null;
-  visitor_type: VisitorType;
+  visitor_type: string;
   purpose: string | null;
   expected_date: string | null;
   expected_time: string | null;
@@ -49,13 +55,14 @@ interface VisitorEntry {
   created_at: string;
 }
 
-const visitorTypeLabels: Record<VisitorType, { label: string; icon: typeof Users }> = {
-  guest: { label: 'Guest', icon: Users },
-  delivery: { label: 'Delivery', icon: Truck },
-  cab: { label: 'Cab/Ride', icon: Car },
-  domestic_help: { label: 'Domestic Help', icon: Users },
-  contractor: { label: 'Contractor', icon: Users },
-};
+// Fallback visitor types if DB hasn't been seeded
+const FALLBACK_VISITOR_TYPES: VisitorTypeConfig[] = [
+  { type_key: 'guest', label: 'Guest', icon: null },
+  { type_key: 'delivery', label: 'Delivery', icon: null },
+  { type_key: 'cab', label: 'Cab/Ride', icon: null },
+  { type_key: 'domestic_help', label: 'Domestic Help', icon: null },
+  { type_key: 'contractor', label: 'Contractor', icon: null },
+];
 
 const statusColors: Record<VisitorStatus, string> = {
   expected: 'bg-warning/10 text-warning',
@@ -77,10 +84,30 @@ export default function VisitorManagementPage() {
   const [activeTab, setActiveTab] = useState('today');
   const { loadingId, withLoading } = useActionLoading();
 
+  // Fetch visitor types from DB
+  const { data: visitorTypes = FALLBACK_VISITOR_TYPES } = useQuery({
+    queryKey: ['visitor-types', effectiveSocietyId],
+    queryFn: async () => {
+      if (!effectiveSocietyId) return FALLBACK_VISITOR_TYPES;
+      const { data, error } = await supabase.rpc('get_visitor_types_for_society', {
+        _society_id: effectiveSocietyId,
+      });
+      if (error || !data?.length) return FALLBACK_VISITOR_TYPES;
+      return (data as VisitorTypeConfig[]);
+    },
+    enabled: !!effectiveSocietyId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const getVisitorTypeLabel = (typeKey: string) => {
+    const found = visitorTypes.find(vt => vt.type_key === typeKey);
+    return found?.label || typeKey.replace('_', ' ');
+  };
+
   // Form state
   const [visitorName, setVisitorName] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
-  const [visitorType, setVisitorType] = useState<VisitorType>('guest');
+  const [visitorType, setVisitorType] = useState('guest');
   const [purpose, setPurpose] = useState('');
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [expectedDate, setExpectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -193,7 +220,7 @@ export default function VisitorManagementPage() {
   const resetForm = () => {
     setVisitorName('');
     setVisitorPhone('');
-    setVisitorType('guest');
+    setVisitorType(visitorTypes[0]?.type_key || 'guest');
     setPurpose('');
     setVehicleNumber('');
     setExpectedDate(new Date().toISOString().split('T')[0]);
@@ -248,11 +275,11 @@ export default function VisitorManagementPage() {
                   </div>
                   <div>
                     <Label>Visitor Type</Label>
-                    <Select value={visitorType} onValueChange={v => setVisitorType(v as VisitorType)}>
+                    <Select value={visitorType} onValueChange={setVisitorType}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(visitorTypeLabels).map(([key, { label }]) => (
-                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        {visitorTypes.map(vt => (
+                          <SelectItem key={vt.type_key} value={vt.type_key}>{vt.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -341,7 +368,7 @@ export default function VisitorManagementPage() {
                           </Badge>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <span className="capitalize">{visitorTypeLabels[visitor.visitor_type]?.label}</span>
+                          <span className="capitalize">{getVisitorTypeLabel(visitor.visitor_type)}</span>
                           {visitor.visitor_phone && (
                             <span className="flex items-center gap-0.5">
                               <Phone size={10} /> {visitor.visitor_phone}

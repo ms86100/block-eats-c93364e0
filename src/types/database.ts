@@ -124,6 +124,7 @@ export type ProductActionType =
   | 'add_to_cart' | 'buy_now' | 'book' | 'request_service' 
   | 'request_quote' | 'contact_seller' | 'schedule_visit' | 'make_offer';
 
+/** @deprecated Use ACTION_CONFIG from '@/lib/marketplace-constants' for component usage */
 export const PRODUCT_ACTION_TYPES: { value: ProductActionType; label: string; icon: string }[] = [
   { value: 'add_to_cart', label: 'Add to Cart', icon: '🛒' },
   { value: 'buy_now', label: 'Buy Now', icon: '⚡' },
