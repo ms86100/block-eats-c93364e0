@@ -52,7 +52,7 @@ export const workerRegistrationSchema = z.object({
   entryFrequency: z.enum(['daily', 'occasional', 'per_visit']),
   emergencyPhone: z.string().regex(/^(\+?\d{10,13})?$/, 'Invalid phone number').optional().or(z.literal('')),
   flatNumbers: z.string().max(500, 'Too many flats').optional().or(z.literal('')),
-  preferredLanguage: z.string().min(2).max(10).default('hi'),
+  preferredLanguage: z.string().min(2, 'Language is required').max(10),
 }).refine(data => data.shiftStart < data.shiftEnd, {
   message: 'Shift end must be after shift start',
   path: ['shiftEnd'],

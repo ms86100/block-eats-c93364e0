@@ -16,6 +16,8 @@ import { jobRequestSchema, validateForm } from '@/lib/validation-schemas';
 import { friendlyError } from '@/lib/utils';
 import { FeatureGate } from '@/components/ui/FeatureGate';
 import { Building, Globe, MapPin, Loader2 } from 'lucide-react';
+import { useSystemSettingsRaw } from '@/hooks/useSystemSettingsRaw';
+
 
 const JOB_TYPES = [
   { value: 'maid', label: '🧹 Maid / Cleaning' },
@@ -32,6 +34,7 @@ export default function CreateJobRequestPage() {
   const { profile, effectiveSocietyId } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { getSetting } = useSystemSettingsRaw(['worker_broadcast_radius_options', 'worker_broadcast_default_radius']);
 
   const [jobType, setJobType] = useState('');
   const [description, setDescription] = useState('');
@@ -42,15 +45,28 @@ export default function CreateJobRequestPage() {
   const [urgency, setUrgency] = useState('normal');
   const [visibilityScope, setVisibilityScope] = useState<'society' | 'nearby'>('society');
   const [targetSocietyIds, setTargetSocietyIds] = useState<string[]>([]);
+  const [selectedRadius, setSelectedRadius] = useState<number | null>(null);
 
-  // Fetch nearby societies when "nearby" is selected
+  // Load radius options from system_settings
+  const radiusOptions: number[] = (() => {
+    try {
+      const raw = getSetting('worker_broadcast_radius_options');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  })();
+  const defaultRadius = parseInt(getSetting('worker_broadcast_default_radius') || '0', 10);
+
+  // Initialize selectedRadius from default
+  const effectiveRadius = selectedRadius ?? (defaultRadius > 0 ? defaultRadius : (radiusOptions[0] || 0));
+
+  // Fetch nearby societies when "nearby" is selected, using dynamic radius
   const { data: nearbySocieties = [], isLoading: loadingNearby } = useQuery({
-    queryKey: ['nearby-societies', effectiveSocietyId],
+    queryKey: ['nearby-societies', effectiveSocietyId, effectiveRadius],
     queryFn: async () => {
-      if (!effectiveSocietyId) return [];
+      if (!effectiveSocietyId || effectiveRadius <= 0) return [];
       const { data, error } = await supabase.rpc('get_nearby_societies', {
         _society_id: effectiveSocietyId,
-        _radius_km: 5,
+        _radius_km: effectiveRadius,
       });
       if (error) {
         console.error('Error fetching nearby societies:', error);
@@ -58,7 +74,7 @@ export default function CreateJobRequestPage() {
       }
       return (data || []) as { id: string; name: string; distance_km: number }[];
     },
-    enabled: !!effectiveSocietyId && visibilityScope === 'nearby',
+    enabled: !!effectiveSocietyId && visibilityScope === 'nearby' && effectiveRadius > 0,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -223,43 +239,71 @@ export default function CreateJobRequestPage() {
               </div>
             </div>
 
-            {/* Nearby Society Multi-Select */}
+            {/* Radius Selector + Nearby Society Multi-Select */}
             {visibilityScope === 'nearby' && (
-              <div className="border rounded-xl p-3 bg-muted/30">
-                <Label className="mb-2 block text-sm">Select nearby societies to broadcast to:</Label>
-                {loadingNearby ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 size={20} className="animate-spin text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground ml-2">Finding nearby societies...</span>
+              <div className="border rounded-xl p-3 bg-muted/30 space-y-3">
+                {/* Radius selector */}
+                {radiusOptions.length > 0 ? (
+                  <div>
+                    <Label className="mb-1.5 block text-sm">Broadcast Range</Label>
+                    <div className="flex gap-2">
+                      {radiusOptions.map((r: number) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => { setSelectedRadius(r); setTargetSocietyIds([]); }}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                            effectiveRadius === r
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-border bg-card text-foreground hover:bg-accent'
+                          }`}
+                        >
+                          {r} km
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                ) : nearbySocieties.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-3 text-center">
-                    No nearby societies within range
-                  </p>
                 ) : (
-                  <div className="space-y-2">
-                    {nearbySocieties.map((society: any) => (
-                      <label
-                        key={society.id}
-                        className="flex items-center gap-3 p-2.5 rounded-lg border bg-card cursor-pointer hover:bg-accent/50 transition-colors"
-                      >
-                        <Checkbox
-                          checked={targetSocietyIds.includes(society.id)}
-                          onCheckedChange={() => toggleSociety(society.id)}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{society.name}</p>
-                          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <MapPin size={10} /> {society.distance_km} km away
-                          </p>
-                        </div>
-                      </label>
-                    ))}
-                    {targetSocietyIds.length === 0 && (
-                      <p className="text-xs text-destructive mt-1">Select at least one society</p>
-                    )}
-                  </div>
+                  <p className="text-sm text-destructive">Broadcast radius not configured. Contact admin.</p>
                 )}
+
+                {/* Society list */}
+                <div>
+                  <Label className="mb-2 block text-sm">Select societies to broadcast to:</Label>
+                  {loadingNearby ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 size={20} className="animate-spin text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground ml-2">Finding societies within {effectiveRadius} km...</span>
+                    </div>
+                  ) : nearbySocieties.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-3 text-center">
+                      No societies found within {effectiveRadius} km
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {nearbySocieties.map((society: any) => (
+                        <label
+                          key={society.id}
+                          className="flex items-center gap-3 p-2.5 rounded-lg border bg-card cursor-pointer hover:bg-accent/50 transition-colors"
+                        >
+                          <Checkbox
+                            checked={targetSocietyIds.includes(society.id)}
+                            onCheckedChange={() => toggleSociety(society.id)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{society.name}</p>
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <MapPin size={10} /> {society.distance_km} km away
+                            </p>
+                          </div>
+                        </label>
+                      ))}
+                      {targetSocietyIds.length === 0 && (
+                        <p className="text-xs text-destructive mt-1">Select at least one society</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

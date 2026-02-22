@@ -25,12 +25,24 @@ const JOB_TYPE_LABELS: Record<string, string> = {
   general: '🛠️ General Help',
 };
 
-// Language code to BCP-47 voice tag mapping
-const LANG_VOICE_MAP: Record<string, string> = {
-  hi: 'hi-IN', en: 'en-IN', ta: 'ta-IN', te: 'te-IN',
-  bn: 'bn-IN', mr: 'mr-IN', kn: 'kn-IN', gu: 'gu-IN',
-  ml: 'ml-IN', pa: 'pa-IN',
-};
+// Fetch bcp47 voice tags dynamically from DB
+function useLangVoiceMap() {
+  const { data: langMap = {} } = useQuery({
+    queryKey: ['lang-voice-map'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('supported_languages')
+        .select('code, bcp47_tag')
+        .eq('is_active', true);
+      if (error || !data) return {};
+      const map: Record<string, string> = {};
+      data.forEach((l: any) => { map[l.code] = l.bcp47_tag; });
+      return map;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+  return langMap;
+}
 
 export default function WorkerJobsPage() {
   const { profile, effectiveSocietyId } = useAuth();
@@ -39,6 +51,7 @@ export default function WorkerJobsPage() {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [speakingJobId, setSpeakingJobId] = useState<string | null>(null);
   const [loadingTtsId, setLoadingTtsId] = useState<string | null>(null);
+  const langVoiceMap = useLangVoiceMap();
 
   // Fetch open jobs — RLS handles cross-society visibility
   const { data: openJobs = [], isLoading } = useQuery({
@@ -140,9 +153,9 @@ export default function WorkerJobsPage() {
       const summary = data?.summary;
       if (!summary) throw new Error('No summary generated');
 
-      // Use browser SpeechSynthesis
+      // Use browser SpeechSynthesis with DB-driven voice tag
       const utterance = new SpeechSynthesisUtterance(summary);
-      const voiceTag = LANG_VOICE_MAP[langCode] || 'hi-IN';
+      const voiceTag = langVoiceMap[langCode] || 'hi-IN';
       utterance.lang = voiceTag;
       utterance.rate = 0.9;
 
@@ -162,7 +175,7 @@ export default function WorkerJobsPage() {
       toast.error('Could not generate voice summary');
       setLoadingTtsId(null);
     }
-  }, [speakingJobId, workerProfile]);
+  }, [speakingJobId, workerProfile, langVoiceMap]);
 
   if (!isWorker) {
     return (

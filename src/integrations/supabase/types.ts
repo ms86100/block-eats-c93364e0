@@ -5269,6 +5269,8 @@ export type Database = {
       }
       supported_languages: {
         Row: {
+          ai_name: string
+          bcp47_tag: string
           code: string
           created_at: string | null
           display_order: number | null
@@ -5278,6 +5280,8 @@ export type Database = {
           native_name: string
         }
         Insert: {
+          ai_name?: string
+          bcp47_tag?: string
           code: string
           created_at?: string | null
           display_order?: number | null
@@ -5287,6 +5291,8 @@ export type Database = {
           native_name: string
         }
         Update: {
+          ai_name?: string
+          bcp47_tag?: string
           code?: string
           created_at?: string | null
           display_order?: number | null

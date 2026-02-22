@@ -35,7 +35,7 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
   const [entryFrequency, setEntryFrequency] = useState('daily');
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [flatNumbers, setFlatNumbers] = useState('');
-  const [preferredLanguage, setPreferredLanguage] = useState('hi');
+  const [preferredLanguage, setPreferredLanguage] = useState('');
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -194,7 +194,7 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
     setCategoryId(null); setShiftStart('06:00'); setShiftEnd('18:00');
     setActiveDays([...DAYS]); setEntryFrequency('daily');
     setEmergencyPhone(''); setFlatNumbers('');
-    setPreferredLanguage('hi');
+    setPreferredLanguage('');
     setPhotoBlob(null); setPhotoPreview(null);
     setFieldErrors({});
   };
@@ -258,13 +258,13 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
                     </SelectItem>
                   ))
                 ) : (
-                  <>
-                    <SelectItem value="hi">हिन्दी (Hindi)</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                  </>
+                  <SelectItem value="" disabled>No languages configured</SelectItem>
                 )}
               </SelectContent>
             </Select>
+            {languages.length === 0 && (
+              <p className="text-xs text-destructive mt-1">⚠️ No languages configured. Contact admin.</p>
+            )}
             <p className="text-[10px] text-muted-foreground mt-1">Job summaries will be read in this language</p>
           </div>
 
@@ -372,7 +372,7 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
 
           <Button
             onClick={handleSubmit}
-            disabled={!name.trim() || !photoBlob || isSubmitting}
+            disabled={!name.trim() || !photoBlob || !preferredLanguage || languages.length === 0 || isSubmitting}
             className="w-full"
           >
             {isSubmitting ? 'Registering...' : 'Register Worker'}

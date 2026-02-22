@@ -16,12 +16,12 @@ serve(async (req) => {
     const langCode = language || "hi";
     const jobId = job.id;
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sb = createClient(supabaseUrl, supabaseKey);
+
     // Check cache first if job has an ID
     if (jobId) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const sb = createClient(supabaseUrl, supabaseKey);
-
       const { data: cached } = await sb
         .from("job_tts_cache")
         .select("summary_text")
@@ -39,21 +39,18 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Language name mapping for the prompt
-    const LANG_NAMES: Record<string, string> = {
-      hi: "Hindi (Devanagari script)",
-      en: "English",
-      ta: "Tamil",
-      te: "Telugu",
-      bn: "Bengali",
-      mr: "Marathi",
-      kn: "Kannada",
-      gu: "Gujarati",
-      ml: "Malayalam",
-      pa: "Punjabi (Gurmukhi script)",
-    };
+    // Fetch language ai_name dynamically from DB — no hardcoded map
+    let langName = "Hindi-English mix";
+    const { data: langRow } = await sb
+      .from("supported_languages")
+      .select("ai_name")
+      .eq("code", langCode)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (langRow?.ai_name) {
+      langName = langRow.ai_name;
+    }
 
-    const langName = LANG_NAMES[langCode] || "Hindi-English mix";
     const societyContext = society_name ? `\n- From society: ${society_name}` : "";
 
     const prompt = `Generate a simple, friendly voice summary for a worker who may not read well. Keep it under 4 sentences in ${langName}. Use simple words.
@@ -83,21 +80,23 @@ Output ONLY the voice summary text in ${langName}, nothing else.`;
     if (!response.ok) {
       const t = await response.text();
       console.error("AI error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI generation failed" }), {
+      // Fetch a localized fallback from the language name instead of English-only
+      return new Response(JSON.stringify({ error: "AI generation failed", language: langCode }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await response.json();
-    const summary = data.choices?.[0]?.message?.content || "Job available. Check details in app.";
+    const summary = data.choices?.[0]?.message?.content;
+    if (!summary) {
+      return new Response(JSON.stringify({ error: "No summary generated", language: langCode }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Cache the result if we have a job ID
     if (jobId) {
       try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-        const sb = createClient(supabaseUrl, supabaseKey);
-
         await sb.from("job_tts_cache").upsert({
           job_id: jobId,
           language_code: langCode,
