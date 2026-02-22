@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Package, Layers, Building2, Trash2, Check, BarChart3 } from 'lucide-react';
+import { Plus, Package, Layers, Building2, Trash2, Check, BarChart3, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAudit } from '@/lib/audit';
 import { friendlyError } from '@/lib/utils';
@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CreateBuilderSheet } from './CreateBuilderSheet';
 import { PackageComparisonMatrix } from './PackageComparisonMatrix';
 import { SocietyFeatureAudit } from './SocietyFeatureAudit';
+import { BuilderManagementSheet } from './BuilderManagementSheet';
 
 interface PlatformFeature {
   id: string;
@@ -79,6 +80,10 @@ export function FeatureManagement() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignBuilder, setAssignBuilder] = useState('');
   const [assignPackage, setAssignPackage] = useState('');
+
+  // Builder management sheet
+  const [manageBuilderId, setManageBuilderId] = useState<string | null>(null);
+  const [manageBuilderName, setManageBuilderName] = useState('');
 
   useEffect(() => { fetchAll(); }, [user?.id]);
 
@@ -379,12 +384,15 @@ export function FeatureManagement() {
                     <p className="text-xs text-muted-foreground">{(a as any).package?.package_name || 'Unknown Package'}</p>
                     {a.expires_at && <p className="text-[10px] text-warning">Expires: {new Date(a.expires_at).toLocaleDateString()}</p>}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <SocietyFeatureAudit builderId={a.builder_id} builderName={(a as any).builder?.name || 'Builder'} />
-                    <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0" onClick={() => removeAssignment(a.id, a.builder_id, a.package_id)}>
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
+                   <div className="flex items-center gap-1">
+                     <Button size="sm" variant="outline" className="text-xs h-8 gap-1" onClick={() => { setManageBuilderId(a.builder_id); setManageBuilderName((a as any).builder?.name || 'Builder'); }}>
+                       <Settings2 size={12} /> Manage
+                     </Button>
+                     <SocietyFeatureAudit builderId={a.builder_id} builderName={(a as any).builder?.name || 'Builder'} />
+                     <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0" onClick={() => removeAssignment(a.id, a.builder_id, a.package_id)}>
+                       <Trash2 size={14} />
+                     </Button>
+                   </div>
                 </div>
               </CardContent>
             </Card>
@@ -392,6 +400,13 @@ export function FeatureManagement() {
           {assignments.length === 0 && <p className="text-center text-muted-foreground py-8 text-sm">No assignments yet</p>}
         </TabsContent>
       </Tabs>
+
+      <BuilderManagementSheet
+        open={!!manageBuilderId}
+        onOpenChange={(open) => { if (!open) setManageBuilderId(null); }}
+        builderId={manageBuilderId || ''}
+        builderName={manageBuilderName}
+      />
     </div>
   );
 }
