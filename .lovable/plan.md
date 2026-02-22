@@ -1,215 +1,394 @@
 
-
-# Sociva -- Critical Hardcoding and Dynamic Integrity Audit v3
+# Sociva -- Module-Level Functional and Structural Gap Analysis
 
 ## Executive Summary
 
-The Sprint 1-4 and v2 remediation passes have resolved the majority of structural issues. The system is meaningfully config-driven for financial logic, contact info, legal pages, pricing, and feature flags. However, **11 remaining gaps** exist, including one critical item (currency symbol not adopted despite utility existing) and several medium-severity issues that would surface during investor scrutiny or multi-tenant deployment.
+After reviewing every module listed, the system has solid individual implementations but suffers from **weak cross-module integration**, **missing automated workflows**, and **several operational gaps** that would be immediately apparent to anyone comparing this to MyGate or similar production systems. The most critical gap is the complete absence of **order-to-gate integration** -- the exact scenario you described.
 
 ---
 
-## 1. CRITICAL HARDCODING INVENTORY
-
-### C1. Currency Symbol "₹" Still Hardcoded in 54 Files (formatPrice Exists But Is Unused)
-
-- **Files:** 54 component files including CartPage, ProductCard, ProductDetailSheet, EarningsSummary, CouponInput, MaintenancePage, SocietyFinancesPage, SellerCard, SellerOrderCard, OrderDetailPage, etc.
-- **What Happened:** `formatPrice()` was created in `src/lib/format-price.ts` and `currencySymbol` was added to `useSystemSettings`, but zero files import or use them. Every single price display still uses bare `₹` template literals.
-- **Risk:** This is a "config exists but does nothing" gap identical to the old platform fee problem. If someone inspects the codebase or tries to change the currency, they'll find the setting is completely decorative.
-- **Fix:** Replace all `₹${amount}` with `formatPrice(amount, settings.currencySymbol)` across all 54 files. This is mechanical but high-volume.
-- **Severity:** Critical (architectural credibility gap)
-- **Effort:** Medium (bulk find-and-replace with context)
-
-### C2. "Sociva" Brand Still Hardcoded in 4 Files Despite `platformName` Existing
-
-- **Files:**
-  - `AuthPage.tsx` line 402: `<h1>Sociva</h1>` -- the login screen title
-  - `LandingPage.tsx` line 184: `"-- The Sociva Team"`
-  - `SearchPage.tsx` line 47: `sociva_search_filters` localStorage key
-  - `useDeepLinks.ts` lines 10-17, 37: `sociva://` URL scheme in comments and code
-- **What Happened:** `platformName` is used in TermsPage, PrivacyPolicyPage, ProfilePage, and CommunityRulesPage, but these 4 files were missed.
-- **Risk:** Login screen and landing page are the first thing an investor or white-label client sees.
-- **Fix:** Replace with `settings.platformName` in AuthPage and LandingPage. Change `sociva_search_filters` to `app_search_filters`. Deep link scheme is acceptable as a technical constant.
-- **Severity:** Critical (visible on first screen)
-- **Effort:** Low
-
-### C3. Food-Biased Copy in CommunityRulesPage DEFAULT_RULES
-
-- **File:** `CommunityRulesPage.tsx` lines 28, 36
-- **Content:** "Maintain food safety and hygiene standards", "Misrepresent food items or ingredients"
-- **What Happened:** The violation consequences were made dynamic (violationPolicyJson), but the default DO/DON'T rules for sellers still reference food specifically.
-- **Risk:** A services-only or shopping-focused society would see irrelevant food hygiene rules.
-- **Fix:** Change to generic seller rules: "Maintain quality and safety standards", "Misrepresent products or services". Or make DEFAULT_RULES configurable via system_settings.
-- **Severity:** High
-- **Effort:** Low (text change)
+## MODULE-BY-MODULE GAP ANALYSIS
 
 ---
 
-## 2. HIGH SEVERITY GAPS
+### 1. VISITOR MANAGEMENT
 
-### H1. Price Range Filter Max Hardcoded at 5000
+**What works:** Resident pre-approves visitor with OTP. Guard verifies OTP in kiosk. Check-in/check-out tracked. CSV export.
 
-- **Files:** `SearchFilters.tsx` lines 26, 47, 209
-- **Content:** `priceRange: [0, 5000]`, `max={5000}`, `filters.priceRange[1] < 5000`
-- **Also:** `SearchPage.tsx` lines 257, 502 use `5000` as the max price boundary
-- **Risk:** Products priced above 5000 (electronics, furniture, services) will be filtered out by default. No way to configure this per society.
-- **Fix:** Add `max_price_filter` to `system_settings` (default 5000). Read in SearchFilters and SearchPage.
-- **Severity:** High (data visibility issue)
-- **Effort:** Low
+**Gaps:**
 
-### H2. PRICE_TIER_MAP Still Contains Hardcoded ₹ Symbol
-
-- **File:** `PricingPage.tsx` lines 53-57
-- **Content:** `pro: { price: '₹199', ... }, enterprise: { price: '₹999', ... }`
-- **Issue:** While the code now prefers `price_amount` from DB, the fallback map uses `₹` literally instead of `currencySymbol`.
-- **Fix:** Use `${currencySymbol}199` pattern or remove hardcoded prices from fallback since DB columns now exist.
-- **Severity:** High (inconsistency with config-driven claim)
-- **Effort:** Low
-
-### H3. "All prices are in INR" Hardcoded on Pricing Page
-
-- **File:** `PricingPage.tsx` line 182
-- **Content:** `"All prices are in INR. GST applicable where required."`
-- **Risk:** Contradicts any currency configurability claim.
-- **Fix:** Use `settings.currencySymbol` to derive currency name, or make this footer configurable.
-- **Severity:** High
-- **Effort:** Low
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| V1 | No resident notification on arrival | Critical | When a guard checks in a visitor via OTP, the resident is NOT notified. In MyGate, the resident gets a push notification: "Your visitor [name] has arrived." Currently the guard checks in silently. |
+| V2 | No visitor photo capture | High | No photo of the visitor is taken at the gate. MyGate captures a photo that the resident sees in their notification. The `visitor_entries` table has a `photo_url` column but it is never populated by the guard kiosk. |
+| V3 | OTP never expires server-side | High | The OTP is set to expire after 24 hours (`Date.now() + 24 * 3600000`), but the guard kiosk query (`eq('status', 'expected')`) does not check `otp_expires_at`. An expired OTP still works if the visitor entry is still "expected". No cron job or trigger marks expired visitors. |
+| V4 | No "unexpected visitor" flow for guards | High | If someone arrives without a pre-approved OTP, the guard has no way to notify the resident through the kiosk. The guard kiosk only has OTP verification, expected visitors list, and worker validation. The manual entry flow exists on SecurityVerifyPage but not on GuardKioskPage. |
+| V5 | Check-out is manual/optional | Medium | Residents must manually check out visitors. No auto-expiry of checked-in visitors at end of day. No guard-initiated check-out. |
+| V6 | No recurring visitor automation | Medium | `is_recurring` and `recurring_days` fields exist but are never used. No logic generates new daily entries for recurring visitors. |
+| V7 | No delivery agent auto-entry | Critical | See cross-module section below. |
 
 ---
 
-## 3. MEDIUM SEVERITY GAPS
+### 2. PARCEL MANAGEMENT
 
-### M1. Landing Page Marketing Copy Not Configurable
+**What works:** Residents can log parcels, mark them as collected.
 
-- **File:** `LandingPage.tsx` lines 80-213
-- **Content:** 5 slides with hardcoded text: "Your Society. Your Marketplace.", "Only Verified Residents", "Turn Your Passion Into Income", etc.
-- **Status:** `landingSlidesJson` was added to `useSystemSettings` but is never read in `LandingPage.tsx`. The setting exists as dead configuration.
-- **Fix:** Parse `settings.landingSlidesJson` in LandingPage and use it when non-empty, falling back to current slides.
-- **Severity:** Medium (white-label blocker)
-- **Effort:** Medium
+**Gaps:**
 
-### M2. Seller Onboarding Placeholder Text Hardcoded Per Group
-
-- **File:** `BecomeSellerPage.tsx` lines 757-761
-- **Content:** `selectedGroup === 'food' ? "e.g., Amma's Kitchen, Fresh Bakes" : ...`
-- **Risk:** New parent groups added by admin will get the generic fallback "e.g., Your Store Name" -- acceptable but not polished.
-- **Fix:** Add `placeholder_hint` column to `parent_groups` table. Low priority.
-- **Severity:** Medium
-- **Effort:** Low
-
-### M3. Help Sections Default to Hardcoded Array Despite DB Setting
-
-- **File:** `HelpPage.tsx` lines 28-76
-- **Status:** The page reads `settings.helpSectionsJson` and parses it, but the JSON format requires icon names as strings that must map to Lucide components. This mapping is incomplete -- the HelpPage only maps 4 icons (ShoppingBag, Store, CreditCard, MessageCircle). A CMS-driven help section with different icons would fail silently.
-- **Fix:** Expand icon mapping or use a generic icon fallback.
-- **Severity:** Medium
-- **Effort:** Low
-
-### M4. SearchPage localStorage Key Still Uses "sociva_" Prefix
-
-- **File:** `SearchPage.tsx` line 47
-- **Content:** `const FILTER_STORAGE_KEY = 'sociva_search_filters';`
-- **Status:** ProfilePage and tooltip-guide were fixed to use `app_` prefix, but SearchPage was missed.
-- **Fix:** Change to `app_search_filters`.
-- **Severity:** Medium (white-label leak)
-- **Effort:** Trivial
-
-### M5. Onboarding localStorage Key "hasSeenOnboarding" Not Prefixed
-
-- **File:** `OnboardingWalkthrough.tsx` lines 141, 149, 154
-- **Content:** `localStorage.getItem('hasSeenOnboarding')`
-- **Risk:** Could collide with other apps on the same domain.
-- **Fix:** Change to `app_has_seen_onboarding`.
-- **Severity:** Low
-- **Effort:** Trivial
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| P1 | Guard cannot log parcels for residents | Critical | Only residents can log their own parcels (`resident_id: user.id`). In reality, guards receive parcels and should log them FOR the resident by flat number. The `canLogParcels` check exists but the insert form still uses `user.id`, not a flat-number lookup. |
+| P2 | No notification to resident on parcel arrival | Critical | When a parcel is logged, the resident gets no push notification. MyGate immediately notifies: "A parcel from Amazon has arrived at the gate." |
+| P3 | No parcel photo | High | No photo of the parcel is captured. MyGate shows the parcel photo to the resident. |
+| P4 | No society-wide view for guards | High | Guards can only see their own parcels. There is no guard-facing view showing all pending parcels across all flats. |
+| P5 | No integration with delivery orders | Medium | If a Sociva marketplace order is being delivered, no parcel entry is auto-created. |
 
 ---
 
-## 4. LOW SEVERITY (Future-Proofing)
+### 3. VEHICLE PARKING
 
-### L1. "en-IN" Locale Hardcoded in Date/Number Formatting
+**What works:** Admins create parking slots, residents report violations, admins resolve violations.
 
-- **Files:** `format-price.ts`, `PaymentMilestonesPage.tsx`, `BuilderAnalyticsPage.tsx`, `PostDetailSheet.tsx`
-- **Content:** `toLocaleDateString('en-IN', ...)`, `toLocaleString('en-IN', ...)`
-- **Risk:** Blocks localization for non-Indian deployments.
-- **Fix:** Add `locale` to `system_settings`. Very low priority for India-only launch.
-- **Severity:** Low
-- **Effort:** Low
+**Gaps:**
 
-### L2. AUTOPLAY_INTERVAL (8000ms) and Urgent Timer (3 min) Hardcoded
-
-- **Files:** `LandingPage.tsx` line 14, `CartPage.tsx` line 282
-- **Risk:** Minor UX constants. 3-min urgent timer is enforced server-side so frontend display is cosmetic.
-- **Severity:** Low
-- **Effort:** Trivial
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| VP1 | No vehicle-to-resident mapping | High | Parking slots track `vehicle_number` but not `resident_id` or `flat_number`. There's no way to identify who owns which vehicle for violation follow-up. |
+| VP2 | No visitor parking management | High | No flow for visitor vehicles to be assigned temporary parking. Guards can't allocate visitor slots. |
+| VP3 | No auto-detection of slot availability | Medium | Slot occupancy is manually toggled. No integration with gate entry (vehicle number check-in/out). |
+| VP4 | Violation notifications missing | Medium | When a violation is reported, no notification is sent to the vehicle owner or committee. |
 
 ---
 
-## 5. UI-TO-BACKEND INTEGRITY CHECK
+### 4. GUARD KIOSK
 
-| Area | Status | Notes |
-|------|--------|-------|
-| Feature flags (FeatureGate) | OK | Enforced via DB function + UI gating |
-| Role checks | OK | Server-side via user_roles table + RLS |
-| Order status transitions | OK | Enforced by DB trigger |
-| Platform fee calculation | OK | Now reads from system_settings in RPC |
-| Delivery fee | OK | Reads from system_settings |
-| Pricing display | Partial | DB columns exist but PRICE_TIER_MAP fallback has ₹ |
-| Currency display | FAIL | formatPrice exists but is never imported anywhere |
-| Legal CMS | OK | ReactMarkdown renders DB content, falls back to HTML |
-| Help CMS | Partial | JSON parsing works but icon mapping is limited |
-| Landing slides CMS | FAIL | Setting exists but LandingPage never reads it |
-| Violation policy CMS | OK | Reads from violationPolicyJson |
-| Contact emails | OK | All pages use settings |
-| Address labels | OK | Auth page uses settings |
-| Platform name | Partial | 4 files still use "Sociva" literally |
+**What works:** OTP verification for visitors, expected visitors list, worker gate validation.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| GK1 | No QR code scanning capability | Critical | Guard kiosk requires manual 6-digit OTP entry. No QR scanner integration. SecurityVerifyPage handles QR tokens but GuardKioskPage does not -- these are two separate, disconnected pages. |
+| GK2 | No delivery order verification tab | Critical | No tab for verifying marketplace delivery orders. See cross-module section. |
+| GK3 | No parcel logging from kiosk | High | Guard kiosk has no parcel logging capability. Guards need to switch to a completely different page. |
+| GK4 | No unified gate log | High | The kiosk tracks visitor check-ins, worker validations, and resident QR entries in separate tables with no unified view of "who entered the gate today." |
+| GK5 | Guard kiosk and SecurityVerify are duplicate interfaces | Medium | Two separate pages do overlapping things: `/guard-kiosk` (visitor OTP + expected list + worker) and `/security/verify` (resident QR + manual entry). A real guard needs ONE screen. |
 
 ---
 
-## 6. PRIORITIZED EXECUTION ROADMAP
+### 5. RESIDENT IDENTITY VERIFICATION (Gate Entry)
 
-### Phase 1 -- Critical (Before Any Demo)
+**What works:** AES-encrypted rotating QR codes, confirmation mode, manual entry with resident approval, realtime updates.
 
-| # | Gap | Files | Effort |
-|---|-----|-------|--------|
-| C2 | Fix "Sociva" in AuthPage, LandingPage, SearchPage | 3 files | 15 min |
-| C3 | Fix food-biased community rules text | 1 file | 5 min |
-| H2 | Fix ₹ in PRICE_TIER_MAP fallback | 1 file | 5 min |
-| H3 | Fix "All prices are in INR" text | 1 file | 5 min |
-| M4 | Fix sociva_ localStorage key in SearchPage | 1 file | 2 min |
+**Gaps:**
 
-### Phase 2 -- Structural (Currency Symbol Adoption)
-
-| # | Gap | Files | Effort |
-|---|-----|-------|--------|
-| C1 | Replace ₹ with formatPrice() across 54 files | 54 files | 2-3 hours |
-| H1 | Add max_price_filter to system_settings | 3 files + migration | 30 min |
-
-### Phase 3 -- CMS Completion
-
-| # | Gap | Files | Effort |
-|---|-----|-------|--------|
-| M1 | Wire landingSlidesJson into LandingPage | 1 file | 30 min |
-| M3 | Expand HelpPage icon mapping | 1 file | 15 min |
-| M2 | Add placeholder_hint to parent_groups | 2 files + migration | 30 min |
-
-### Phase 4 -- Cleanup
-
-| # | Gap | Effort |
-|---|-----|--------|
-| M5 | Prefix onboarding localStorage key | 5 min |
-| L1 | Configurable locale | Low priority |
-| L2 | Configurable carousel interval | Trivial |
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| RIV1 | QR scan not integrated into guard kiosk | High | Resident QR verification is only on SecurityVerifyPage. The guard kiosk (the screen guards actually use) doesn't have it. |
+| RIV2 | No family member / authorized person concept | Medium | QR code is tied to one user. If a family member arrives, they must have their own account and QR. No "authorized persons" list per flat. |
 
 ---
 
-## Summary Scorecard
+### 6. DOMESTIC HELP
 
-| Category | Total | Resolved | Remaining |
-|----------|-------|----------|-----------|
-| Critical | 3 | 0 | 3 |
-| High | 3 | 0 | 3 |
-| Medium | 5 | 0 | 5 |
-| Low | 2 | 0 | 2 |
+**What works:** Register helpers, daily attendance check-in/out.
 
-**Overall Assessment:** The platform has strong config-driven bones but the currency symbol gap (C1) is the single largest credibility risk -- a utility was created but never connected. Phase 1 fixes are all under 30 minutes combined and should be done immediately. Phase 2 (currency adoption) is the most impactful structural change.
+**Gaps:**
 
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| DH1 | Completely separate from Workforce Management | High | `DomesticHelpPage` uses `domestic_help_entries` + `domestic_help_attendance` tables. `WorkforceManagementPage` uses `society_workers` + `worker_flat_assignments`. These are two parallel, disconnected systems for the same concept. A maid registered in Domestic Help is invisible to Workforce Management and vice versa. |
+| DH2 | No gate integration for domestic help | High | Domestic help entries have no QR code, no gate validation. The worker gate validation only works for `society_workers`. If a resident registers a maid via DomesticHelpPage, the guard kiosk cannot verify them. |
+| DH3 | No leave/absence tracking | Medium | No way to mark planned absences or track missed days over time. |
+| DH4 | No salary tracking | Medium | No monthly salary record or payment history. |
+
+---
+
+### 7. WORKFORCE MANAGEMENT
+
+**What works:** Worker registration with live camera, flat assignments, shift/day validation, gate validation, status management (active/suspended/blacklisted), dynamic categories.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| WF1 | Not connected to Domestic Help module | High | See DH1 above. Two separate systems. |
+| WF2 | No worker attendance history | Medium | Gate validation happens but there's no attendance report showing daily/weekly/monthly records per worker. |
+| WF3 | No resident-facing worker assignment view | Medium | Residents can't see which workers are assigned to their flat from their side. Only admins see assignments. |
+
+---
+
+### 8. WORKER MARKETPLACE
+
+**What works:** Post job requests, race-safe acceptance, AI voice summaries, worker navigation.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| WM1 | No payment integration | Medium | Job completion doesn't trigger any payment flow. Price is shown but no way to pay through the app. |
+| WM2 | No repeat booking | Low | No "hire again" shortcut for previously hired workers. |
+
+---
+
+### 9. COMMUNITY BULLETIN
+
+**What works:** Posts with categories, upvoting, comments, realtime updates, help requests with responses.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| CB1 | No admin moderation tools inline | Medium | Admins can't pin/archive/delete posts from the bulletin page directly. These would need to be done via database. |
+| CB2 | No image/media attachments for posts | Medium | Posts are text-only. No image upload in CreatePostSheet. |
+
+---
+
+### 10. DISPUTE SYSTEM
+
+**What works:** Create disputes with categories, SLA tracking, acknowledgement, resolution, anonymous submission.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| DS1 | No admin/committee view of all disputes | High | DisputesPage only shows disputes `submitted_by` the current user. The AdminDisputesTab exists separately. But there's no committee member view -- only platform admins can see disputes via AdminPage. Society admins need access. |
+| DS2 | No escalation path | Medium | If a dispute is not resolved by SLA deadline, nothing happens. No auto-escalation, no notification to higher authority. |
+| DS3 | No dispute comments/thread | Medium | DisputeDetailSheet shows resolution notes but there's no back-and-forth communication thread between resident and committee. |
+
+---
+
+### 11. HELP REQUESTS (Bulletin Quick Help)
+
+**What works:** Post help request, receive responses, mark fulfilled.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| HR1 | No notification to neighbors | Medium | When a help request is posted, no notification is sent to society members. The `notify-help-request` edge function exists but is not triggered from the frontend. |
+
+---
+
+### 12. MARKETPLACE (Orders & Delivery)
+
+**What works:** Multi-vendor cart, order lifecycle with status triggers, delivery assignments, Razorpay payments, order chat, reviews, per-item status management.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| MK1 | No delivery-to-gate integration | Critical | When a delivery partner arrives at the gate with an order, there's no way for the guard to verify them against the order. No delivery QR code, no order-based gate pass. This is the exact gap you identified. |
+| MK2 | Delivery partner assignment is a stub | High | `delivery_assignments` table records are created by trigger but `rider_name`, `rider_phone` are always null. There's no delivery partner pool, no assignment logic, no partner app/interface. The entire delivery tracking UI (`DeliveryStatusCard`) shows "Assigning Rider" indefinitely. |
+| MK3 | No delivery partner management | High | No UI to register, manage, or assign delivery partners. The `manage-delivery` edge function exists but has no admin interface. |
+| MK4 | Delivery OTP exists in schema but is not generated | Medium | `delivery_assignments` has `otp_hash` and `otp_expires_at` columns, but no code generates or validates delivery OTPs. |
+
+---
+
+### 13. MAINTENANCE DUES
+
+**What works:** Bulk generation for all flats, Razorpay payment, mark-as-paid for admins, CSV export.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| MD1 | No auto-overdue marking | High | There is no cron job or trigger that changes status from "pending" to "overdue" when the month passes. Status is only "pending" or "paid". |
+| MD2 | No payment reminders | High | No push notification for upcoming or overdue dues. |
+| MD3 | No partial payment support | Medium | Residents must pay the full amount or nothing. |
+| MD4 | No penalty/late fee logic | Medium | No automatic late fee calculation. |
+| MD5 | Hardcoded ₹ in amount display | Low | Still uses bare ₹ instead of `formatPrice()`. |
+
+---
+
+### 14. PAYMENT MILESTONES
+
+**What works:** Display construction-linked payment milestones, track paid status per resident.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| PM1 | No payment action | High | Residents can see milestones but cannot pay through the app. No Razorpay integration on this page. The "Pay" button is completely absent. |
+| PM2 | Admin can't create milestones from UI | High | No UI for creating or managing payment milestones. They must be inserted via database directly. |
+| PM3 | No demand letter / notice generation | Medium | No way to generate formal payment demand letters for overdue milestones. |
+
+---
+
+### 15. SOCIETY FINANCES
+
+**What works:** Income/expense tracking, pie chart breakdown, monthly comparison, expense flagging, CSV export.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| SF1 | No integration with maintenance dues | High | Maintenance dues collected don't appear as society income. These are two completely disconnected financial systems. |
+| SF2 | No budget planning | Medium | No way to set budgets per category and track against actual spending. |
+| SF3 | Expense flag has no resolution workflow | Medium | Residents can flag expenses but there's no admin UI to view or respond to flags. |
+
+---
+
+### 16. CONSTRUCTION PROGRESS
+
+**What works:** Tower management, milestone posting with photos, reactions, progress timeline, document vault, Q&A with answers.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| CP1 | No notification on milestone posts | Medium | When a builder posts a milestone update, residents are not notified. The `log_milestone_activity` trigger adds to `society_activity` but no push notification is sent. |
+| CP2 | No photo gallery for milestone updates | Low | Photos are stored in `photos` array but the MilestoneCard doesn't render them. |
+
+---
+
+### 17. SNAG MANAGEMENT
+
+**What works:** Report snags with photos, collective escalation detection, SLA tracking, status lifecycle.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| SN1 | No builder notification on new snags | High | When a resident reports a snag, the builder/society admin is not notified. |
+| SN2 | No snag-to-worker assignment | Medium | `assigned_to_name` is a text field, not a reference to any worker or user. No assignment workflow. |
+
+---
+
+### 18. PRE-HANDOVER INSPECTION
+
+**What works:** Comprehensive 70+ item checklist, pass/fail/NA status, notes on failed items, submit to builder, convert failed items to snag tickets.
+
+**Gaps:**
+
+| # | Gap | Severity | Description |
+|---|-----|----------|-------------|
+| IH1 | No photo capture for failed items | High | Despite having `photo_urls` in the schema, there's no photo upload UI on inspection items. |
+| IH2 | No builder acknowledgement | Medium | Builder has no UI to view or respond to submitted inspection reports. |
+
+---
+
+## CRITICAL CROSS-MODULE GAPS
+
+### GAP X1: Order-to-Gate Integration (Your Proposed Model)
+
+**Current state:** Zero integration. Marketplace orders and gate security are completely separate systems. A delivery person arriving with a Sociva order is treated as an unknown visitor.
+
+**Your proposed model assessment:**
+
+| Criterion | Assessment |
+|-----------|------------|
+| Operationally sound | YES -- This is exactly how food delivery apps (Swiggy, Zomato) work with gated communities today. The order IS the authorization. |
+| Secure | YES with conditions -- The system must verify: (1) a real order exists in "ready" or "picked_up" status, (2) the delivery person identity matches the assignment, (3) the order is destined for this society, (4) the QR/code is time-limited. |
+| Scalable | YES -- The architecture supports this. `delivery_assignments` already has `otp_hash` and `otp_expires_at` columns. The guard kiosk already validates workers; adding delivery orders is the same pattern. |
+| Suitable for target audience | YES -- This reduces friction for both residents and guards. Residents don't have to manually approve every delivery. Guards get system-verified authorization. |
+
+**Verdict: This approach is strongly advisable.**
+
+**Implementation feasibility within current architecture:** HIGH.
+
+The required pieces mostly exist:
+1. `delivery_assignments` table already tracks order-to-delivery mapping
+2. `delivery_assignments` already has `otp_hash` and `otp_expires_at` columns (unused)
+3. Guard kiosk already has a tab system (OTP / Expected / Worker)
+4. The order status lifecycle already tracks "ready" and "picked_up" states
+5. The `manage-delivery` edge function exists for delivery operations
+
+What needs to be built:
+1. Generate a delivery OTP/QR when order status becomes "ready" or "picked_up"
+2. Add a "Delivery" tab to GuardKioskPage
+3. Guard enters delivery code -> system validates against `delivery_assignments`
+4. Auto check-in the delivery person + notify resident
+5. Optionally auto-create a `visitor_entries` record for audit trail
+
+### GAP X2: Unified Guard Console
+
+The guard currently needs 3+ separate pages:
+- `/guard-kiosk` -- Visitor OTP, expected visitors, worker validation
+- `/security/verify` -- Resident QR scanning, manual entry
+- (missing) -- Parcel logging, delivery verification
+
+**Recommendation:** Merge into one unified guard console with 5 tabs: Resident QR | Visitor OTP | Deliveries | Workers | Parcels.
+
+### GAP X3: Notification Deficit
+
+Across all modules, the most consistent gap is **missing push notifications**. Events that should trigger notifications but don't:
+- Visitor checked in at gate
+- Parcel received at gate
+- New snag reported (to builder)
+- Milestone posted (to residents)
+- Help request posted (to society)
+- Maintenance due approaching/overdue
+- Dispute SLA breaching
+- Expense flagged (to committee)
+
+### GAP X4: Domestic Help vs. Workforce Duplication
+
+Two parallel systems for the same concept. This must be resolved -- either deprecate DomesticHelpPage in favor of WorkforceManagement, or merge them. Currently a maid registered via DomesticHelpPage cannot be verified at the gate.
+
+---
+
+## RISK CLASSIFICATION SUMMARY
+
+| Severity | Count | Key Items |
+|----------|-------|-----------|
+| Critical | 7 | Order-to-gate integration, Guard kiosk missing QR/delivery, Parcel logging by guards, Visitor arrival notification, OTP expiry not enforced |
+| High | 18 | Domestic/Workforce duplication, Delivery partner stub, Dispute committee view, Maintenance auto-overdue, Payment milestone admin UI, Visitor photo, unified guard console |
+| Medium | 20 | Various notification gaps, attendance history, budget planning, moderation tools, partial payments |
+| Low | 4 | Repeat booking, photo gallery, currency formatting remnants |
+
+---
+
+## PRIORITIZED REMEDIATION PLAN
+
+### Phase 1 -- Demo-Critical (Order-to-Gate + Guard Unification)
+
+| # | Item | Effort | Impact |
+|---|------|--------|--------|
+| 1 | Build delivery OTP generation on order "ready" status | Medium | Enables the core differentiator |
+| 2 | Add "Delivery" tab to GuardKioskPage with order verification | Medium | Completes the order-to-gate flow |
+| 3 | Merge SecurityVerifyPage QR scanning into GuardKioskPage | Medium | One screen for guards |
+| 4 | Add visitor arrival push notification | Low | Matches MyGate baseline |
+| 5 | Fix OTP expiry check in guard kiosk query | Low | Security fix |
+
+### Phase 2 -- Operational Depth
+
+| # | Item | Effort |
+|---|------|--------|
+| 6 | Guard-facing parcel logging (by flat number) with resident notification | Medium |
+| 7 | Resolve Domestic Help vs. Workforce duplication | Medium |
+| 8 | Auto-overdue marking for maintenance dues with notification | Low |
+| 9 | Society admin dispute view | Low |
+| 10 | Payment milestone admin creation UI | Medium |
+
+### Phase 3 -- Production Polish
+
+| # | Item | Effort |
+|---|------|--------|
+| 11 | Visitor/parcel photo capture at gate | Medium |
+| 12 | Maintenance dues to society income integration | Low |
+| 13 | Snag assignment workflow with builder notification | Medium |
+| 14 | Inspection photo upload for failed items | Low |
+| 15 | Expense flag resolution workflow | Low |
+| 16 | Recurring visitor automation | Medium |
+
+### Phase 4 -- Competitive Parity
+
+| # | Item | Effort |
+|---|------|--------|
+| 17 | Delivery partner pool management | High |
+| 18 | Vehicle-to-resident mapping and visitor parking | Medium |
+| 19 | Dispute escalation and threaded communication | Medium |
+| 20 | Budget planning for society finances | Medium |
+
+---
+
+## DIRECT ANSWER TO YOUR QUESTION
+
+**"Is the order-based gate validation model advisable?"**
+
+Yes. It is operationally sound, architecturally feasible, and more practical than requiring manual resident approval for every delivery. The current architecture has 80% of the required infrastructure -- delivery_assignments table, OTP columns, guard kiosk tab system, order status triggers. The main work is connecting these existing pieces.
+
+**"Are these modules production-grade?"**
+
+No. They are **feature-complete individually** but **operationally shallow**. Each module works in isolation but the cross-module integrations that make a real gated community system work -- gate + orders, gate + parcels, domestic help + gate, finances + dues, notifications across all modules -- are mostly absent. A MyGate comparison would expose this immediately. The system has the data model depth but not the workflow depth.
