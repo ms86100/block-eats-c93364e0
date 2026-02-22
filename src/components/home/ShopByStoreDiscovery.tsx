@@ -17,7 +17,7 @@ import { useState } from 'react';
 
 export function ShopByStoreDiscovery() {
   const { effectiveSociety, profile } = useAuth();
-  const browseBeyond = profile?.browse_beyond_community ?? false;
+  const browseBeyond = profile?.browse_beyond_community ?? true;
   const radiusKm = profile?.search_radius_km ?? 10;
   const { data: localGrouped = {}, isLoading: loadingLocal } = useLocalSellers();
   const { data: nearbyBands = [], isLoading: loadingNearby } = useNearbySocietySellers(radiusKm, browseBeyond);

@@ -31,7 +31,7 @@ export default function CategoriesPage() {
     staleTime: 60_000,
   });
 
-  const browseBeyond = prefs?.browse_beyond_community ?? false;
+  const browseBeyond = prefs?.browse_beyond_community ?? true;
   const { data: nearbyBands = [] } = useNearbySocietySellers();
 
   const activeCategorySet = new Set(productCategories.map(c => c.category));

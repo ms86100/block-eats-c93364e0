@@ -16,7 +16,7 @@ import { jitteredStaleTime } from '@/lib/query-utils';
 export function useNearbyProducts() {
   const { effectiveSocietyId, profile } = useAuth();
 
-  const browseBeyond = profile?.browse_beyond_community === true;
+  const browseBeyond = profile?.browse_beyond_community !== false;
   const searchRadius = profile?.search_radius_km ?? 10;
 
   return useQuery({

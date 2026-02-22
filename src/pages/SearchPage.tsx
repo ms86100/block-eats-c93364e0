@@ -101,26 +101,10 @@ export default function SearchPage() {
   const [isLoadingPopular, setIsLoadingPopular] = useState(true);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Cross-society browsing - load persisted preferences from DB
-  const [browseBeyond, setBrowseBeyondLocal] = useState(false);
-  const [searchRadius, setSearchRadiusLocal] = useState(10);
-  const [prefsLoaded, setPrefsLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('profiles')
-      .select('browse_beyond_community, search_radius_km')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setBrowseBeyondLocal((data as any).browse_beyond_community ?? false);
-          setSearchRadiusLocal((data as any).search_radius_km ?? 10);
-        }
-        setPrefsLoaded(true);
-      });
-  }, [user]);
+  // Cross-society browsing - initialize from auth context profile (already loaded)
+  const [browseBeyond, setBrowseBeyondLocal] = useState(profile?.browse_beyond_community ?? true);
+  const [searchRadius, setSearchRadiusLocal] = useState(profile?.search_radius_km ?? 10);
+  const prefsLoaded = true;
 
   const persistPreference = useCallback(
     async (field: string, value: any) => {
