@@ -1,52 +1,71 @@
 
 
-# Fix Builder Member Experience
+# Fix: Society Dashboard Shows All Features Regardless of Plan
 
-## Problem
+## Root Cause
 
-When tester3 logs in as a builder member, they can't see or access anything related to their builder role. Three issues cause this:
+The `SocietyDashboardPage.tsx` (lines 97-117) renders ALL feature cards as a **hardcoded list** without ever checking if the feature is enabled for that society. It does not use `useEffectiveFeatures()` or `isFeatureEnabled()` at all.
 
-1. **No navigation to the Builder Dashboard** -- The `/builder` route exists, but there is no link anywhere in the app (Profile page, Bottom Nav, Header) for builder members to reach it. It's a dead route unless you type the URL manually.
+So when a builder has a plan with only 4 out of 18 features enabled (as shown in your screenshot -- only help_requests, visitor_management, parcel_management, and bulletin are green), the Society Dashboard still shows Visitors, Domestic Help, Parcels, Parking, Finances, Payment Schedule, Construction, Snag Reports, Inspection, Disputes, etc.
 
-2. **tester3's society doesn't match the builder's society** -- tester3 belongs to "Hoskote Toll Plaza" but the builder (Prestige Group) is linked to "Prestige Tranquility". Since feature packages cascade from Builder to Society, tester3's own society is unaffected by the builder's plan.
-
-3. **No builder-specific navigation** -- Builder members should see a distinct experience when they log in, similar to how security officers and workers get their own bottom nav.
+The feature gating system works correctly at the **individual page level** (via `FeatureGate` component), but the **dashboard itself** never filters the cards.
 
 ## Solution
 
-### Step 1: Add "Builder Dashboard" link in the Profile page
+### 1. Add feature gating to SocietyDashboardPage
 
-Add a visible link to `/builder` in the Profile page, shown only when `isBuilderMember` is true. This gives builder members a clear way to access their dashboard.
+**File:** `src/pages/SocietyDashboardPage.tsx`
 
-**File:** `src/pages/ProfilePage.tsx`
-- Import `Building2` icon from lucide-react
-- Import `isBuilderMember` from `useAuth()`
-- Add a "Builder Dashboard" menu item (similar to Admin/Seller links) that navigates to `/builder`
+- Import `useEffectiveFeatures` and `FeatureKey`
+- Add a `featureKey` property to each card definition, mapping it to the correct feature key
+- Filter the cards array to only show cards whose feature is enabled (or cards with no feature key, like admin-only items)
 
-### Step 2: Add builder link in the Header
+Card-to-feature mapping:
 
-When a user is a builder member, show a small builder icon/button in the Header that links to `/builder`.
+| Card | Feature Key |
+|------|-------------|
+| Visitors | `visitor_management` |
+| Domestic Help | `domestic_help` |
+| Parcels | `parcel_management` |
+| Parking | `vehicle_parking` |
+| Finances | `finances` |
+| Payment Schedule | `payment_milestones` |
+| Construction | `construction_progress` |
+| Snag Reports | `snag_management` |
+| Inspection | `inspection` |
+| Disputes | `disputes` |
+| Documents | `construction_progress` |
+| Q&A | `construction_progress` |
+| Maintenance | `maintenance` |
+| Guard Kiosk | `guard_kiosk` |
+| Security Verify | `resident_identity_verification` |
 
-**File:** `src/components/layout/Header.tsx`
-- Add a `Building2` icon button next to other header actions when `isBuilderMember` is true
-- Links to `/builder`
+### 2. What changes in the code
 
-### Step 3: (No code change -- Data fix)
+Each card object in the `cards` array gets an optional `featureKey` field. Before rendering the grid, the array is filtered:
 
-If you want tester3 to see the builder's feature plan affecting their own society experience, you need to either:
-- Link "Hoskote Toll Plaza" to the Prestige Group builder via the Manage sheet, OR
-- Change tester3's society to "Prestige Tranquility"
+```
+const visibleCards = cards.filter(card =>
+  !card.featureKey || isFeatureEnabled(card.featureKey)
+);
+```
 
-This is a data configuration step, not a code fix.
+Only `visibleCards` is rendered in the grid. Cards without a `featureKey` (like "Society Admin" and "Platform Admin") always show.
+
+### 3. Result
+
+After this fix, when Prestige Tranquility's plan only has 4 features enabled (help_requests, visitor_management, parcel_management, bulletin), the Society Dashboard will only show:
+- Visitors (visitor_management)
+- Parcels (parcel_management)
+- Plus any admin-only cards if the user is an admin
+
+Features like Domestic Help, Parking, Finances, Construction, Snags, Inspection, Disputes, etc. will be hidden from the dashboard because they are not in the plan.
 
 ## Technical Details
 
-### Modified Files
-- `src/pages/ProfilePage.tsx` -- Add "Builder Dashboard" navigation item visible to builder members
-- `src/components/layout/Header.tsx` -- Add builder shortcut icon in header for builder members
+### Modified File
+- `src/pages/SocietyDashboardPage.tsx` -- Add `useEffectiveFeatures` hook, tag each card with its `featureKey`, filter before rendering
 
-### What This Fixes
-- Builder members will see a clear "Builder Dashboard" option in their profile
-- Builder members can quickly access their dashboard from the header
-- The full builder portfolio management experience becomes discoverable
+### No database changes needed
+The feature resolution system (`get_effective_society_features` RPC) already works correctly -- the issue is purely that the dashboard UI ignores it.
 
