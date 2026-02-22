@@ -128,6 +128,63 @@ export type Database = {
         }
         Relationships: []
       }
+      authorized_persons: {
+        Row: {
+          created_at: string | null
+          flat_number: string
+          id: string
+          is_active: boolean | null
+          person_name: string
+          phone: string | null
+          photo_url: string | null
+          relationship: string
+          resident_id: string
+          society_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          flat_number: string
+          id?: string
+          is_active?: boolean | null
+          person_name: string
+          phone?: string | null
+          photo_url?: string | null
+          relationship?: string
+          resident_id: string
+          society_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          flat_number?: string
+          id?: string
+          is_active?: boolean | null
+          person_name?: string
+          phone?: string | null
+          photo_url?: string | null
+          relationship?: string
+          resident_id?: string
+          society_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "authorized_persons_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "authorized_persons_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badge_config: {
         Row: {
           badge_label: string
@@ -1985,6 +2042,8 @@ export type Database = {
       inspection_checklists: {
         Row: {
           builder_acknowledged_at: string | null
+          builder_acknowledged_by: string | null
+          builder_notes: string | null
           created_at: string
           failed_items: number
           flat_number: string
@@ -2003,6 +2062,8 @@ export type Database = {
         }
         Insert: {
           builder_acknowledged_at?: string | null
+          builder_acknowledged_by?: string | null
+          builder_notes?: string | null
           created_at?: string
           failed_items?: number
           flat_number: string
@@ -2021,6 +2082,8 @@ export type Database = {
         }
         Update: {
           builder_acknowledged_at?: string | null
+          builder_acknowledged_by?: string | null
+          builder_notes?: string | null
           created_at?: string
           failed_items?: number
           flat_number?: string
@@ -2038,6 +2101,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inspection_checklists_builder_acknowledged_by_fkey"
+            columns: ["builder_acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inspection_checklists_resident_id_fkey"
             columns: ["resident_id"]
@@ -2120,6 +2190,7 @@ export type Database = {
           created_at: string
           flat_identifier: string
           id: string
+          late_fee: number | null
           month: string
           paid_date: string | null
           receipt_url: string | null
@@ -2132,6 +2203,7 @@ export type Database = {
           created_at?: string
           flat_identifier: string
           id?: string
+          late_fee?: number | null
           month: string
           paid_date?: string | null
           receipt_url?: string | null
@@ -2144,6 +2216,7 @@ export type Database = {
           created_at?: string
           flat_identifier?: string
           id?: string
+          late_fee?: number | null
           month?: string
           paid_date?: string | null
           receipt_url?: string | null
@@ -5323,6 +5396,7 @@ export type Database = {
           is_recurring: boolean
           otp_code: string | null
           otp_expires_at: string | null
+          parking_slot_id: string | null
           photo_url: string | null
           purpose: string | null
           recurring_days: string[] | null
@@ -5348,6 +5422,7 @@ export type Database = {
           is_recurring?: boolean
           otp_code?: string | null
           otp_expires_at?: string | null
+          parking_slot_id?: string | null
           photo_url?: string | null
           purpose?: string | null
           recurring_days?: string[] | null
@@ -5373,6 +5448,7 @@ export type Database = {
           is_recurring?: boolean
           otp_code?: string | null
           otp_expires_at?: string | null
+          parking_slot_id?: string | null
           photo_url?: string | null
           purpose?: string | null
           recurring_days?: string[] | null
@@ -5386,6 +5462,13 @@ export type Database = {
           visitor_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "visitor_entries_parking_slot_id_fkey"
+            columns: ["parking_slot_id"]
+            isOneToOne: false
+            referencedRelation: "parking_slots"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "visitor_entries_resident_id_fkey"
             columns: ["resident_id"]
@@ -5734,6 +5817,61 @@ export type Database = {
           },
         ]
       }
+      worker_leave_records: {
+        Row: {
+          created_at: string | null
+          id: string
+          leave_date: string
+          leave_type: string
+          marked_by: string | null
+          reason: string | null
+          society_id: string
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          leave_date: string
+          leave_type?: string
+          marked_by?: string | null
+          reason?: string | null
+          society_id: string
+          worker_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          leave_date?: string
+          leave_type?: string
+          marked_by?: string | null
+          reason?: string | null
+          society_id?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_leave_records_marked_by_fkey"
+            columns: ["marked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_leave_records_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_leave_records_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "society_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       worker_ratings: {
         Row: {
           created_at: string
@@ -5789,6 +5927,67 @@ export type Database = {
           },
         ]
       }
+      worker_salary_records: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          month: string
+          notes: string | null
+          paid_date: string | null
+          resident_id: string
+          society_id: string
+          status: string
+          worker_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          month: string
+          notes?: string | null
+          paid_date?: string | null
+          resident_id: string
+          society_id: string
+          status?: string
+          worker_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          month?: string
+          notes?: string | null
+          paid_date?: string | null
+          resident_id?: string
+          society_id?: string
+          status?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_salary_records_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_salary_records_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_salary_records_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "society_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -5798,6 +5997,8 @@ export type Database = {
         Args: { _job_id: string; _worker_id: string }
         Returns: Json
       }
+      apply_maintenance_late_fees: { Args: never; Returns: undefined }
+      auto_checkout_visitors: { Args: never; Returns: undefined }
       auto_escalate_overdue_disputes: { Args: never; Returns: undefined }
       calculate_society_trust_score: {
         Args: { _society_id: string }
@@ -5881,6 +6082,18 @@ export type Database = {
           recent_order_count: number
           repeat_customer_pct: number
           unique_customers: number
+        }[]
+      }
+      get_unified_gate_log: {
+        Args: { _date?: string; _society_id: string }
+        Returns: {
+          details: string
+          entry_time: string
+          entry_type: string
+          exit_time: string
+          flat_number: string
+          person_name: string
+          status: string
         }[]
       }
       get_user_auth_context: { Args: { _user_id: string }; Returns: Json }
