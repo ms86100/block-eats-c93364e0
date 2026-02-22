@@ -52,8 +52,8 @@ export function BottomNav() {
     : navItems.filter(item => !('featureKey' in item && item.featureKey) || isFeatureEnabled((item as any).featureKey));
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border safe-bottom">
-      <div className="flex items-center justify-around px-1 py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border">
+      <div className="flex items-center justify-around px-1 py-2 safe-bottom">
         {visibleItems.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to || 
             (to !== '/' && location.pathname.startsWith(to));

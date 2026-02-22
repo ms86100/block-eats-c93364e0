@@ -84,10 +84,10 @@ export function Header({
   return (
     <>
       <header className={cn(
-        'sticky top-0 z-40 safe-top bg-background',
+        'sticky top-0 z-40 bg-background',
         className
       )}>
-        <div className="px-3 pt-2.5 pb-1.5">
+        <div className="px-3 pb-1.5 safe-top">
           {/* Top row: delivery info + actions */}
           <div className="flex items-start justify-between">
             {title ? (
