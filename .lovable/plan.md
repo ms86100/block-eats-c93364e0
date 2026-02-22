@@ -1,51 +1,47 @@
 
 
-## Fix: Profile Insert Fails Due to Race Condition with validate-society Edge Function
+## Fix: "Nearby Societies" Default + Toggle Reset Bug
 
-### Root Cause
+### Problem 1: Default values are wrong
+New users get `browse_beyond_community = false` and `search_radius_km = 5` in the database. They should default to `true` and `10`.
 
-The `validate-society` edge function calls `adminClient.auth.admin.updateUserById()` which modifies the user's metadata server-side. This happens **between** `signUp()` and `profiles.insert()` on the client. The server-side user modification can invalidate or desync the client's JWT, causing `auth.uid()` to fail the RLS check `id = auth.uid()` on the profiles insert.
+### Problem 2: Toggle resets when navigating
+The Search page initializes `browseBeyond = false` in local state, then asynchronously loads the real value from the DB. When you navigate away (e.g., tap a category) and return, the component remounts with `false` again, briefly showing the wrong state and fetching wrong data.
 
-Database logs confirm every failed signup shows: `new row violates row-level security policy for table "profiles"`.
+### Fix
 
-### Timeline of the Bug
+**Change 1: Database migration** -- Alter column defaults to `true` and `10`, and update all existing profiles that still have the old defaults.
 
-```text
-1. signUp()                        --> user created, JWT issued
-2. validate-society edge function  --> adminClient.auth.admin.updateUserById() 
-                                       modifies user metadata, can invalidate JWT
-3. profiles.insert()               --> auth.uid() returns null or mismatches
-                                       --> RLS VIOLATION
-4. profileError is silently ignored --> user sees "signup successful"
-5. On login, no profile found      --> "account setup incomplete" error
+```sql
+ALTER TABLE public.profiles
+  ALTER COLUMN browse_beyond_community SET DEFAULT true;
+ALTER TABLE public.profiles
+  ALTER COLUMN search_radius_km SET DEFAULT 10;
+
+-- Update existing users who still have old defaults
+UPDATE public.profiles
+  SET browse_beyond_community = true
+  WHERE browse_beyond_community = false;
+UPDATE public.profiles
+  SET search_radius_km = 10
+  WHERE search_radius_km = 5;
 ```
 
-### Fix (2 changes)
+**Change 2: SearchPage.tsx** -- Initialize `browseBeyond` from the auth context profile (which is already loaded) instead of starting at `false` and fetching again. This eliminates the remount-reset bug entirely.
 
-**Change 1: Move validate-society call AFTER profile insert (AuthPage.tsx ~lines 293-329)**
+- Line 105: Change `useState(false)` to `useState(profile?.browse_beyond_community ?? true)`
+- Line 106: Change `useState(10)` to `useState(profile?.search_radius_km ?? 10)`
+- Remove the redundant `useEffect` (lines 109-123) that re-fetches from DB -- the auth context `profile` already has this data.
 
-Reorder the signup flow so the profile is inserted first (while the JWT is still fresh), and the validate-society call happens after:
-
-```text
-1. signUp()           --> JWT issued
-2. profiles.insert()  --> works because JWT is fresh, auth.uid() matches
-3. user_roles.insert()
-4. validate-society   --> updates metadata (JWT invalidation no longer matters)
-```
-
-**Change 2: Handle profileError explicitly (already in the approved plan)**
-
-If the profile insert still fails for any reason (duplicate phone, etc.), catch it, sign out the orphaned auth user, and show a clear error -- instead of silently proceeding.
-
-**Change 3: Remove the redundant updateUserById from validate-society edge function**
-
-The edge function currently updates both `profiles.society_id` AND `auth.user_metadata.society_id`. Since the profile insert in AuthPage already sets `society_id`, the edge function only needs to validate/create the society and return the ID. Remove the profile update and metadata update from the edge function to eliminate the race condition entirely.
+**Change 3: All other components** -- Update fallback defaults from `false`/`5` to `true`/`10` in:
+- `src/components/home/ShopByStoreDiscovery.tsx` (line 20): `?? false` to `?? true`
+- `src/hooks/queries/useNearbyProducts.ts` (line 19): `=== true` to `!== false` (or just `?? true`)
+- `src/pages/CategoriesPage.tsx` (line 34): `?? false` to `?? true`
 
 ### Files Changed
 
-1. **`src/pages/AuthPage.tsx`** (lines 293-346): Reorder to insert profile first, then call validate-society. Add explicit profileError handling.
-2. **`supabase/functions/validate-society/index.ts`**: Remove the `profiles.update` and `auth.admin.updateUserById` calls that cause the race condition. The function should only validate/create societies and return the ID.
-
-### Why This Keeps Recurring
-
-The Supabase client SDK caches the JWT from `signUp()`. When `updateUserById()` is called server-side, the client's cached JWT can become stale. The RLS check `auth.uid()` uses the JWT, so if it's stale or invalidated, the check fails. Moving the profile insert before any server-side user modifications avoids this entirely.
+1. **Database migration** -- Change column defaults and backfill existing rows
+2. **`src/pages/SearchPage.tsx`** -- Use profile from auth context, remove redundant DB fetch, fix initial state
+3. **`src/components/home/ShopByStoreDiscovery.tsx`** -- Fix fallback default
+4. **`src/hooks/queries/useNearbyProducts.ts`** -- Fix fallback default
+5. **`src/pages/CategoriesPage.tsx`** -- Fix fallback default
