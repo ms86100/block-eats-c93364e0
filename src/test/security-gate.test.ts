@@ -149,8 +149,8 @@ describe('Parcel Management', () => {
     expect('user-123' === 'user-123').toBe(true);
   });
   it('admin can log for another resident', () => {
-    const residentId = 'user-456';
-    const authUid = 'admin-789';
+    const residentId: string = 'user-456';
+    const authUid: string = 'admin-789';
     const isAdmin = true;
     expect(residentId === authUid || isAdmin).toBe(true);
   });
