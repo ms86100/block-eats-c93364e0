@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { logAudit } from '@/lib/audit';
 import { friendlyError } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { CreateBuilderSheet } from './CreateBuilderSheet';
 
 interface PlatformFeature {
   id: string;
@@ -310,33 +311,35 @@ export function FeatureManagement() {
         <TabsContent value="assignments" className="space-y-3 mt-3">
           <div className="flex justify-between items-center">
             <h3 className="text-sm font-semibold text-muted-foreground">Builder Assignments ({assignments.length})</h3>
-            <Sheet open={assignOpen} onOpenChange={setAssignOpen}>
-              <SheetTrigger asChild><Button size="sm" variant="outline" className="gap-1"><Plus size={14} /> Assign</Button></SheetTrigger>
-              <SheetContent>
-                <SheetHeader><SheetTitle>Assign Package to Builder</SheetTitle></SheetHeader>
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <Label className="text-xs">Builder</Label>
-                    <Select value={assignBuilder} onValueChange={setAssignBuilder}>
-                      <SelectTrigger><SelectValue placeholder="Select builder" /></SelectTrigger>
-                      <SelectContent>{builders.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
-                    </Select>
+            <div className="flex gap-2">
+              <CreateBuilderSheet onCreated={fetchAll} />
+              <Sheet open={assignOpen} onOpenChange={setAssignOpen}>
+                <SheetTrigger asChild><Button size="sm" variant="outline" className="gap-1"><Plus size={14} /> Assign</Button></SheetTrigger>
+                <SheetContent>
+                  <SheetHeader><SheetTitle>Assign Package to Builder</SheetTitle></SheetHeader>
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <Label className="text-xs">Builder</Label>
+                      <Select value={assignBuilder} onValueChange={setAssignBuilder}>
+                        <SelectTrigger><SelectValue placeholder="Select builder" /></SelectTrigger>
+                        <SelectContent>{builders.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Package</Label>
+                      <Select value={assignPackage} onValueChange={setAssignPackage}>
+                        <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
+                        <SelectContent>{packages.map(p => <SelectItem key={p.id} value={p.id}>{p.package_name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <Button className="w-full" onClick={assignPackageToBuilder} disabled={!assignBuilder || !assignPackage}>
+                      <Check size={14} className="mr-1" /> Assign Package
+                    </Button>
                   </div>
-                  <div>
-                    <Label className="text-xs">Package</Label>
-                    <Select value={assignPackage} onValueChange={setAssignPackage}>
-                      <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
-                      <SelectContent>{packages.map(p => <SelectItem key={p.id} value={p.id}>{p.package_name}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <Button className="w-full" onClick={assignPackageToBuilder} disabled={!assignBuilder || !assignPackage}>
-                    <Check size={14} className="mr-1" /> Assign Package
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
-
           {assignments.map(a => (
             <Card key={a.id}>
               <CardContent className="p-3 flex items-center justify-between">
