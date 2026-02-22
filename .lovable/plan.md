@@ -1,54 +1,54 @@
 
-## Fix: Categories Page Empty + Search Toggle Still Resetting
 
-### Two Root Causes Found
+## Seed Feature Monetization Data and Demo
 
-**Bug 1 — Categories Page shows "Stay tuned" despite nearby sellers existing:**
+### What We'll Do
 
-The CategoriesPage calls `useNearbySocietySellers()` with NO arguments (line 35). This hook defaults to `radiusKm = 5`. But the seller is ~5.8 km away, so a 5 km radius misses it. The user's profile has `search_radius_km = 10`, but this value is never passed to the hook. Additionally, the page does a separate redundant DB query for prefs instead of using the auth context `profile`.
+Create and run a seed function that populates the entire feature monetization system with realistic demo data, then walk through how it works in the admin panel.
 
-**Bug 2 — Search toggle shows OFF then flips ON:**
+### Data to Seed
 
-The fix used `useState(profile?.browse_beyond_community ?? true)`. The problem is `useState` only captures its initial value on the **first render**. When the Search page mounts, `profile` in the auth context may still be `null` (loading). So it falls back to `true` -- which is actually correct. But if profile loads as `null` first, then loads with the real value, `useState` ignores the update. We need a `useEffect` to sync the state when profile finishes loading.
+**1. Builder: "Prestige Group"**
+- Linked to "Prestige Tranquility" society (where Sagar's Kitchen seller exists)
+- Admin user (ms86100@gmail.com) added as builder member
 
-### Changes
+**2. Three Feature Packages:**
 
-**File 1: `src/pages/CategoriesPage.tsx`**
-- Remove the separate `useQuery` for user prefs (lines 20-32) -- use `profile` from auth context instead
-- Pass the user's `search_radius_km` to `useNearbySocietySellers(radiusKm, browseBeyond)`
-- Use `useAuth()` to get `profile` directly (already imported)
+| Package | Tier | Features Enabled |
+|---------|------|-----------------|
+| **Basic** (Free) | bulletin, help_requests, visitor_management, parcel_management | 4 of 18 |
+| **Pro** | Basic + marketplace, disputes, finances, construction_progress, snag_management, domestic_help, maintenance | 11 of 18 |
+| **Enterprise** | All 18 features | 18 of 18 |
 
-Before:
-```typescript
-const { user } = useAuth();
-// ... separate DB query for prefs ...
-const browseBeyond = prefs?.browse_beyond_community ?? true;
-const { data: nearbyBands = [] } = useNearbySocietySellers();
-```
+**3. Assignment:** Pro package assigned to Prestige Group builder
 
-After:
-```typescript
-const { user, profile } = useAuth();
-const browseBeyond = profile?.browse_beyond_community ?? true;
-const searchRadius = profile?.search_radius_km ?? 10;
-const { data: nearbyBands = [] } = useNearbySocietySellers(searchRadius, browseBeyond);
-```
+### What This Means for the Demo
 
-**File 2: `src/pages/SearchPage.tsx`**
-- Add a `useEffect` that syncs `browseBeyond` and `searchRadius` when `profile` loads/changes, so the toggle doesn't show a stale initial value
+Once seeded, users in "Prestige Tranquility" society will see the **Pro** package in effect:
+- **Enabled:** Marketplace, Bulletin, Disputes, Finances, Construction Progress, Snag Management, Help Requests, Visitor Management, Domestic Help, Parcel Management, Maintenance
+- **Disabled:** Inspection, Payment Milestones, Guard Kiosk, Vehicle Parking, Resident Identity Verification, Worker Marketplace, Workforce Management
 
-```typescript
-useEffect(() => {
-  if (profile) {
-    setBrowseBeyondLocal(profile.browse_beyond_community ?? true);
-    setSearchRadiusLocal(profile.search_radius_km ?? 10);
-  }
-}, [profile]);
-```
+Navigating to a disabled feature (e.g., Vehicle Parking) will show the "Feature Not Available" gate screen.
 
-### Summary
+Society admins can toggle any feature marked as "society_configurable" within their package scope from the Society Admin page.
 
-| Bug | Root cause | Fix |
-|---|---|---|
-| Categories shows "Stay tuned" | `useNearbySocietySellers()` called with default 5 km radius; seller is at 5.8 km | Pass user's radius (10 km) and browseBeyond flag from auth profile |
-| Search toggle resets to OFF | `useState` ignores async profile updates | Add `useEffect` to sync state when profile loads |
+### How to Demo
+
+1. Log in as admin (ms86100@gmail.com)
+2. Go to **Admin > Features** tab to see all platform features, packages, and the builder assignment
+3. Go to **Society Admin** page to see society-level toggles (3-state: Locked/Configurable/Unavailable)
+4. Try navigating to a disabled feature -- you'll see the FeatureGate block
+5. Change the builder's package from Pro to Enterprise in Admin -- all features unlock
+6. Override a feature at society level -- it persists even if the package changes
+
+### Technical Steps
+
+1. Create edge function `seed-feature-packages` that inserts:
+   - 1 builder
+   - 1 builder-society link
+   - 1 builder-member record
+   - 3 feature packages with all 18 feature items each
+   - 1 builder-feature-package assignment (Pro)
+2. Deploy and call the function
+3. Verify data is correctly seeded by checking the admin UI
+
