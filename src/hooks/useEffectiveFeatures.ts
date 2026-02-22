@@ -46,7 +46,7 @@ export function useEffectiveFeatures() {
   const { effectiveSocietyId } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: features = [], isLoading } = useQuery({
+  const { data: features = [], isLoading, isError } = useQuery({
     queryKey: ['effective-features', effectiveSocietyId],
     queryFn: async () => {
       if (!effectiveSocietyId) return [];
@@ -55,19 +55,20 @@ export function useEffectiveFeatures() {
       });
       if (error) {
         console.error('Error fetching effective features:', error);
-        return [];
+        throw error;
       }
       return (data || []) as EffectiveFeature[];
     },
     enabled: !!effectiveSocietyId,
     staleTime: 5 * 60 * 1000,
+    retry: 2,
   });
 
   const featureMap = new Map(features.map(f => [f.feature_key, f]));
 
   const isFeatureEnabled = (key: FeatureKey): boolean => {
-    // No society context at all (logged out or no society) → default enabled for public pages
-    if (!effectiveSocietyId) return true;
+    // No society context → fail closed (features disabled)
+    if (!effectiveSocietyId) return false;
     
     const feature = featureMap.get(key);
     if (!feature) {
@@ -141,6 +142,7 @@ export function useEffectiveFeatures() {
   return {
     features,
     isLoading,
+    isError,
     isFeatureEnabled,
     getFeatureState,
     getFeatureSource,

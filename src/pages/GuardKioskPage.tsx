@@ -12,6 +12,7 @@ import { WorkerGateValidation } from '@/components/workforce/WorkerGateValidatio
 import { ExpectedVisitorsList } from '@/components/guard/ExpectedVisitorsList';
 import { GuardManualEntryTab } from '@/components/guard/GuardManualEntryTab';
 import { GuardGateLogTab } from '@/components/guard/GuardGateLogTab';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 
 export default function GuardKioskPage() {
   const { effectiveSocietyId, isSocietyAdmin, isAdmin } = useAuth();
@@ -45,68 +46,70 @@ export default function GuardKioskPage() {
 
   return (
     <AppLayout headerTitle="Guard Console" showLocation={false}>
-      <div className="p-4 space-y-4">
-        <Tabs defaultValue="resident">
-          <TabsList className="w-full grid grid-cols-7">
-            <TabsTrigger value="resident" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
-              <QrCode size={14} />
-              QR
-            </TabsTrigger>
-            <TabsTrigger value="visitor" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
-              <KeyRound size={14} />
-              OTP
-            </TabsTrigger>
-            <TabsTrigger value="manual" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
-              <UserX size={14} />
-              Manual
-            </TabsTrigger>
-            <TabsTrigger value="delivery" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
-              <Truck size={14} />
-              Delivery
-            </TabsTrigger>
-            <TabsTrigger value="worker" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
-              <Users size={14} />
-              Worker
-            </TabsTrigger>
-            <TabsTrigger value="expected" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
-              <ClipboardList size={14} />
-              Expected
-            </TabsTrigger>
-            <TabsTrigger value="log" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
-              <ScrollText size={14} />
-              Log
-            </TabsTrigger>
-          </TabsList>
+      <FeatureGate feature="guard_kiosk">
+        <div className="p-4 space-y-4">
+          <Tabs defaultValue="resident">
+            <TabsList className="w-full grid grid-cols-7">
+              <TabsTrigger value="resident" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
+                <QrCode size={14} />
+                QR
+              </TabsTrigger>
+              <TabsTrigger value="visitor" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
+                <KeyRound size={14} />
+                OTP
+              </TabsTrigger>
+              <TabsTrigger value="manual" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
+                <UserX size={14} />
+                Manual
+              </TabsTrigger>
+              <TabsTrigger value="delivery" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
+                <Truck size={14} />
+                Delivery
+              </TabsTrigger>
+              <TabsTrigger value="worker" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
+                <Users size={14} />
+                Worker
+              </TabsTrigger>
+              <TabsTrigger value="expected" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
+                <ClipboardList size={14} />
+                Expected
+              </TabsTrigger>
+              <TabsTrigger value="log" className="text-[9px] gap-0.5 flex-col h-auto py-1.5">
+                <ScrollText size={14} />
+                Log
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="resident" className="mt-4">
-            {effectiveSocietyId && <GuardResidentQRTab societyId={effectiveSocietyId} />}
-          </TabsContent>
+            <TabsContent value="resident" className="mt-4">
+              {effectiveSocietyId && <GuardResidentQRTab societyId={effectiveSocietyId} />}
+            </TabsContent>
 
-          <TabsContent value="visitor" className="mt-4">
-            {effectiveSocietyId && <GuardVisitorOTPTab societyId={effectiveSocietyId} />}
-          </TabsContent>
+            <TabsContent value="visitor" className="mt-4">
+              {effectiveSocietyId && <GuardVisitorOTPTab societyId={effectiveSocietyId} />}
+            </TabsContent>
 
-          <TabsContent value="manual" className="mt-4">
-            {effectiveSocietyId && <GuardManualEntryTab societyId={effectiveSocietyId} />}
-          </TabsContent>
+            <TabsContent value="manual" className="mt-4">
+              {effectiveSocietyId && <GuardManualEntryTab societyId={effectiveSocietyId} />}
+            </TabsContent>
 
-          <TabsContent value="delivery" className="mt-4">
-            {effectiveSocietyId && <GuardDeliveryTab societyId={effectiveSocietyId} />}
-          </TabsContent>
+            <TabsContent value="delivery" className="mt-4">
+              {effectiveSocietyId && <GuardDeliveryTab societyId={effectiveSocietyId} />}
+            </TabsContent>
 
-          <TabsContent value="worker" className="mt-4">
-            <WorkerGateValidation />
-          </TabsContent>
+            <TabsContent value="worker" className="mt-4">
+              <WorkerGateValidation />
+            </TabsContent>
 
-          <TabsContent value="expected" className="mt-4">
-            {effectiveSocietyId && <ExpectedVisitorsList societyId={effectiveSocietyId} />}
-          </TabsContent>
+            <TabsContent value="expected" className="mt-4">
+              {effectiveSocietyId && <ExpectedVisitorsList societyId={effectiveSocietyId} />}
+            </TabsContent>
 
-          <TabsContent value="log" className="mt-4">
-            {effectiveSocietyId && <GuardGateLogTab societyId={effectiveSocietyId} />}
-          </TabsContent>
-        </Tabs>
-      </div>
+            <TabsContent value="log" className="mt-4">
+              {effectiveSocietyId && <GuardGateLogTab societyId={effectiveSocietyId} />}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

@@ -12,6 +12,7 @@ import { CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { friendlyError } from '@/lib/utils';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   accepted: { label: 'Active', color: 'bg-blue-100 text-blue-800' },
@@ -75,6 +76,7 @@ export default function WorkerMyJobsPage() {
 
   return (
     <AppLayout headerTitle="My Jobs">
+      <FeatureGate feature="worker_marketplace">
       <div className="p-4 pb-24">
         <Tabs defaultValue="active">
           <TabsList className="w-full">
@@ -140,6 +142,7 @@ export default function WorkerMyJobsPage() {
           </TabsContent>
         </Tabs>
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

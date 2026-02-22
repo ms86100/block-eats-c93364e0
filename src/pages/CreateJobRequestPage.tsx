@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { jobRequestSchema, validateForm } from '@/lib/validation-schemas';
 import { friendlyError } from '@/lib/utils';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 
 const JOB_TYPES = [
   { value: 'maid', label: '🧹 Maid / Cleaning' },
@@ -78,6 +79,7 @@ export default function CreateJobRequestPage() {
 
   return (
     <AppLayout headerTitle="Post a Job">
+      <FeatureGate feature="worker_marketplace">
       <div className="p-4 pb-24">
         <Card>
           <CardHeader>
@@ -168,6 +170,7 @@ export default function CreateJobRequestPage() {
           </CardContent>
         </Card>
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

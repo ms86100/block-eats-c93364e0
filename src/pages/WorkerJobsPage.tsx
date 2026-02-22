@@ -12,6 +12,7 @@ import { Briefcase, Clock, MapPin, IndianRupee, Zap, Check, AlertCircle } from '
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { friendlyError } from '@/lib/utils';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 
 const JOB_TYPE_LABELS: Record<string, string> = {
   maid: '🧹 Maid / Cleaning',
@@ -108,6 +109,7 @@ export default function WorkerJobsPage() {
 
   return (
     <AppLayout headerTitle="Available Jobs">
+      <FeatureGate feature="worker_marketplace">
       <div className="p-4 space-y-4 pb-24">
         <div className="flex items-center gap-2 mb-2">
           <Badge variant="secondary" className="text-xs">
@@ -189,6 +191,7 @@ export default function WorkerJobsPage() {
           ))
         )}
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

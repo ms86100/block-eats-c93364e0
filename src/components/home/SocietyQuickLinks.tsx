@@ -17,7 +17,7 @@ const quickLinks: QuickLink[] = [
   { icon: Users, label: 'Visitors', to: '/visitors', color: 'text-primary bg-primary/10', featureKey: 'visitor_management' },
   { icon: Car, label: 'Parking', to: '/parking', color: 'text-primary bg-primary/10', featureKey: 'vehicle_parking' },
   { icon: IndianRupee, label: 'Finances', to: '/society/finances', color: 'text-warning bg-warning/10', featureKey: 'finances' },
-  { icon: MessageCircle, label: 'Bulletin', to: '/community', color: 'text-accent bg-accent/10' },
+  { icon: MessageCircle, label: 'Bulletin', to: '/community', color: 'text-accent bg-accent/10', featureKey: 'bulletin' },
   { icon: Wrench, label: 'Maintenance', to: '/maintenance', color: 'text-success bg-success/10', featureKey: 'maintenance' },
   { icon: ShieldAlert, label: 'Disputes', to: '/disputes', color: 'text-destructive bg-destructive/10', featureKey: 'disputes' },
 ];

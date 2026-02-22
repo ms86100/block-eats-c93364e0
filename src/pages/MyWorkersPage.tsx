@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { User, Phone, Star, Clock, Users } from 'lucide-react';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 
 export default function MyWorkersPage() {
   const { user, profile, effectiveSocietyId } = useAuth();
@@ -33,6 +34,7 @@ export default function MyWorkersPage() {
 
   return (
     <AppLayout headerTitle="My Workers" showLocation={false}>
+      <FeatureGate feature="workforce_management">
       <div className="p-4 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <Users size={18} className="text-primary" />
@@ -108,6 +110,7 @@ export default function MyWorkersPage() {
           </div>
         )}
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }
