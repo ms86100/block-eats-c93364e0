@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -36,6 +36,7 @@ import { toast } from 'sonner';
 
 export default function SellerDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, effectiveSocietyId } = useAuth();
   const { configs: allCategoryConfigs } = useCategoryConfigs();
   const { items, totalAmount } = useCart();
@@ -227,12 +228,12 @@ export default function SellerDetailPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         
         <div className="absolute top-4 left-4 right-4 flex justify-between safe-top">
-          <Link
-            to="/"
+          <button
+            onClick={() => navigate(-1)}
             className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center shadow-md border border-white/20"
           >
             <ArrowLeft size={18} className="text-white" />
-          </Link>
+          </button>
           <div className="flex gap-2">
             {user && (
               <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>

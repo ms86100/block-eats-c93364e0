@@ -287,6 +287,13 @@ export function ProductListingCard({
           {product.name}
         </h4>
 
+        {/* Seller name */}
+        {product.seller_name && (
+          <p className="text-[8px] text-muted-foreground leading-tight line-clamp-1 mb-0.5">
+            by {product.seller_name}
+          </p>
+        )}
+
         {/* Delivery time chip */}
         {deliveryText && (
           <div className="flex items-center gap-0.5 mb-0.5">

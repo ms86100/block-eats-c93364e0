@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/hooks/useCart';
@@ -893,17 +893,36 @@ function ProductGridByCategory({
 
 // ── Empty / Idle states ────────────────────────────────
 function EmptyState({ browseBeyond, onEnableBrowseBeyond }: { browseBeyond?: boolean; onEnableBrowseBeyond?: () => void } = {}) {
+  const navigate = useNavigate();
+  const suggestedCategories = [
+    { slug: 'groceries', label: '🛒 Groceries' },
+    { slug: 'home_food', label: '🍱 Home Food' },
+    { slug: 'snacks', label: '🍿 Snacks' },
+    { slug: 'electronics', label: '📱 Electronics' },
+  ];
+
   return (
     <div className="text-center py-16">
       <SearchIcon className="mx-auto text-muted-foreground mb-3" size={28} />
       <p className="font-semibold text-sm text-foreground">No products found</p>
       <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mx-auto">
-        Try searching for something else, or browse by category above
+        Try searching for something else, or browse a category
       </p>
+      <div className="flex flex-wrap justify-center gap-2 mt-4">
+        {suggestedCategories.map((cat) => (
+          <button
+            key={cat.slug}
+            onClick={() => navigate(`/categories`)}
+            className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium hover:bg-primary/20 transition-colors"
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
       {!browseBeyond && onEnableBrowseBeyond && (
         <button
           onClick={onEnableBrowseBeyond}
-          className="mt-3 text-xs text-primary font-medium flex items-center gap-1 mx-auto"
+          className="mt-4 text-xs text-primary font-medium flex items-center gap-1 mx-auto"
         >
           <Globe size={12} />
           Enable nearby communities to see more

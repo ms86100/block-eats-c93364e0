@@ -4,6 +4,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { OnboardingWalkthrough, useOnboarding } from '@/components/onboarding/OnboardingWalkthrough';
 import { VerificationPendingScreen } from '@/components/onboarding/VerificationPendingScreen';
 import { MarketplaceSection } from '@/components/home/MarketplaceSection';
+import { SocietyQuickLinks } from '@/components/home/SocietyQuickLinks';
+import { CommunityTeaser } from '@/components/home/CommunityTeaser';
 import { useAuth } from '@/contexts/AuthContext';
 import { PartyPopper, X } from 'lucide-react';
 
@@ -79,8 +81,14 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* ═══ SOCIETY QUICK LINKS ═══ */}
+        <SocietyQuickLinks />
+
         {/* ═══ UNIFIED MARKETPLACE ═══ */}
         <MarketplaceSection />
+
+        {/* ═══ COMMUNITY TEASER ═══ */}
+        <CommunityTeaser />
       </div>
     </AppLayout>
   );

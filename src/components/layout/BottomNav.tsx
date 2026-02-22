@@ -1,4 +1,4 @@
-import { Home, RotateCcw, LayoutGrid, ShoppingCart, User, Shield, ClipboardList, Briefcase, ListChecks } from 'lucide-react';
+import { Home, Building2, LayoutGrid, ShoppingCart, User, Shield, ClipboardList, Briefcase, ListChecks } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -11,7 +11,7 @@ import type { FeatureKey } from '@/hooks/useEffectiveFeatures';
 
 const residentNavItems: { to: string; icon: typeof Home; label: string; featureKey?: FeatureKey; badge?: string }[] = [
   { to: '/', icon: Home, label: 'Home' },
-  { to: '/orders', icon: RotateCcw, label: 'Order Again' },
+  { to: '/society', icon: Building2, label: 'Society' },
   { to: '/categories', icon: LayoutGrid, label: 'Categories' },
   { to: '/cart', icon: ShoppingCart, label: 'Cart', badge: 'cart' },
   { to: '/profile', icon: User, label: 'Profile' },
