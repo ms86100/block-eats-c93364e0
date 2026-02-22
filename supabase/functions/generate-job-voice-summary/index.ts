@@ -44,17 +44,19 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Fetch language ai_name dynamically from DB — no hardcoded map
-    let langName = "Hindi-English mix";
+    // Fetch language ai_name dynamically from DB — no hardcoded map, fail-closed
     const { data: langRow } = await sb
       .from("supported_languages")
       .select("ai_name")
       .eq("code", langCode)
       .eq("is_active", true)
       .maybeSingle();
-    if (langRow?.ai_name) {
-      langName = langRow.ai_name;
+    if (!langRow?.ai_name) {
+      return new Response(JSON.stringify({ error: "Language not configured in database", language: langCode }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+    const langName = langRow.ai_name;
 
     const societyContext = society_name ? `\n- From society: ${society_name}` : "";
 
