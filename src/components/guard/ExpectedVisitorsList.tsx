@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { User, Phone, Car, Clock, CheckCircle, Users, Home } from 'lucide-react';
+import { User, Phone, Car, Clock, CheckCircle, Users, Home, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ExpectedVisitor {
@@ -98,7 +98,8 @@ export function ExpectedVisitorsList({ societyId }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm truncate">{v.visitor_name}</p>
-                      <Badge variant="outline" className="text-[10px] capitalize shrink-0">
+                      <Badge variant="outline" className={`text-[10px] capitalize shrink-0 ${v.visitor_type === 'delivery' ? 'bg-primary/10 text-primary border-primary/30' : ''}`}>
+                        {v.visitor_type === 'delivery' && <Truck size={10} className="mr-0.5" />}
                         {v.visitor_type.replace('_', ' ')}
                       </Badge>
                       {v.is_preapproved && (

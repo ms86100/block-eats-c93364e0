@@ -157,9 +157,10 @@ async function handleUpdateStatus(req: Request, db: any, userId: string) {
     updateData.otp_hash = await hashOTP(otp);
     updateData.otp_expires_at = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 min
 
-    // Send OTP to buyer via notification
+    // Get order + buyer info for visitor entry
     const { data: order } = await db.from('orders').select('buyer_id').eq('id', assignment.order_id).single();
     if (order) {
+      // Send OTP to buyer via notification
       await db.from('notification_queue').insert({
         user_id: order.buyer_id,
         title: '🔑 Delivery OTP',
@@ -168,6 +169,48 @@ async function handleUpdateStatus(req: Request, db: any, userId: string) {
         reference_path: `/orders/${assignment.order_id}`,
         payload: { orderId: assignment.order_id, deliveryStatus: 'picked_up' },
       });
+
+      // Get rider info & buyer profile for gate pre-registration
+      const { data: asgn } = await db
+        .from('delivery_assignments')
+        .select('rider_name, rider_phone, society_id')
+        .eq('id', assignment_id)
+        .single();
+
+      const { data: buyer } = await db
+        .from('profiles')
+        .select('id, flat_number, name')
+        .eq('id', order.buyer_id)
+        .single();
+
+      if (asgn && buyer) {
+        // Create visitor_entries record so delivery rider shows in Guard Kiosk "Expected" tab
+        const visitorOtp = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit for gate
+        await db.from('visitor_entries').insert({
+          society_id: asgn.society_id,
+          resident_id: buyer.id,
+          visitor_name: asgn.rider_name || 'Delivery Rider',
+          visitor_phone: asgn.rider_phone || null,
+          visitor_type: 'delivery',
+          flat_number: buyer.flat_number,
+          purpose: `Order #${assignment.order_id.slice(0, 8)} delivery`,
+          expected_date: new Date().toISOString().split('T')[0],
+          status: 'expected',
+          is_preapproved: true,
+          otp_code: visitorOtp,
+          otp_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
+        });
+
+        // Notify buyer with gate OTP for the delivery rider
+        await db.from('notification_queue').insert({
+          user_id: buyer.id,
+          title: '🏠 Delivery Rider Gate OTP',
+          body: `Gate OTP for your delivery rider: ${visitorOtp}. Share this with the guard if needed.`,
+          type: 'delivery',
+          reference_path: `/orders/${assignment.order_id}`,
+          payload: { orderId: assignment.order_id, gateOtp: visitorOtp },
+        });
+      }
     }
 
     // Also update order status to picked_up
@@ -182,30 +225,25 @@ async function handleUpdateStatus(req: Request, db: any, userId: string) {
   }
 
   if (status === 'at_gate') {
-    // Create gate entry for delivery rider
+    // Update the visitor_entries record (created at picked_up) to mark arrival
+    // Also notify buyer that rider is at gate
     const { data: asgn } = await db
       .from('delivery_assignments')
-      .select('rider_name, rider_phone, order_id, society_id')
+      .select('rider_name, order_id, society_id')
       .eq('id', assignment_id)
       .single();
 
     if (asgn) {
-      const { data: order } = await db.from('orders').select('buyer_id, delivery_address').eq('id', asgn.order_id).single();
-      const { data: buyer } = order ? await db.from('profiles').select('flat_number, name').eq('id', order.buyer_id).single() : { data: null };
-
-      const { data: gateEntry } = await db.from('gate_entries').insert({
-        society_id: asgn.society_id,
-        entry_type: 'delivery',
-        flat_number: buyer?.flat_number || null,
-        resident_name: buyer?.name || null,
-        notes: `Delivery rider: ${asgn.rider_name || 'Unknown'} | Phone: ${asgn.rider_phone || 'N/A'} | Order: ${asgn.order_id.slice(0, 8)}`,
-        confirmation_status: 'pending',
-        awaiting_confirmation: true,
-        confirmation_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-      }).select('id').single();
-
-      if (gateEntry) {
-        updateData.gate_entry_id = gateEntry.id;
+      const { data: order } = await db.from('orders').select('buyer_id').eq('id', asgn.order_id).single();
+      if (order) {
+        await db.from('notification_queue').insert({
+          user_id: order.buyer_id,
+          title: '🏠 Delivery Rider at Gate',
+          body: `${asgn.rider_name || 'Your delivery rider'} is at the society gate. Please share your delivery OTP to confirm.`,
+          type: 'delivery',
+          reference_path: `/orders/${asgn.order_id}`,
+          payload: { orderId: asgn.order_id, deliveryStatus: 'at_gate' },
+        });
       }
     }
   }
