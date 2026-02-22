@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { logAudit } from '@/lib/audit';
 import { friendlyError } from '@/lib/utils';
 import { workerRegistrationSchema, validateForm } from '@/lib/validation-schemas';
 import { useQuery } from '@tanstack/react-query';
+import { useSystemSettingsRaw } from '@/hooks/useSystemSettingsRaw';
 
 // Worker types loaded from categories prop — no hardcoded defaults used when categories available
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -25,14 +26,28 @@ interface WorkerRegistrationSheetProps {
 
 export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categories = [] }: WorkerRegistrationSheetProps) {
   const { user, profile, effectiveSocietyId } = useAuth();
+  const { getSetting } = useSystemSettingsRaw([
+    'worker_default_shift_start', 'worker_default_shift_end', 'worker_entry_frequency_options'
+  ]);
+
+  // Load defaults and options from DB
+  const defaultShiftStart = getSetting('worker_default_shift_start') || '';
+  const defaultShiftEnd = getSetting('worker_default_shift_end') || '';
+  const entryFrequencyOptions: { value: string; label: string }[] = useMemo(() => {
+    try {
+      const raw = getSetting('worker_entry_frequency_options');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }, [getSetting]);
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [workerType, setWorkerType] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [shiftStart, setShiftStart] = useState('06:00');
-  const [shiftEnd, setShiftEnd] = useState('18:00');
+  const [shiftStart, setShiftStart] = useState('');
+  const [shiftEnd, setShiftEnd] = useState('');
   const [activeDays, setActiveDays] = useState<string[]>([...DAYS]);
-  const [entryFrequency, setEntryFrequency] = useState('daily');
+  const [entryFrequency, setEntryFrequency] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [flatNumbers, setFlatNumbers] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState('');
@@ -40,6 +55,12 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Apply DB defaults when they load
+  useEffect(() => {
+    if (defaultShiftStart && !shiftStart) setShiftStart(defaultShiftStart);
+    if (defaultShiftEnd && !shiftEnd) setShiftEnd(defaultShiftEnd);
+  }, [defaultShiftStart, defaultShiftEnd]);
 
   // Fetch supported languages from DB
   const { data: languages = [] } = useQuery({
@@ -191,8 +212,8 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
   const resetForm = () => {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setName(''); setPhone(''); setWorkerType('');
-    setCategoryId(null); setShiftStart('06:00'); setShiftEnd('18:00');
-    setActiveDays([...DAYS]); setEntryFrequency('daily');
+    setCategoryId(null); setShiftStart(defaultShiftStart); setShiftEnd(defaultShiftEnd);
+    setActiveDays([...DAYS]); setEntryFrequency('');
     setEmergencyPhone(''); setFlatNumbers('');
     setPreferredLanguage('');
     setPhotoBlob(null); setPhotoPreview(null);
@@ -289,15 +310,22 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
               </div>
             )}
             <div>
-              <Label>Entry Frequency</Label>
+              <Label>Entry Frequency *</Label>
               <Select value={entryFrequency} onValueChange={setEntryFrequency}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select frequency" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="occasional">Occasional</SelectItem>
-                  <SelectItem value="per_visit">Per Visit Approval</SelectItem>
+                  {entryFrequencyOptions.length > 0 ? (
+                    entryFrequencyOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No options configured</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              {entryFrequencyOptions.length === 0 && (
+                <p className="text-xs text-destructive mt-1">⚠️ Entry frequency options not configured. Contact admin.</p>
+              )}
             </div>
           </div>
 
@@ -365,7 +393,7 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
 
           <Button
             onClick={handleSubmit}
-            disabled={!name.trim() || !photoBlob || !preferredLanguage || languages.length === 0 || isSubmitting}
+            disabled={!name.trim() || !photoBlob || !preferredLanguage || !entryFrequency || languages.length === 0 || entryFrequencyOptions.length === 0 || isSubmitting}
             className="w-full"
           >
             {isSubmitting ? 'Registering...' : 'Register Worker'}

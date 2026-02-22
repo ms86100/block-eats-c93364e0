@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +25,7 @@ export default function CreateJobRequestPage() {
   const { profile, effectiveSocietyId } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { getSetting } = useSystemSettingsRaw(['worker_broadcast_radius_options', 'worker_broadcast_default_radius']);
+  const { getSetting } = useSystemSettingsRaw(['worker_broadcast_radius_options', 'worker_broadcast_default_radius', 'worker_urgency_options']);
 
   // Dynamic job types from DB
   const { data: jobTypes = [] } = useQuery({
@@ -48,18 +48,27 @@ export default function CreateJobRequestPage() {
   const [durationHours, setDurationHours] = useState('1');
   const [startTime, setStartTime] = useState('');
   const [locationDetails, setLocationDetails] = useState('');
-  const [urgency, setUrgency] = useState('normal');
+  const [urgency, setUrgency] = useState('');
   const [visibilityScope, setVisibilityScope] = useState<'society' | 'nearby'>('society');
   const [targetSocietyIds, setTargetSocietyIds] = useState<string[]>([]);
   const [selectedRadius, setSelectedRadius] = useState<number | null>(null);
 
   // Load radius options from system_settings
-  const radiusOptions: number[] = (() => {
+  const radiusOptions: number[] = useMemo(() => {
     try {
       const raw = getSetting('worker_broadcast_radius_options');
       return raw ? JSON.parse(raw) : [];
     } catch { return []; }
-  })();
+  }, [getSetting]);
+
+  // Load urgency options from system_settings
+  const urgencyOptions: { value: string; label: string }[] = useMemo(() => {
+    try {
+      const raw = getSetting('worker_urgency_options');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }, [getSetting]);
+
   const defaultRadius = parseInt(getSetting('worker_broadcast_default_radius') || '0', 10);
 
   // Initialize selectedRadius from default
@@ -212,13 +221,20 @@ export default function CreateJobRequestPage() {
             <div>
               <Label>Urgency</Label>
               <Select value={urgency} onValueChange={setUrgency}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select urgency" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="flexible">🟢 Flexible</SelectItem>
-                  <SelectItem value="normal">🟡 Normal</SelectItem>
-                  <SelectItem value="urgent">🔴 Urgent</SelectItem>
+                  {urgencyOptions.length > 0 ? (
+                    urgencyOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No options configured</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              {urgencyOptions.length === 0 && (
+                <p className="text-xs text-destructive mt-1">⚠️ Urgency options not configured. Contact admin.</p>
+              )}
             </div>
 
             {/* Visibility Scope Selection */}
@@ -324,7 +340,7 @@ export default function CreateJobRequestPage() {
               className="w-full"
               size="lg"
               onClick={() => createJob.mutate()}
-              disabled={createJob.isPending || !jobType || (visibilityScope === 'nearby' && targetSocietyIds.length === 0)}
+              disabled={createJob.isPending || !jobType || !urgency || (visibilityScope === 'nearby' && targetSocietyIds.length === 0)}
             >
               {createJob.isPending ? 'Posting...' : 'Post Job Request'}
             </Button>
