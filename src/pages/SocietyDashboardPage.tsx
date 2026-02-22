@@ -10,7 +10,7 @@ import {
   IndianRupee, Building2, Bug, ShieldAlert, FileText, 
   MessageCircle, Radio, ChevronRight, CreditCard, Clock, BarChart3, Shield,
   Users, ClipboardCheck, Landmark, Package, UserCheck, ShieldCheck, Car, QrCode,
-  Wrench, Briefcase, Megaphone
+  Wrench, Briefcase, Megaphone, Truck
 } from 'lucide-react';
 
 interface DashboardStat {
@@ -114,6 +114,7 @@ export default function SocietyDashboardPage() {
     { icon: CreditCard, label: 'Maintenance', to: '/maintenance', stat: stats.pendingDues > 0 ? `${stats.pendingDues} pending` : 'All clear', color: 'text-success', featureKey: 'maintenance' },
     { icon: Wrench, label: 'Workforce', to: '/workforce', stat: 'Manage workers', color: 'text-primary', featureKey: 'workforce_management' },
     { icon: Briefcase, label: 'Hire Workers', to: '/worker-hire', stat: 'Find local help', color: 'text-primary', featureKey: 'worker_marketplace' },
+    { icon: Truck, label: 'Deliveries', to: '/society/deliveries', stat: 'Track deliveries', color: 'text-primary' },
     { icon: Megaphone, label: 'Notices', to: '/society/notices', stat: 'Official circulars', color: 'text-warning' },
     ...(isSocietyAdmin ? [
       { icon: QrCode, label: 'Security Verify', to: '/security/verify', stat: 'Scan resident QR', color: 'text-success', featureKey: 'resident_identity_verification' } as DashboardStat,

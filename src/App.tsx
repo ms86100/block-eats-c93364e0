@@ -75,6 +75,7 @@ const WorkerMyJobsPage = lazy(() => import("./pages/WorkerMyJobsPage"));
 const WorkerHirePage = lazy(() => import("./pages/WorkerHirePage"));
 const CreateJobRequestPage = lazy(() => import("./pages/CreateJobRequestPage"));
 const SocietyNoticesPage = lazy(() => import("./pages/SocietyNoticesPage"));
+const SocietyDeliveriesPage = lazy(() => import("./pages/SocietyDeliveriesPage"));
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -236,6 +237,7 @@ function AppRoutes() {
         <Route path="/worker-hire" element={<ProtectedRoute><WorkerHirePage /></ProtectedRoute>} />
         <Route path="/worker-hire/create" element={<ProtectedRoute><CreateJobRequestPage /></ProtectedRoute>} />
         <Route path="/society/notices" element={<ProtectedRoute><SocietyNoticesPage /></ProtectedRoute>} />
+        <Route path="/society/deliveries" element={<ProtectedRoute><SocietyDeliveriesPage /></ProtectedRoute>} />
         <Route path="/become-seller" element={<ProtectedRoute><RouteErrorBoundary sectionName="Seller Onboarding"><BecomeSellerPage /></RouteErrorBoundary></ProtectedRoute>} />
         <Route path="/seller" element={<ProtectedRoute><RouteErrorBoundary sectionName="Seller Dashboard"><SellerDashboardPage /></RouteErrorBoundary></ProtectedRoute>} />
         <Route path="/seller/products" element={<ProtectedRoute><RouteErrorBoundary sectionName="Products"><SellerProductsPage /></RouteErrorBoundary></ProtectedRoute>} />
