@@ -43,6 +43,7 @@ export default function SellerDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('menu');
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [reportType, setReportType] = useState<string>('');
   const [reportDescription, setReportDescription] = useState('');
@@ -62,7 +63,7 @@ export default function SellerDetailPage() {
           .select(`
             *,
             profile:profiles!seller_profiles_user_id_fkey(name, block, flat_number, phone),
-            society:societies!seller_profiles_society_id_fkey(name, address, city, state, pincode)
+            society:societies!seller_profiles_society_id_fkey(name, address, city, state, pincode, latitude, longitude)
           `)
           .eq('id', id)
           .single(),
@@ -96,6 +97,33 @@ export default function SellerDetailPage() {
 
       setSeller(sellerData);
       setProducts((productsRes.data || []) as Product[]);
+
+      // Calculate distance from buyer's society to seller's society
+      if (effectiveSocietyId && sellerData.society?.latitude && sellerData.society?.longitude) {
+        try {
+          const { data: buyerSociety } = await supabase
+            .from('societies')
+            .select('latitude, longitude')
+            .eq('id', effectiveSocietyId)
+            .single();
+
+          if (buyerSociety?.latitude && buyerSociety?.longitude) {
+            const toRad = (deg: number) => (deg * Math.PI) / 180;
+            const R = 6371;
+            const dLat = toRad(sellerData.society.latitude - buyerSociety.latitude);
+            const dLon = toRad(sellerData.society.longitude - buyerSociety.longitude);
+            const a =
+              Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(buyerSociety.latitude)) *
+                Math.cos(toRad(sellerData.society.latitude)) *
+                Math.sin(dLon / 2) ** 2;
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            setDistanceKm(Math.round(R * c * 10) / 10);
+          }
+        } catch (e) {
+          console.error('Distance calc error:', e);
+        }
+      }
     } catch (error) {
       console.error('Error fetching seller:', error);
     } finally {
@@ -287,18 +315,21 @@ export default function SellerDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-3 mt-4 text-sm text-muted-foreground">
-            {((seller as any).society || profile) && (
+            {(seller as any).society && (
               <span className="flex items-center gap-1">
                 <MapPin size={14} className="shrink-0" />
                 <span>
-                  {profile && `Block ${profile.block}, ${profile.flat_number}`}
-                  {(seller as any).society?.name && `${profile ? ', ' : ''}${(seller as any).society.name}`}
-                  {(seller as any).society?.address && `, ${(seller as any).society.address}`}
-                  {(seller as any).society?.city && `, ${(seller as any).society.city}`}
-                  {(seller as any).society?.state && `, ${(seller as any).society.state}`}
-                  {(seller as any).society?.pincode && ` - ${(seller as any).society.pincode}`}
+                  {(seller as any).society.name}
+                  {(seller as any).society.address && `, ${(seller as any).society.address}`}
+                  {(seller as any).society.city && `, ${(seller as any).society.city}`}
+                  {(seller as any).society.pincode && ` - ${(seller as any).society.pincode}`}
                 </span>
               </span>
+            )}
+            {distanceKm !== null && distanceKm > 0 && (
+              <Badge variant="outline" className="text-[10px] font-medium">
+                📍 {distanceKm} km away
+              </Badge>
             )}
             {seller.availability_start && seller.availability_end && (
               <span className="flex items-center gap-1">
