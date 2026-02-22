@@ -12,7 +12,6 @@ import { CouponInput } from '@/components/cart/CouponInput';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { sendOrderStatusNotification } from '@/lib/notifications';
 import { PaymentMethod } from '@/types/database';
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/utils';
@@ -73,21 +72,7 @@ export default function CartPage() {
 
     const createdOrderIds = result.order_ids;
 
-    for (const group of sellerGroups) {
-      const sellerProfile = group.items[0]?.product?.seller;
-      if (sellerProfile?.user_id) {
-        const orderId = createdOrderIds[sellerGroups.indexOf(group)];
-        if (orderId) {
-          sendOrderStatusNotification(
-            orderId, 'placed', user.id, group.sellerId,
-            sellerProfile.user_id,
-            sellerProfile.business_name || 'Seller',
-            profile.name
-          );
-        }
-      }
-    }
-
+    // Notifications are now handled by database triggers (enqueue_order_placed_notification)
     return createdOrderIds;
   };
 
@@ -175,27 +160,40 @@ export default function CartPage() {
 
   const handlePlaceOrder = useSubmitGuard(handlePlaceOrderInner);
 
-  const handleRazorpaySuccess = async (paymentId: string) => {
+  const handleRazorpaySuccess = async (_paymentId: string) => {
     setShowRazorpayCheckout(false);
 
-    for (const orderId of pendingOrderIds) {
-      await supabase.from('orders').update({ payment_status: 'paid', razorpay_payment_id: paymentId } as any).eq('id', orderId);
-      await supabase.from('payment_records').update({ payment_status: 'paid', transaction_reference: paymentId }).eq('order_id', orderId);
+    // Payment verification is handled server-side by the razorpay-webhook.
+    // Poll order payment_status until webhook confirms, or timeout after 15s.
+    const targetOrderId = pendingOrderIds[0];
+    if (targetOrderId) {
+      let confirmed = false;
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 1500));
+        const { data } = await supabase.from('orders').select('payment_status').eq('id', targetOrderId).single();
+        if (data?.payment_status === 'paid') {
+          confirmed = true;
+          break;
+        }
+      }
+      if (!confirmed) {
+        toast.info('Payment is being verified. Your order will update shortly.');
+      } else {
+        toast.success('Payment successful! Order placed.');
+      }
     }
 
     await refresh();
-    toast.success('Payment successful! Order placed.');
     navigate(pendingOrderIds.length === 1 ? `/orders/${pendingOrderIds[0]}` : '/orders');
     setPendingOrderIds([]);
   };
 
   const handleRazorpayFailed = async () => {
     setShowRazorpayCheckout(false);
-    for (const orderId of pendingOrderIds) {
-      await supabase.from('orders').update({ status: 'cancelled', payment_status: 'failed' }).eq('id', orderId);
-    }
+    // Don't update payment_status client-side. The webhook handles failed payments too.
+    // Just navigate away and let the user know.
     setPendingOrderIds([]);
-    toast.error('Payment failed. Please try again.');
+    toast.error('Payment was not completed. Check your order status.');
   };
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);

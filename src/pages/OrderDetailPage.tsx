@@ -11,7 +11,6 @@ import { UrgentOrderTimer } from '@/components/order/UrgentOrderTimer';
 import { OrderRejectionDialog } from '@/components/order/OrderRejectionDialog';
 import { useUrgentOrderSound } from '@/hooks/useUrgentOrderSound';
 import { useAuth } from '@/contexts/AuthContext';
-import { sendOrderStatusNotification } from '@/lib/notifications';
 import { logAudit } from '@/lib/audit';
 import { Order, OrderItem, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, OrderStatus, PaymentStatus, ItemStatus, ITEM_STATUS_LABELS } from '@/types/database';
 import { OrderItemCard } from '@/components/order/OrderItemCard';
@@ -97,12 +96,7 @@ export default function OrderDetailPage() {
       if (order.society_id) {
         logAudit(`order_${newStatus}`, 'order', order.id, order.society_id, { old_status: order.status, new_status: newStatus, rejection_reason: rejectionReason });
       }
-      const buyerName = buyer?.name || 'Customer';
-      const sellerName = seller?.business_name || 'Seller';
-      const sellerUserId = seller?.user_id;
-      if (order.buyer_id && order.seller_id && sellerUserId) {
-        sendOrderStatusNotification(order.id, newStatus, order.buyer_id, order.seller_id, sellerUserId, sellerName, buyerName);
-      }
+      // Notifications are now handled by database triggers (enqueue_order_status_notification)
     } catch (error: any) {
       console.error('Error updating order:', error);
       toast.error('Failed to update order');
