@@ -1,161 +1,181 @@
 
-# Workforce Module -- Final Enforcement Audit Report
 
-## Audit Methodology
-Every finding below is based on reading actual source code and querying live database triggers, RLS policies, RPC functions, and system settings. No assumptions from prior conversations.
+# Security & Gate Module — Deep Audit Plan
 
----
+## Scope
 
-## Phase 1 -- Hardcoding Check
+6 pages, 9 components, 1 edge function, 5 tables, 1 RPC function bug.
 
-### 1.1 Language Lists in Frontend
-- **WorkerRegistrationSheet.tsx**: Languages fetched from `supported_languages` table. No hardcoded fallback list. If table is empty, dropdown shows "No languages configured" and submit button is disabled (`languages.length === 0`).
-- **VERDICT: PASS -- Fully dynamic, fail-closed.**
+**Pages**: Guard Kiosk, Gate Entry, Security Verify (redirect), Security Audit, Visitor Management, Parcel Management, Authorized Persons
 
-### 1.2 Voice Mappings in Frontend
-- **WorkerJobsPage.tsx** (lines 37-53): `useLangVoiceMap()` fetches `bcp47_tag` from `supported_languages` table dynamically. No hardcoded voice map.
-- If `bcp47_tag` is missing for a language, TTS shows error "Voice not available for this language" and stops (line 173-177).
-- **VERDICT: PASS -- Fully dynamic, fail-closed.**
-
-### 1.3 Language Assumptions in Edge Function
-- **generate-job-voice-summary/index.ts** (line 48): `let langName = "Hindi-English mix"` is a **hardcoded fallback** that activates when the DB lookup fails or returns no `ai_name`.
-- If language code is not in DB, the AI prompt silently falls back to "Hindi-English mix" instead of rejecting the request.
-- **VERDICT: FAIL -- Severity: MEDIUM**
-- **Finding F1**: Hardcoded `"Hindi-English mix"` fallback on line 48 of edge function. Should return error if `ai_name` not found instead of defaulting.
-
-### 1.4 Broadcast Radius
-- **CreateJobRequestPage.tsx** (lines 57-63): Radius options loaded from `system_settings` key `worker_broadcast_radius_options`. Default from `worker_broadcast_default_radius`. No hardcoded numeric radius.
-- If settings are missing, `radiusOptions` is empty and UI shows "Broadcast radius not configured. Contact admin." (line 280).
-- `get_nearby_societies` RPC accepts `_radius_km` parameter -- no internal hardcoding.
-- **VERDICT: PASS -- Fully dynamic, fail-closed.**
-
-### 1.5 Job Type List
-- **CreateJobRequestPage.tsx** (lines 31-43): Job types fetched from `society_worker_categories` table. If empty, shows "No job types configured" error.
-- **WorkerJobsPage.tsx** (lines 18-34): `useJobTypeLabels()` fetches labels from same table.
-- **VERDICT: PASS -- Fully dynamic.**
-
-### 1.6 Default Business Values in useState/Schema
-- `workerType`: `useState('')` -- no default. **PASS.**
-- `preferredLanguage`: `useState('')` -- no default. **PASS.**
-- `visibilityScope`: `useState('society')` -- this is a structural UI default (form starts with "Within My Society" selected). **Acceptable** -- it's a form UX default, not a business logic assumption. DB trigger validates on insert.
-- `entryFrequency`: `useState('daily')` -- **hardcoded UI default**. However, this is one of three validated enum values (`daily`, `occasional`, `per_visit`) enforced by the `validate_worker_status` trigger. Low risk since the default is a valid option.
-- **Finding F2**: `entryFrequency` defaults to `'daily'` (line 35, WorkerRegistrationSheet). **Severity: LOW** -- Valid enum value, but ideally should come from DB config or be unset.
-- `shiftStart: '06:00'` / `shiftEnd: '18:00'` (lines 32-33): Hardcoded shift defaults.
-- **Finding F3**: Shift time defaults are hardcoded. **Severity: LOW** -- Structural convenience defaults, not business logic. These could be made DB-configurable for flexibility.
-
-### 1.7 Static Configuration in Components
-- `DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']` (line 17, WorkerRegistrationSheet): Calendar constant. **Acceptable structural constant** -- days of the week do not change.
-- Urgency options (`flexible`, `normal`, `urgent`) in CreateJobRequestPage (lines 217-220): Hardcoded in UI but validated by DB trigger `validate_worker_job_status`. **Acceptable** -- these are structural enum values.
-- Entry frequency options (`daily`, `occasional`, `per_visit`) in WorkerRegistrationSheet (lines 295-299): Same pattern -- hardcoded display, DB-validated.
-- **Finding F4**: Urgency and entry frequency enum options are displayed statically in UI. **Severity: LOW** -- They are DB-validated but if new values are added to the DB trigger, the UI would not reflect them without code changes.
+**Components**: GuardResidentQRTab, GuardVisitorOTPTab, GuardDeliveryTab, GuardManualEntryTab, GuardGateLogTab, ExpectedVisitorsList, QRCodeDisplay, ResidentConfirmation, ManualEntryApproval, GuardConfirmationPoller, WorkerGateValidation
 
 ---
 
-## Phase 2 -- Server Enforcement Validation
+## Phase 1: Discovered Issues
 
-### 2.1 Job Scope Validation (DB Trigger)
-- Trigger `trg_validate_job_visibility_scope` is **ACTIVE** on `worker_job_requests`.
-- Validates: `visibility_scope` must be `'society'` or `'nearby'`. If `'nearby'`, `target_society_ids` must have at least one entry. If `'society'`, target array is forcibly cleared.
-- **VERDICT: PASS -- Fail-closed. Cannot bypass via API.**
+### G1 — CRITICAL: GuardGateLogTab passes wrong parameter to RPC
 
-### 2.2 Preferred Language Validation (DB Trigger)
-- Trigger `trg_validate_worker_preferred_language` is **ACTIVE** on `society_workers`.
-- Validates: If `preferred_language` is not null/empty, it must exist in `supported_languages` with `is_active = true`.
-- **VERDICT: PASS -- Fail-closed.**
+`GuardGateLogTab` calls `supabase.rpc('get_unified_gate_log', { _society_id, _limit: 50 })` but the function signature is `get_unified_gate_log(_society_id uuid, _date date)`. The `_limit` parameter is not recognized and `_date` is missing. This causes the "Log" tab in the Guard Console to fail silently or return an error.
 
-### 2.3 Worker Cross-Society Job Acceptance
-- `accept_worker_job` RPC: Uses `SELECT FOR UPDATE` (race-safe). For `'nearby'` scope, validates worker's `society_id` is either the job's society OR in `target_society_ids`. For `'society'` scope, worker must be in same society.
-- **VERDICT: PASS -- Server-enforced, no client bypass.**
+**Fix**: Change call to pass `_date: new Date().toISOString().split('T')[0]` instead of `_limit: 50`. The function already has no LIMIT clause (returns all entries for the given date).
 
-### 2.4 Worker Job Visibility (RLS)
-- Two relevant SELECT policies on `worker_job_requests`:
-  - `Worker can view open jobs in society`: Worker sees open jobs where `society_id` matches their worker registration's `society_id`.
-  - `Workers can see cross-society jobs`: Includes condition `visibility_scope = 'nearby' AND get_user_society_id(auth.uid()) = ANY(target_society_ids)`.
-- **Finding F5**: These two SELECT policies **overlap**. Both allow society-scoped reads. The first is specifically for open jobs in own society; the second is broader (includes cross-society + own society + resident + admin). PostgreSQL RLS is OR-based across policies, so this doesn't create a security issue, but the `Worker can view open jobs in society` policy is technically redundant given the broader one. **Severity: INFO** -- No security impact, minor cleanup opportunity.
-- **VERDICT: PASS -- No data leakage. Policies are correct even if redundant.**
+### G2 — MEDIUM: PendingDeliveries uses useState instead of useEffect
 
-### 2.5 Feature Gate Enforcement
-- **UI**: Pages wrapped in `<FeatureGate feature="worker_marketplace">`.
-- **Server**: RLS policies `feature_gate_worker_job_requests_insert`, `_update`, `_delete` all check `can_access_feature('worker_marketplace')`. Same for `society_workers` with `workforce_management`.
-- Disabling feature mid-session: UI will refresh on next data fetch (React Query). Backend blocks writes immediately via RLS.
-- **VERDICT: PASS -- Dual enforcement (UI + RLS).**
+In `GuardDeliveryTab`, the `PendingDeliveries` sub-component uses `useState(() => { ... })` (line 251) to trigger a fetch — this is a React anti-pattern. `useState` initializers run synchronously and should not perform async side effects. The fetch will fire on every render.
 
----
+**Fix**: Replace `useState(() => { ... })` with `useEffect(() => { ... }, [societyId])`.
 
-## Phase 3 -- Configuration Integrity
+### G3 — MEDIUM: GuardResidentQRTab has duplicate manual entry logic
 
-| Config Item | Source | Dynamic? | Status |
-|---|---|---|---|
-| Language list | `supported_languages` table | Yes | PASS |
-| Default language | `system_settings.default_worker_language` | Yes (stored as `hi`) | PASS |
-| Radius options | `system_settings.worker_broadcast_radius_options` | Yes (`[3, 5, 10]`) | PASS |
-| Default radius | `system_settings.worker_broadcast_default_radius` | Yes (`5`) | PASS |
-| Worker categories | `society_worker_categories` table | Yes | PASS |
-| Society selection | `get_nearby_societies` RPC | Yes (radius param) | PASS |
-| Feature flags | `society_features` / package hierarchy | Yes | PASS |
+`GuardResidentQRTab` contains a full manual entry section (lines 104-143) with its own realtime subscription, duplicating `GuardManualEntryTab` which is a separate tab. This is dead code that could cause double entries.
 
-All items can be changed in DB without code deployment.
+**Fix**: Remove the manual entry section from `GuardResidentQRTab` since `GuardManualEntryTab` is already a dedicated tab. This eliminates the duplication.
 
-**Exception**: Adding a new urgency or entry_frequency enum value to the DB would require a UI code update to display it. See F4.
+### G4 — LOW: Visitor OTP query missing security officer scope check
+
+`GuardVisitorOTPTab` directly queries `visitor_entries` by `society_id` + `otp_code` without verifying the querying user is a security officer. RLS covers SELECT (residents see own + admins see all), but security officers have no explicit SELECT policy on `visitor_entries`. They rely on `is_society_admin` or the query happening through the guard context.
+
+**Status**: Functionally safe — guards must already pass the `GuardKioskPage` access gate. Document only.
+
+### G5 — LOW: Parcel INSERT policy requires `resident_id = auth.uid()`
+
+The parcel INSERT RLS policy enforces `resident_id = auth.uid() AND can_write_to_society(...)`. When an admin/guard logs a parcel for a different resident, `resident_id` is set to the target resident (not the guard), so the insert will fail via RLS.
+
+**Fix**: The policy needs to allow admins to insert parcels for other residents. Add an OR clause for `is_society_admin(auth.uid(), society_id) OR is_admin(auth.uid())`.
+
+### G6 — INFO: SecurityVerifyPage is a deprecated redirect
+
+`/security/verify` redirects to `/guard-kiosk`. No action needed — by design.
+
+### G7 — INFO: Expected visitors check-in bypasses guard logging
+
+`ExpectedVisitorsList.handleQuickCheckIn` updates `visitor_entries` status but does not create a `gate_entries` record, unlike the OTP and delivery flows which log gate entries. This means quick check-ins are invisible in the security audit log.
+
+**Fix**: Add a `gate_entries` insert in `handleQuickCheckIn` for audit completeness.
 
 ---
 
-## Phase 4 -- Role Isolation
+## Phase 2: Test Suite
 
-### Worker Route Protection
-- **WorkerJobsPage.tsx** (lines 199-209): In-page guard via `useWorkerRole()`. Non-workers see "Worker Access Only" message.
-- **WorkerMyJobsPage.tsx**: Same pattern expected.
-- Worker pages are not in admin/builder navigation paths.
+Create `src/test/security-gate.test.ts` with approximately 60-70 test cases covering:
 
-### URL-Based Bypass Risk
-- A resident can navigate to `/worker/jobs` directly but will see "Worker Access Only" since they fail the `isWorker` check.
-- Worker cannot access `/admin`, `/builder-dashboard`, `/society-admin` -- those pages have their own role guards (admin/builder/society-admin checks).
-- **Finding F6**: Route-level guards are **in-page**, not at the router level. This means the component loads before checking role. **Severity: LOW** -- No data is exposed because RLS prevents data loading, and UI shows access-denied immediately. No actual bypass possible.
+**Gate Token (edge function logic validation)**
+- Token format: encrypted payload + HMAC signature
+- Expiry enforcement (60-second window)
+- Nonce deduplication blocks replay
+- Unverified residents rejected (403)
+- Non-officer validators rejected (403)
+- Basic mode: immediate entry logged
+- Confirmation mode: awaiting_confirmation flag set
 
-### Isolation Type
-- **In-page** + **RLS-based**. Not router-level.
-- **VERDICT: PASS -- Functionally secure. No data leakage possible.**
+**Guard Kiosk Access Control**
+- Non-admin, non-officer users see "Access Restricted"
+- Security officers see full console
+- Society admins see full console
+- Feature gate blocks when `guard_kiosk` disabled
+
+**Visitor OTP Verification**
+- 6-digit OTP enforced
+- Expired OTP rejected
+- Valid OTP returns visitor details with resident name
+- Check-in updates status
+- Deny resets state
+
+**Manual Entry Flow**
+- Rate limiting (20/min)
+- Realtime subscription for responses
+- Approved/denied/expired states render correctly
+- Notification enqueued for resident
+
+**Delivery Verification**
+- Search by delivery code, rider name, phone
+- Allow entry updates status to `at_gate`
+- Gate entry logged
+
+**Worker Validation**
+- `validate_worker_entry` RPC: active workers pass
+- Suspended/blacklisted workers blocked
+- Outside shift hours blocked
+- No flat assignments blocked
+- Entry logged in both `worker_entry_logs` and `gate_entries`
+
+**Visitor Management**
+- Add visitor generates 6-digit OTP
+- Pre-approved flag controls OTP generation
+- Recurring visitors with day selection
+- Check-in/check-out/cancel transitions
+- OTP copy to clipboard
+- Today/Upcoming/History tabs filter correctly
+
+**Parcel Management**
+- Resident logs own parcel
+- Admin flat lookup flow
+- Collect marks as collected with timestamp
+- Pending vs collected tab filtering
+
+**Authorized Persons**
+- Add with name, relationship, phone, photo
+- Remove sets `is_active = false`
+- Feature-gated under `visitor_management`
+
+**Security Audit**
+- Officers see only their own verifications
+- Admins see all entries
+- Filters: date range, entry type, status, resident name
+- CSV export
+- Pagination
+- Metrics: today count, manual %, denied %, avg confirm time
+
+**Resident Confirmation**
+- Pending entries shown with countdown
+- Confirm/deny updates gate entry
+- Expired entries blocked by RLS
+- Realtime + 5s polling fallback
+
+**Guard Confirmation Poller**
+- Countdown from timeout seconds
+- Realtime resolves to confirmed/denied
+- 4s polling fallback
+- Expired state after timeout
+- Dedup via `resolvedRef`
 
 ---
 
-## Phase 5 -- Mutation Resilience
+## Phase 3: Auto-Fixes
 
-| Scenario | Behavior | Fail-Closed? |
-|---|---|---|
-| Remove all languages from DB | Registration: Dropdown empty, submit disabled (`languages.length === 0`). TTS: `preferred_language` is empty/missing, edge function returns 400 "Language code is required". | **YES** |
-| Remove default radius config | `radiusOptions` is empty, UI shows "Broadcast radius not configured. Contact admin." Nearby scope unusable. | **YES** |
-| Disable `worker_marketplace` feature | UI: FeatureGate blocks rendering. RLS: INSERT/UPDATE/DELETE blocked by `can_access_feature` policies. Immediate. | **YES** |
-| Invalid API insert (bad scope) | DB trigger raises exception. Insert rejected. | **YES** |
-| Cross-society job acceptance outside target list | `accept_worker_job` RPC: Worker lookup fails, returns error "Worker not registered in eligible society". | **YES** |
-| Delete language used by existing worker | Worker record keeps old `preferred_language` value. New registrations with that code fail (`trg_validate_worker_preferred_language`). Existing TTS calls: Edge function DB lookup returns no `ai_name`, falls back to "Hindi-English mix" (F1). | **PARTIAL -- see F1** |
-| Remove worker role mid-session | Next data fetch: `useWorkerRole` returns `isWorker: false`. UI shows access-denied. RLS prevents data queries. | **YES** |
+### Fix G1 (Critical) — GuardGateLogTab wrong RPC parameter
+Replace `_limit: 50` with `_date: new Date().toISOString().split('T')[0]` in the RPC call.
 
----
+### Fix G2 (Medium) — PendingDeliveries useState misuse
+Replace `useState(() => { ... })` with `useEffect(() => { ... }, [societyId])`.
 
-## Summary of Findings
+### Fix G3 (Medium) — Remove duplicate manual entry from GuardResidentQRTab
+Remove lines 37-143 (manual entry state, realtime subscription, and manual entry card) from `GuardResidentQRTab` since `GuardManualEntryTab` handles this as a dedicated tab.
 
-| ID | Issue | Severity | Type | Action Required |
-|---|---|---|---|---|
-| F1 | Edge function line 48: `let langName = "Hindi-English mix"` fallback when `ai_name` not found in DB | MEDIUM | Hardcoded fallback | Change to return 400 error if language not found in DB |
-| F2 | `entryFrequency` defaults to `'daily'` in UI state | LOW | Hardcoded default | Consider loading default from DB or leaving unset |
-| F3 | Shift time defaults `06:00`/`18:00` hardcoded | LOW | Hardcoded default | Could be made DB-configurable; low risk |
-| F4 | Urgency and entry_frequency enum options displayed statically in UI | LOW | Static display | UI won't reflect new enum values added to DB without code change |
-| F5 | Overlapping SELECT RLS policies on `worker_job_requests` | INFO | Redundancy | Cleanup opportunity, no security impact |
-| F6 | Route guards are in-page, not router-level | LOW | Architecture | RLS prevents data access regardless; cosmetic concern |
+### Fix G5 (Low) — Parcel INSERT RLS for admin
+Add migration: admin/society-admin bypass for parcel inserts.
+
+### Fix G7 (Info) — Expected visitor check-in audit logging
+Add `gate_entries` insert in `ExpectedVisitorsList.handleQuickCheckIn`.
 
 ---
 
-## Final Certification
+## Phase 4: Deliverables
 
-### Enforcement-Grade Score: ~95%
+1. `.lovable/security-gate-audit.md` — Feature & Rule Inventory with all 7 issues
+2. `src/test/security-gate.test.ts` — Full test suite (~65 tests)
+3. Code fixes for G1, G2, G3, G5, G7
+4. RLS migration for G5
+5. Re-run all tests to verify no regressions
 
-### Justification
-- **What is fully compliant**: Language system (DB-backed, trigger-validated), broadcast radius (DB-configurable with UI), job scope validation (DB trigger, fail-closed), cross-society acceptance (server RPC-enforced), feature gating (dual UI + RLS), worker visibility (RLS-only, no frontend filtering), TTS voice mapping (DB-driven), job types (DB-driven), notification triggers (server-side only), mutation resilience (fail-closed in 6/7 scenarios).
+---
 
-- **What prevents 100%**:
-  1. **F1 (MEDIUM)**: The edge function has one remaining hardcoded fallback (`"Hindi-English mix"`) that activates when a language's `ai_name` is not configured. This should return an error instead.
-  2. **F2-F4 (LOW)**: Minor UI defaults and static enum displays that are structurally safe (DB-validated) but not fully DB-driven in display.
+## Technical Notes
 
-### To reach 100%
-1. Fix F1: Replace `let langName = "Hindi-English mix"` with a check that returns 400 error if `ai_name` is not found.
-2. Optionally address F2-F4 for strict compliance (these are safe as-is due to DB validation).
+- The gate-token edge function uses AES-GCM encryption + HMAC-SHA256 signing derived from `SUPABASE_SERVICE_ROLE_KEY`
+- Nonce deduplication uses the `notes` column with `nonce:` prefix (no dedicated UNIQUE index on nonce — relies on application-level check)
+- Security mode is per-society (`basic` or `confirmation`) stored in `societies.security_mode`
+- RLS layering: feature gate policies AND role-based policies must both pass (AND semantics)
+- `get_unified_gate_log` unions 4 tables: visitor_entries, gate_entries, worker_attendance, delivery_assignments
+
