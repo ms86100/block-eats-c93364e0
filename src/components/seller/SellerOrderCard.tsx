@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ORDER_STATUS_LABELS } from '@/types/database';
 import { OrderItemStatusBadge, ItemStatus } from './OrderItemStatusBadge';
-import { ChevronRight, Clock, CreditCard, Package, MessageSquare, User } from 'lucide-react';
+import { ChevronRight, Clock, CreditCard, Package, MessageSquare, User, Truck, ShoppingBag } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface OrderItemWithStatus {
@@ -21,6 +21,7 @@ interface SellerOrderCardOrder {
   status: string;
   payment_status?: string | null;
   payment_type?: string | null;
+  fulfillment_type?: string | null;
   buyer?: { name: string; block: string; flat_number: string };
   items?: OrderItemWithStatus[];
 }
@@ -70,9 +71,22 @@ export function SellerOrderCard({ order }: SellerOrderCardProps) {
             </div>
             <div className="flex flex-col items-end gap-1">
               <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusInfo.color}`}>
-                {statusInfo.label}
+                {order.fulfillment_type === 'delivery' && order.status === 'ready'
+                  ? 'Awaiting Pickup'
+                  : statusInfo.label}
               </span>
-              {getPaymentBadge()}
+              <div className="flex items-center gap-1">
+                {order.fulfillment_type === 'delivery' ? (
+                  <Badge variant="outline" className="text-[10px] border-primary/40 text-primary gap-0.5">
+                    <Truck size={10} /> Delivery
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] border-muted-foreground/40 text-muted-foreground gap-0.5">
+                    <ShoppingBag size={10} /> Pickup
+                  </Badge>
+                )}
+                {getPaymentBadge()}
+              </div>
             </div>
           </div>
 
