@@ -23,6 +23,7 @@ import {
   UserPlus, Shield, Clock, Car, Phone, Truck, Users,
   CheckCircle, XCircle, Copy, RefreshCw, LogIn, LogOut, Download, Loader2
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { exportVisitorLog } from '@/lib/csv-export';
 
 type VisitorType = 'guest' | 'delivery' | 'cab' | 'domestic_help' | 'contractor';
@@ -85,6 +86,8 @@ export default function VisitorManagementPage() {
   const [expectedDate, setExpectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [expectedTime, setExpectedTime] = useState('');
   const [isPreapproved, setIsPreapproved] = useState(true);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDays, setRecurringDays] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchVisitors = useCallback(async () => {
@@ -136,6 +139,8 @@ export default function VisitorManagementPage() {
       otp_code: isPreapproved ? otp : null,
       otp_expires_at: isPreapproved ? new Date(Date.now() + 24 * 3600000).toISOString() : null,
       is_preapproved: isPreapproved,
+      is_recurring: isRecurring,
+      recurring_days: isRecurring && recurringDays.length > 0 ? recurringDays : null,
       vehicle_number: vehicleNumber || null,
       flat_number: profile?.flat_number || null,
       status: 'expected',
@@ -194,6 +199,8 @@ export default function VisitorManagementPage() {
     setExpectedDate(new Date().toISOString().split('T')[0]);
     setExpectedTime('');
     setIsPreapproved(true);
+    setIsRecurring(false);
+    setRecurringDays([]);
   };
 
   const todayCount = visitors.filter(v => v.status === 'expected' || v.status === 'checked_in').length;
@@ -264,11 +271,38 @@ export default function VisitorManagementPage() {
                       <Input type="time" value={expectedTime} onChange={e => setExpectedTime(e.target.value)} />
                     </div>
                   </div>
-                  <div>
-                    <Label>Vehicle Number (optional)</Label>
-                    <Input value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} placeholder="MH 01 AB 1234" />
-                  </div>
-                  <Button onClick={handleAddVisitor} disabled={!visitorName.trim() || isSubmitting} className="w-full">
+                   <div>
+                     <Label>Vehicle Number (optional)</Label>
+                     <Input value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} placeholder="MH 01 AB 1234" />
+                   </div>
+                   <div className="flex items-center justify-between py-2">
+                     <Label className="text-sm">Recurring Visitor</Label>
+                     <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+                   </div>
+                   {isRecurring && (
+                     <div>
+                       <Label className="text-xs">Active Days</Label>
+                       <div className="flex flex-wrap gap-1.5 mt-1">
+                         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                           <button
+                             key={day}
+                             type="button"
+                             onClick={() => setRecurringDays(prev => 
+                               prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                             )}
+                             className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                               recurringDays.includes(day)
+                                 ? 'bg-primary text-primary-foreground'
+                                 : 'bg-muted text-muted-foreground'
+                             }`}
+                           >
+                             {day}
+                           </button>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                   <Button onClick={handleAddVisitor} disabled={!visitorName.trim() || isSubmitting} className="w-full">
                     {isSubmitting ? <><Loader2 size={16} className="mr-1 animate-spin" /> Adding...</> : 'Add Visitor & Generate OTP'}
                   </Button>
                 </div>

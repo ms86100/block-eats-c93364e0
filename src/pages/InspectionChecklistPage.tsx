@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { ImageUpload } from '@/components/ui/image-upload';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger
 } from '@/components/ui/sheet';
@@ -369,12 +370,34 @@ export default function InspectionChecklistPage() {
                 </div>
 
                 {item.status === 'fail' && (
-                  <Textarea
-                    className="mt-2 text-xs h-16"
-                    placeholder="Describe the issue..."
-                    value={item.notes || ''}
-                    onChange={e => updateItemNotes(item.id, e.target.value)}
-                  />
+                  <div className="mt-2 space-y-2">
+                    <Textarea
+                      className="text-xs h-16"
+                      placeholder="Describe the issue..."
+                      value={item.notes || ''}
+                      onChange={e => updateItemNotes(item.id, e.target.value)}
+                    />
+                    <ImageUpload
+                      value={item.photo_urls?.[0] || null}
+                      onChange={async (url) => {
+                        if (!activeChecklist || !url) return;
+                        const newPhotos = [...(item.photo_urls || []), url];
+                        await supabase.from('inspection_items')
+                          .update({ photo_urls: newPhotos } as any)
+                          .eq('id', item.id);
+                        setItems(prev => prev.map(i => i.id === item.id ? { ...i, photo_urls: newPhotos } : i));
+                      }}
+                      folder="inspection"
+                      userId={user?.id || ''}
+                    />
+                    {item.photo_urls && item.photo_urls.length > 0 && (
+                      <div className="flex gap-1 flex-wrap">
+                        {item.photo_urls.map((url, i) => (
+                          <img key={i} src={url} alt={`Issue ${i + 1}`} className="w-12 h-12 rounded object-cover border border-border" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>

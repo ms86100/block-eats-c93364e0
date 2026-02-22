@@ -14,7 +14,9 @@ import { SpendingPieChart } from '@/components/finances/SpendingPieChart';
 import { ExpenseList } from '@/components/finances/ExpenseList';
 import { AddExpenseSheet } from '@/components/finances/AddExpenseSheet';
 import { IncomeVsExpenseChart } from '@/components/finances/IncomeVsExpenseChart';
-import { Loader2, Plus, TrendingUp, TrendingDown, Wallet, Download } from 'lucide-react';
+import { BudgetManager } from '@/components/finances/BudgetManager';
+import { ExpenseFlagManager } from '@/components/finances/ExpenseFlagManager';
+import { Loader2, Plus, TrendingUp, TrendingDown, Wallet, Download, Flag, Target } from 'lucide-react';
 import { exportFinances } from '@/lib/csv-export';
 
 interface Expense {
@@ -128,9 +130,11 @@ export default function SocietyFinancesPage() {
             </div>
 
             <Tabs defaultValue="breakdown">
-              <TabsList className="w-full grid grid-cols-2">
-                <TabsTrigger value="breakdown">Spending Breakdown</TabsTrigger>
-                <TabsTrigger value="comparison">Monthly Comparison</TabsTrigger>
+              <TabsList className="w-full grid grid-cols-4">
+                <TabsTrigger value="breakdown" className="text-xs">Spending</TabsTrigger>
+                <TabsTrigger value="comparison" className="text-xs">Monthly</TabsTrigger>
+                <TabsTrigger value="budget" className="text-xs">Budget</TabsTrigger>
+                {(isAdmin || isSocietyAdmin) && <TabsTrigger value="flags" className="text-xs">Flags</TabsTrigger>}
               </TabsList>
 
               <TabsContent value="breakdown" className="space-y-4 mt-4">
@@ -160,6 +164,16 @@ export default function SocietyFinancesPage() {
               <TabsContent value="comparison" className="mt-4">
                 <IncomeVsExpenseChart expenses={expenses} income={income} />
               </TabsContent>
+
+              <TabsContent value="budget" className="mt-4">
+                <BudgetManager expenses={expenses} />
+              </TabsContent>
+
+              {(isAdmin || isSocietyAdmin) && (
+                <TabsContent value="flags" className="mt-4">
+                  <ExpenseFlagManager />
+                </TabsContent>
+              )}
             </Tabs>
           </>
         )}

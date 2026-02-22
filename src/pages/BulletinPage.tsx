@@ -199,7 +199,7 @@ export default function BulletinPage() {
                 </div>
               ) : (
                 enrichedPosts.map(post => (
-                  <PostCard key={post.id} post={post} onUpvote={handleUpvote} onOpen={setSelectedPost} />
+                  <PostCard key={post.id} post={post} onUpvote={handleUpvote} onOpen={setSelectedPost} onRefresh={fetchPosts} />
                 ))
               )}
             </div>

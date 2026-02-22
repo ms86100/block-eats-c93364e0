@@ -1514,6 +1514,8 @@ export type Database = {
           flagged_by: string
           id: string
           reason: string
+          resolved_at: string | null
+          resolved_by: string | null
           status: string
         }
         Insert: {
@@ -1523,6 +1525,8 @@ export type Database = {
           flagged_by: string
           id?: string
           reason: string
+          resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
         }
         Update: {
@@ -1532,6 +1536,8 @@ export type Database = {
           flagged_by?: string
           id?: string
           reason?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
         }
         Relationships: [
@@ -1545,6 +1551,13 @@ export type Database = {
           {
             foreignKeyName: "expense_flags_flagged_by_fkey"
             columns: ["flagged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_flags_resolved_by_fkey"
+            columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2740,8 +2753,10 @@ export type Database = {
         Row: {
           assigned_to: string | null
           created_at: string
+          flat_number: string | null
           id: string
           is_occupied: boolean
+          resident_id: string | null
           slot_number: string
           slot_type: string
           society_id: string
@@ -2753,8 +2768,10 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           created_at?: string
+          flat_number?: string | null
           id?: string
           is_occupied?: boolean
+          resident_id?: string | null
           slot_number: string
           slot_type?: string
           society_id: string
@@ -2766,8 +2783,10 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           created_at?: string
+          flat_number?: string | null
           id?: string
           is_occupied?: boolean
+          resident_id?: string | null
           slot_number?: string
           slot_type?: string
           society_id?: string
@@ -2780,6 +2799,13 @@ export type Database = {
           {
             foreignKeyName: "parking_slots_assigned_to_fkey"
             columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_slots_resident_id_fkey"
+            columns: ["resident_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -4417,6 +4443,44 @@ export type Database = {
           },
         ]
       }
+      society_budgets: {
+        Row: {
+          budget_amount: number
+          category: string
+          created_at: string
+          fiscal_year: string
+          id: string
+          society_id: string
+          updated_at: string
+        }
+        Insert: {
+          budget_amount?: number
+          category: string
+          created_at?: string
+          fiscal_year?: string
+          id?: string
+          society_id: string
+          updated_at?: string
+        }
+        Update: {
+          budget_amount?: number
+          category?: string
+          created_at?: string
+          fiscal_year?: string
+          id?: string
+          society_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_budgets_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       society_expenses: {
         Row: {
           added_by: string
@@ -5621,6 +5685,7 @@ export type Database = {
         Args: { _job_id: string; _worker_id: string }
         Returns: Json
       }
+      auto_escalate_overdue_disputes: { Args: never; Returns: undefined }
       calculate_society_trust_score: {
         Args: { _society_id: string }
         Returns: number
@@ -5673,6 +5738,7 @@ export type Database = {
             }
             Returns: Json
           }
+      generate_recurring_visitor_entries: { Args: never; Returns: undefined }
       get_builder_dashboard: { Args: { _builder_id: string }; Returns: Json }
       get_category_parent_group: { Args: { cat: string }; Returns: string }
       get_effective_society_features: {

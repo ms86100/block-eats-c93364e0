@@ -27,24 +27,32 @@ interface Ticket {
 }
 
 export default function DisputesPage() {
-  const { user } = useAuth();
+  const { user, isSocietyAdmin, isAdmin, effectiveSocietyId } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [tab, setTab] = useState('open');
+  const [viewMode, setViewMode] = useState<'my' | 'all'>('my');
 
   const fetchTickets = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from('dispute_tickets')
-      .select('*')
-      .eq('submitted_by', user.id)
+      .select('*, submitter:profiles!dispute_tickets_submitted_by_fkey(name)')
       .order('created_at', { ascending: false });
+
+    if (viewMode === 'my') {
+      query = query.eq('submitted_by', user.id);
+    } else if (effectiveSocietyId) {
+      query = query.eq('society_id', effectiveSocietyId);
+    }
+
+    const { data } = await query;
     setTickets((data as any) || []);
     setLoading(false);
-  }, [user]);
+  }, [user, viewMode, effectiveSocietyId]);
 
   useEffect(() => { fetchTickets(); }, [fetchTickets]);
 
@@ -56,6 +64,12 @@ export default function DisputesPage() {
     <AppLayout headerTitle="My Concerns" showLocation={false}>
       <FeatureGate feature="disputes">
       <div className="p-4 space-y-4">
+        {(isSocietyAdmin || isAdmin) && (
+          <div className="flex gap-2">
+            <Button size="sm" variant={viewMode === 'my' ? 'default' : 'outline'} onClick={() => setViewMode('my')} className="text-xs">My Concerns</Button>
+            <Button size="sm" variant={viewMode === 'all' ? 'default' : 'outline'} onClick={() => setViewMode('all')} className="text-xs">All Society</Button>
+          </div>
+        )}
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="open">Open ({openTickets.length})</TabsTrigger>
@@ -106,6 +120,7 @@ export default function DisputesPage() {
         open={!!selectedTicket}
         onOpenChange={(open) => { if (!open) setSelectedTicket(null); }}
         onUpdated={() => { fetchTickets(); setSelectedTicket(null); }}
+        isAdmin={viewMode === 'all' && (isSocietyAdmin || isAdmin)}
       />
       </FeatureGate>
     </AppLayout>

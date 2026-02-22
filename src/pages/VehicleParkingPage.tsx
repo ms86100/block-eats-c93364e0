@@ -24,6 +24,8 @@ interface ParkingSlot {
   vehicle_type: string | null;
   is_occupied: boolean;
   assigned_to: string | null;
+  resident_id: string | null;
+  flat_number: string | null;
 }
 
 interface ParkingViolation {
@@ -48,6 +50,7 @@ export default function VehicleParkingPage() {
   const [slotNumber, setSlotNumber] = useState('');
   const [slotType, setSlotType] = useState('car');
   const [vehicleNumber, setVehicleNumber] = useState('');
+  const [slotFlatNumber, setSlotFlatNumber] = useState('');
 
   // Report violation form
   const [violationVehicle, setViolationVehicle] = useState('');
@@ -88,7 +91,8 @@ export default function VehicleParkingPage() {
         vehicle_number: vehicleNumber.trim() || null,
         is_occupied: !!vehicleNumber.trim(),
         assigned_to: vehicleNumber.trim() ? profile?.id : null,
-      });
+        flat_number: slotFlatNumber.trim() || null,
+      } as any);
       if (error) throw error;
       toast.success('Parking slot added');
       setAddSlotOpen(false);
@@ -193,7 +197,8 @@ export default function VehicleParkingPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Vehicle Number (optional)</Label><Input value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} placeholder="e.g. MH-02-AB-1234" /></div>
+                   <div><Label>Vehicle Number (optional)</Label><Input value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} placeholder="e.g. MH-02-AB-1234" /></div>
+                   <div><Label>Flat Number (optional)</Label><Input value={slotFlatNumber} onChange={e => setSlotFlatNumber(e.target.value)} placeholder="e.g. A-101" /></div>
                   <Button className="w-full" onClick={addSlot} disabled={!slotNumber.trim()}>Add Slot</Button>
                 </div>
               </SheetContent>
@@ -245,6 +250,7 @@ export default function VehicleParkingPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {slot.vehicle_number || (slot.is_occupied ? 'Occupied' : 'Available')}
+                      {(slot as any).flat_number && ` · Flat ${(slot as any).flat_number}`}
                     </p>
                   </div>
                   <Badge variant={slot.is_occupied ? 'secondary' : 'default'} className="text-[10px]">

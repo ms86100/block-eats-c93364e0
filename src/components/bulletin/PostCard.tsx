@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowBigUp, MessageCircle, Pin, MapPin, Calendar, Users, Flag } from 'lucide-react';
+import { ArrowBigUp, MessageCircle, Pin, MapPin, Calendar, Users, Flag, Archive, Trash2, MoreVertical } from 'lucide-react';
 import { ReportSheet } from '@/components/report/ReportSheet';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import { CATEGORY_CONFIG } from './CategoryFilter';
 
 export interface BulletinPost {
@@ -35,12 +39,30 @@ interface PostCardProps {
   post: BulletinPost;
   onUpvote: (postId: string) => void;
   onOpen: (post: BulletinPost) => void;
+  onRefresh?: () => void;
 }
 
-export function PostCard({ post, onUpvote, onOpen }: PostCardProps) {
+export function PostCard({ post, onUpvote, onOpen, onRefresh }: PostCardProps) {
+  const { isSocietyAdmin, isAdmin } = useAuth();
   const [reportOpen, setReportOpen] = useState(false);
+  const canModerate = isSocietyAdmin || isAdmin;
   const cat = CATEGORY_CONFIG[post.category] || CATEGORY_CONFIG.alert;
   const CatIcon = cat.icon;
+
+  const handleModAction = async (action: 'pin' | 'archive' | 'delete', e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (action === 'pin') {
+      await supabase.from('bulletin_posts').update({ is_pinned: !post.is_pinned }).eq('id', post.id);
+      toast.success(post.is_pinned ? 'Unpinned' : 'Pinned');
+    } else if (action === 'archive') {
+      await supabase.from('bulletin_posts').update({ is_archived: true }).eq('id', post.id);
+      toast.success('Post archived');
+    } else if (action === 'delete') {
+      await supabase.from('bulletin_posts').delete().eq('id', post.id);
+      toast.success('Post deleted');
+    }
+    onRefresh?.();
+  };
 
   return (
     <div
@@ -150,6 +172,26 @@ export function PostCard({ post, onUpvote, onOpen }: PostCardProps) {
           >
             <Flag size={13} />
           </button>
+          {canModerate && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground" onClick={e => e.stopPropagation()}>
+                  <MoreVertical size={14} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => handleModAction('pin', e as any)}>
+                  <Pin size={12} className="mr-2" /> {post.is_pinned ? 'Unpin' : 'Pin'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => handleModAction('archive', e as any)}>
+                  <Archive size={12} className="mr-2" /> Archive
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive" onClick={(e) => handleModAction('delete', e as any)}>
+                  <Trash2 size={12} className="mr-2" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
