@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PaymentMethodSelector } from '@/components/payment/PaymentMethodSelector';
 import { RazorpayCheckout } from '@/components/payment/RazorpayCheckout';
 import { CouponInput } from '@/components/cart/CouponInput';
+import { FulfillmentSelector } from '@/components/delivery/FulfillmentSelector';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,8 +29,12 @@ export default function CartPage() {
   const [pendingOrderIds, setPendingOrderIds] = useState<string[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discountAmount: number } | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [fulfillmentType, setFulfillmentType] = useState<'self_pickup' | 'delivery'>('self_pickup');
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const freeDeliveryThreshold = 500;
 
-  const finalAmount = appliedCoupon ? Math.max(0, totalAmount - appliedCoupon.discountAmount) : totalAmount;
+  const effectiveDeliveryFee = fulfillmentType === 'delivery' ? (totalAmount >= freeDeliveryThreshold ? 0 : 20) : 0;
+  const finalAmount = (appliedCoupon ? Math.max(0, totalAmount - appliedCoupon.discountAmount) : totalAmount) + effectiveDeliveryFee;
 
   const firstSeller = sellerGroups[0]?.items[0]?.product?.seller;
   const acceptsCod = firstSeller?.accepts_cod ?? true;
@@ -71,6 +76,16 @@ export default function CartPage() {
     if (!result?.success) throw new Error('Failed to create orders');
 
     const createdOrderIds = result.order_ids;
+
+    // Update fulfillment_type and delivery_fee on created orders
+    if (fulfillmentType === 'delivery') {
+      for (const oid of createdOrderIds) {
+        await supabase.from('orders').update({
+          fulfillment_type: 'delivery',
+          delivery_fee: effectiveDeliveryFee,
+        }).eq('id', oid);
+      }
+    }
 
     // Notifications are now handled by database triggers (enqueue_order_placed_notification)
     return createdOrderIds;
@@ -386,7 +401,16 @@ export default function CartPage() {
           <PaymentMethodSelector acceptsCod={acceptsCod} acceptsUpi={acceptsUpi} selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
         </div>
 
-        {/* Coupon */}
+        {/* Fulfillment Type */}
+        <div className="mt-5 px-4">
+          <FulfillmentSelector
+            value={fulfillmentType}
+            onChange={setFulfillmentType}
+            deliveryFee={20}
+            freeDeliveryThreshold={freeDeliveryThreshold}
+            orderValue={totalAmount}
+          />
+        </div>
         {sellerGroups.length === 1 ? (
           <div className="mt-5 px-4">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Apply Coupon</h3>
@@ -424,7 +448,9 @@ export default function CartPage() {
             )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Delivery Fee</span>
-              <span className="text-primary font-medium">FREE</span>
+              <span className={`font-medium ${effectiveDeliveryFee === 0 ? 'text-primary' : ''}`}>
+                {fulfillmentType === 'delivery' ? (effectiveDeliveryFee === 0 ? 'FREE' : `₹${effectiveDeliveryFee}`) : 'Self Pickup'}
+              </span>
             </div>
             <div className="border-t border-border pt-2 mt-1 flex justify-between font-bold">
               <span>To Pay</span>

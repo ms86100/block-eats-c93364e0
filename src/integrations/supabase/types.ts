@@ -1030,6 +1030,185 @@ export type Database = {
           },
         ]
       }
+      delivery_assignments: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          delivered_at: string | null
+          delivery_fee: number
+          external_tracking_id: string | null
+          failed_reason: string | null
+          gate_entry_id: string | null
+          id: string
+          idempotency_key: string
+          order_id: string
+          otp_expires_at: string | null
+          otp_hash: string | null
+          partner_id: string | null
+          partner_payout: number
+          pickup_at: string | null
+          platform_margin: number
+          rider_name: string | null
+          rider_phone: string | null
+          rider_photo_url: string | null
+          society_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          delivered_at?: string | null
+          delivery_fee?: number
+          external_tracking_id?: string | null
+          failed_reason?: string | null
+          gate_entry_id?: string | null
+          id?: string
+          idempotency_key: string
+          order_id: string
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          partner_id?: string | null
+          partner_payout?: number
+          pickup_at?: string | null
+          platform_margin?: number
+          rider_name?: string | null
+          rider_phone?: string | null
+          rider_photo_url?: string | null
+          society_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          delivered_at?: string | null
+          delivery_fee?: number
+          external_tracking_id?: string | null
+          failed_reason?: string | null
+          gate_entry_id?: string | null
+          id?: string
+          idempotency_key?: string
+          order_id?: string
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          partner_id?: string | null
+          partner_payout?: number
+          pickup_at?: string | null
+          platform_margin?: number
+          rider_name?: string | null
+          rider_phone?: string | null
+          rider_photo_url?: string | null
+          society_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_assignments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_assignments_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_assignments_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_partners: {
+        Row: {
+          api_config: Json | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          provider_type: string
+          society_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          provider_type?: string
+          society_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          provider_type?: string
+          society_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_partners_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_tracking_logs: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          note: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          note?: string | null
+          source?: string
+          status: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          note?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_tracking_logs_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_tokens: {
         Row: {
           created_at: string | null
@@ -2189,10 +2368,12 @@ export type Database = {
           coupon_id: string | null
           created_at: string | null
           delivery_address: string | null
+          delivery_fee: number
           deposit_paid: boolean | null
           deposit_refunded: boolean | null
           discount_amount: number | null
           distance_km: number | null
+          fulfillment_type: string
           id: string
           idempotency_key: string | null
           is_cross_society: boolean
@@ -2222,10 +2403,12 @@ export type Database = {
           coupon_id?: string | null
           created_at?: string | null
           delivery_address?: string | null
+          delivery_fee?: number
           deposit_paid?: boolean | null
           deposit_refunded?: boolean | null
           discount_amount?: number | null
           distance_km?: number | null
+          fulfillment_type?: string
           id?: string
           idempotency_key?: string | null
           is_cross_society?: boolean
@@ -2255,10 +2438,12 @@ export type Database = {
           coupon_id?: string | null
           created_at?: string | null
           delivery_address?: string | null
+          delivery_fee?: number
           deposit_paid?: boolean | null
           deposit_refunded?: boolean | null
           discount_amount?: number | null
           distance_km?: number | null
+          fulfillment_type?: string
           id?: string
           idempotency_key?: string | null
           is_cross_society?: boolean

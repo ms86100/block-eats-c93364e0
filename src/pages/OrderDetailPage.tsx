@@ -9,12 +9,13 @@ import { OrderChat } from '@/components/chat/OrderChat';
 import { ReorderButton } from '@/components/order/ReorderButton';
 import { UrgentOrderTimer } from '@/components/order/UrgentOrderTimer';
 import { OrderRejectionDialog } from '@/components/order/OrderRejectionDialog';
+import { DeliveryStatusCard } from '@/components/delivery/DeliveryStatusCard';
 import { useUrgentOrderSound } from '@/hooks/useUrgentOrderSound';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/lib/audit';
 import { Order, OrderItem, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, OrderStatus, PaymentStatus, ItemStatus, ITEM_STATUS_LABELS } from '@/types/database';
 import { OrderItemCard } from '@/components/order/OrderItemCard';
-import { ArrowLeft, Phone, MapPin, Check, Star, MessageCircle, CreditCard, XCircle, Package, ChevronRight, Copy } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Check, Star, MessageCircle, CreditCard, XCircle, Package, ChevronRight, Copy, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { FeedbackSheet } from '@/components/feedback/FeedbackSheet';
@@ -268,6 +269,11 @@ export default function OrderDetailPage() {
               {paymentStatusInfo.label}
             </span>
           </div>
+
+          {/* Delivery Status */}
+          {(order as any).fulfillment_type === 'delivery' && (
+            <DeliveryStatusCard orderId={order.id} isBuyerView={isBuyerView} />
+          )}
 
           {/* Reorder CTA */}
           {canReorder && (

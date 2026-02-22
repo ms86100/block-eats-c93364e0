@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.generate-product-image]
 verify_jwt = false
+
+[functions.manage-delivery]
+verify_jwt = false
