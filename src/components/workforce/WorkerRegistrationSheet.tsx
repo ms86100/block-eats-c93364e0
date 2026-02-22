@@ -27,7 +27,7 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
   const { user, profile, effectiveSocietyId } = useAuth();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [workerType, setWorkerType] = useState('maid');
+  const [workerType, setWorkerType] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [shiftStart, setShiftStart] = useState('06:00');
   const [shiftEnd, setShiftEnd] = useState('18:00');
@@ -190,7 +190,7 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
 
   const resetForm = () => {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
-    setName(''); setPhone(''); setWorkerType('maid');
+    setName(''); setPhone(''); setWorkerType('');
     setCategoryId(null); setShiftStart('06:00'); setShiftEnd('18:00');
     setActiveDays([...DAYS]); setEntryFrequency('daily');
     setEmergencyPhone(''); setFlatNumbers('');
