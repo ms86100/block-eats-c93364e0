@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
           latitude: latitude || null,
           longitude: longitude || null,
           is_verified: false,
-          is_active: false,
+          is_active: true,
         })
         .select("id, name, is_active, is_verified")
         .single();
