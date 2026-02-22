@@ -160,7 +160,7 @@ export default function CreateJobRequestPage() {
                       <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>No job types configured</SelectItem>
+                    <SelectItem value="__none" disabled>No job types configured</SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -228,7 +228,7 @@ export default function CreateJobRequestPage() {
                       <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>No options configured</SelectItem>
+                    <SelectItem value="__none" disabled>No options configured</SelectItem>
                   )}
                 </SelectContent>
               </Select>
