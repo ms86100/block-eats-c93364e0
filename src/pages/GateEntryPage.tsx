@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { QrCode, RefreshCw, Shield, Clock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/utils';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import QRCode from '@/components/security/QRCodeDisplay';
 import { ManualEntryApproval } from '@/components/security/ManualEntryApproval';
 import { ResidentConfirmation } from '@/components/security/ResidentConfirmation';
@@ -79,6 +80,7 @@ export default function GateEntryPage() {
 
   return (
     <AppLayout headerTitle="Gate Entry" showLocation={false}>
+      <FeatureGate feature="gate_entry">
       <div className="p-4 space-y-4">
         {/* Resident Confirmation (for confirmation mode) */}
         <ResidentConfirmation />
@@ -173,6 +175,7 @@ export default function GateEntryPage() {
           </div>
         )}
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

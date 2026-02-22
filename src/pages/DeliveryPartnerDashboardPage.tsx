@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -187,6 +188,7 @@ export default function DeliveryPartnerDashboardPage() {
 
   return (
     <AppLayout headerTitle="My Deliveries" showLocation={false}>
+      <FeatureGate feature="delivery_management">
       <div className="p-4 space-y-4">
         {/* Partner Status Card */}
         <Card className="border-primary/20 bg-primary/5">
@@ -352,6 +354,7 @@ export default function DeliveryPartnerDashboardPage() {
           </TabsContent>
         </Tabs>
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

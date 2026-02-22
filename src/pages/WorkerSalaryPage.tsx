@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerRole } from '@/hooks/useWorkerRole';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { toast } from 'sonner';
 import { IndianRupee, Plus, Loader2, Wallet } from 'lucide-react';
 
@@ -119,6 +120,7 @@ export default function WorkerSalaryPage() {
 
   return (
     <AppLayout headerTitle="Worker Salary Tracking" showLocation={false}>
+      <FeatureGate feature="worker_salary">
       <div className="p-4 space-y-4">
         {canManage && (
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -180,6 +182,7 @@ export default function WorkerSalaryPage() {
           ))
         )}
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

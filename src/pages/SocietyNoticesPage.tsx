@@ -99,6 +99,7 @@ export default function SocietyNoticesPage() {
 
   return (
     <AppLayout headerTitle="Notices" showLocation={false}>
+      <FeatureGate feature="society_notices">
       <div className="p-4 space-y-4">
         {canPost && (
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -178,6 +179,7 @@ export default function SocietyNoticesPage() {
           ))
         )}
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

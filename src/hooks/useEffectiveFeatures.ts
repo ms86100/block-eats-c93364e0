@@ -20,7 +20,15 @@ export type FeatureKey =
   | 'vehicle_parking'
   | 'resident_identity_verification'
   | 'worker_marketplace'
-  | 'workforce_management';
+  | 'workforce_management'
+  | 'society_notices'
+  | 'delivery_management'
+  | 'worker_attendance'
+  | 'worker_salary'
+  | 'worker_leave'
+  | 'security_audit'
+  | 'seller_tools'
+  | 'gate_entry';
 
 export type FeatureState = 'enabled' | 'disabled' | 'locked' | 'unavailable';
 

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerRole } from '@/hooks/useWorkerRole';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { toast } from 'sonner';
 import { CalendarOff, Plus, Loader2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
@@ -117,6 +118,7 @@ export default function WorkerLeavePage() {
 
   return (
     <AppLayout headerTitle="Worker Leave Tracking" showLocation={false}>
+      <FeatureGate feature="worker_leave">
       <div className="p-4 space-y-4">
         {canManage && (
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -183,6 +185,7 @@ export default function WorkerLeavePage() {
           ))
         )}
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

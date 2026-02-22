@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -97,6 +98,7 @@ export default function DeliveryPartnerManagementPage() {
 
   return (
     <AppLayout headerTitle="Delivery Partners" showLocation={false}>
+      <FeatureGate feature="delivery_management">
       <div className="p-4 space-y-4">
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-4 flex items-center justify-between">
@@ -223,6 +225,7 @@ export default function DeliveryPartnerManagementPage() {
           </div>
         )}
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

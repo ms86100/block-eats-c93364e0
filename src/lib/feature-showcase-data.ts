@@ -2,6 +2,7 @@ import {
   ShoppingCart, MessageSquare, Scale, IndianRupee, Building2, Bug,
   HelpCircle, DoorOpen, Users, Package, ClipboardCheck, Landmark,
   Wrench, Shield, Car, UserCheck, Briefcase, HardHat, Layers,
+  Megaphone, Truck, CalendarOff, Store, QrCode,
   LucideIcon,
 } from 'lucide-react';
 
@@ -26,6 +27,11 @@ export const iconMap: Record<string, LucideIcon> = {
   Briefcase,
   HardHat,
   Layers,
+  Megaphone,
+  Truck,
+  CalendarOff,
+  Store,
+  QrCode,
 };
 
 export function getFeatureIcon(iconName: string | null): LucideIcon {

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSecurityOfficer } from '@/hooks/useSecurityOfficer';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { useGateAudit, useGateAuditMetrics, GateAuditFilters } from '@/hooks/useGateAudit';
 import {
   Shield, Download, ChevronLeft, ChevronRight, Clock, Users,
@@ -106,6 +107,7 @@ export default function SecurityAuditPage() {
 
   return (
     <AppLayout headerTitle="Security Audit" showLocation={false}>
+      <FeatureGate feature="security_audit">
       <div className="p-4 space-y-4">
         {/* Metrics Cards */}
         {metrics && (
@@ -310,6 +312,7 @@ export default function SecurityAuditPage() {
           </div>
         )}
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }

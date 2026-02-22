@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerRole } from '@/hooks/useWorkerRole';
+import { FeatureGate } from '@/components/ui/FeatureGate';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, Clock, User, CheckCircle2, XCircle } from 'lucide-react';
 import { format, subDays } from 'date-fns';
@@ -63,6 +64,7 @@ export default function WorkerAttendancePage() {
 
   return (
     <AppLayout headerTitle="Worker Attendance" showLocation={false}>
+      <FeatureGate feature="worker_attendance">
       <div className="p-4 space-y-4">
         {/* Date picker */}
         <div className="flex items-center gap-3">
@@ -164,6 +166,7 @@ export default function WorkerAttendancePage() {
           </>
         )}
       </div>
+      </FeatureGate>
     </AppLayout>
   );
 }
