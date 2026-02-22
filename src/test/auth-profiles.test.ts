@@ -1,10 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import {
   emailSchema,
   passwordSchema,
   loginSchema,
   profileDataSchema,
+  signupSchema,
+  disputeSchema,
+  workerRegistrationSchema,
+  jobRequestSchema,
   validateForm,
 } from '@/lib/validation-schemas';
 
@@ -332,5 +336,164 @@ describe('Auth: Effective Society ID', () => {
 
   it('returns null when neither set', () => {
     expect(getEffectiveSocietyId(null, null)).toBeNull();
+  });
+});
+
+// ─── Signup Schema ───────────────────────────────────────────
+describe('Auth: Signup Schema', () => {
+  const validSignup = {
+    email: 'test@example.com',
+    password: 'Secure1!',
+    profile: { name: 'John', flat_number: '101', block: 'A', phase: '', phone: '9876543210' },
+  };
+
+  it('accepts valid signup', () => {
+    expect(signupSchema.safeParse(validSignup).success).toBe(true);
+  });
+  it('rejects missing profile', () => {
+    expect(signupSchema.safeParse({ email: 'a@b.com', password: '123456' }).success).toBe(false);
+  });
+  it('rejects invalid profile phone', () => {
+    expect(signupSchema.safeParse({ ...validSignup, profile: { ...validSignup.profile, phone: 'abc' } }).success).toBe(false);
+  });
+  it('rejects short password in signup', () => {
+    expect(signupSchema.safeParse({ ...validSignup, password: '12' }).success).toBe(false);
+  });
+  it('rejects invalid email in signup', () => {
+    expect(signupSchema.safeParse({ ...validSignup, email: 'notanemail' }).success).toBe(false);
+  });
+});
+
+// ─── Dispute Schema ──────────────────────────────────────────
+describe('Auth: Dispute Schema', () => {
+  it('accepts valid dispute', () => {
+    expect(disputeSchema.safeParse({ category: 'noise', description: 'Loud music at 3am every night' }).success).toBe(true);
+  });
+  it('rejects empty category', () => {
+    expect(disputeSchema.safeParse({ category: '', description: 'Some long description here' }).success).toBe(false);
+  });
+  it('rejects short description (< 10 chars)', () => {
+    expect(disputeSchema.safeParse({ category: 'noise', description: 'Short' }).success).toBe(false);
+  });
+  it('rejects description over 2000 chars', () => {
+    expect(disputeSchema.safeParse({ category: 'noise', description: 'x'.repeat(2001) }).success).toBe(false);
+  });
+  it('accepts 10 char description', () => {
+    expect(disputeSchema.safeParse({ category: 'noise', description: '1234567890' }).success).toBe(true);
+  });
+  it('accepts optional is_anonymous', () => {
+    expect(disputeSchema.safeParse({ category: 'noise', description: 'Loud music at night', is_anonymous: true }).success).toBe(true);
+  });
+  it('trims description whitespace', () => {
+    const result = disputeSchema.safeParse({ category: 'noise', description: '   Loud music at 3am   ' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.description).toBe('Loud music at 3am');
+  });
+});
+
+// ─── Worker Registration Schema ──────────────────────────────
+describe('Auth: Worker Registration Schema', () => {
+  const validWorker = {
+    name: 'Ramesh',
+    phone: '9876543210',
+    workerType: 'maid',
+    shiftStart: '08:00',
+    shiftEnd: '17:00',
+    entryFrequency: 'daily' as const,
+    emergencyPhone: '',
+    flatNumbers: 'A-101, A-102',
+    preferredLanguage: 'hi',
+  };
+
+  it('accepts valid worker registration', () => {
+    expect(workerRegistrationSchema.safeParse(validWorker).success).toBe(true);
+  });
+  it('rejects empty name', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, name: '' }).success).toBe(false);
+  });
+  it('rejects name over 100 chars', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, name: 'A'.repeat(101) }).success).toBe(false);
+  });
+  it('rejects empty workerType', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, workerType: '' }).success).toBe(false);
+  });
+  it('rejects invalid shiftStart format', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, shiftStart: '8am' }).success).toBe(false);
+  });
+  it('rejects invalid shiftEnd format', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, shiftEnd: '5pm' }).success).toBe(false);
+  });
+  it('rejects shiftEnd before shiftStart', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, shiftStart: '17:00', shiftEnd: '08:00' }).success).toBe(false);
+  });
+  it('accepts valid entryFrequency values', () => {
+    for (const freq of ['daily', 'occasional', 'per_visit'] as const) {
+      expect(workerRegistrationSchema.safeParse({ ...validWorker, entryFrequency: freq }).success).toBe(true);
+    }
+  });
+  it('rejects invalid entryFrequency', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, entryFrequency: 'weekly' }).success).toBe(false);
+  });
+  it('accepts empty phone (optional)', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, phone: '' }).success).toBe(true);
+  });
+  it('rejects invalid phone format', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, phone: 'abc' }).success).toBe(false);
+  });
+  it('rejects short preferredLanguage', () => {
+    expect(workerRegistrationSchema.safeParse({ ...validWorker, preferredLanguage: 'h' }).success).toBe(false);
+  });
+});
+
+// ─── Job Request Schema ──────────────────────────────────────
+describe('Auth: Job Request Schema', () => {
+  const validJob = {
+    job_type: 'plumbing',
+    description: 'Fix kitchen sink',
+    price: 500,
+    duration_hours: 2,
+    urgency: 'normal' as const,
+    visibility_scope: 'society' as const,
+    target_society_ids: [],
+  };
+
+  it('accepts valid job request', () => {
+    expect(jobRequestSchema.safeParse(validJob).success).toBe(true);
+  });
+  it('rejects empty job_type', () => {
+    expect(jobRequestSchema.safeParse({ ...validJob, job_type: '' }).success).toBe(false);
+  });
+  it('rejects duration_hours < 1', () => {
+    expect(jobRequestSchema.safeParse({ ...validJob, duration_hours: 0 }).success).toBe(false);
+  });
+  it('rejects duration_hours > 24', () => {
+    expect(jobRequestSchema.safeParse({ ...validJob, duration_hours: 25 }).success).toBe(false);
+  });
+  it('accepts all valid urgency values', () => {
+    for (const urg of ['flexible', 'normal', 'urgent'] as const) {
+      expect(jobRequestSchema.safeParse({ ...validJob, urgency: urg }).success).toBe(true);
+    }
+  });
+  it('rejects invalid urgency', () => {
+    expect(jobRequestSchema.safeParse({ ...validJob, urgency: 'asap' }).success).toBe(false);
+  });
+  it('rejects nearby scope without target societies', () => {
+    expect(jobRequestSchema.safeParse({ ...validJob, visibility_scope: 'nearby', target_society_ids: [] }).success).toBe(false);
+  });
+  it('accepts nearby scope with target societies', () => {
+    expect(jobRequestSchema.safeParse({
+      ...validJob,
+      visibility_scope: 'nearby',
+      target_society_ids: ['a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'],
+    }).success).toBe(true);
+  });
+  it('accepts null price (optional)', () => {
+    expect(jobRequestSchema.safeParse({ ...validJob, price: null }).success).toBe(true);
+  });
+  it('rejects negative price', () => {
+    expect(jobRequestSchema.safeParse({ ...validJob, price: -100 }).success).toBe(false);
+  });
+  it('accepts description over 1000 chars rejected', () => {
+    expect(jobRequestSchema.safeParse({ ...validJob, description: 'x'.repeat(1001) }).success).toBe(false);
   });
 });

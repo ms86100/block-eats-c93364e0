@@ -289,3 +289,77 @@ export function computeCancellationRate(completed: number, cancelled: number): n
   const total = completed + cancelled;
   return total > 0 ? Math.round((cancelled / total) * 100 * 10) / 10 : 0;
 }
+
+// ── Gate Token Logic ────────────────────────────────────────────────────────
+export function isTokenExpired(issuedAtMs: number, ttlMs: number = 60_000, nowMs: number = Date.now()): boolean {
+  return nowMs > issuedAtMs + ttlMs;
+}
+
+export function isNonceDuplicate(nonce: string, seenNonces: Set<string>): boolean {
+  return seenNonces.has(nonce);
+}
+
+export function getSecurityModeStatus(mode: string): 'confirmed' | 'awaiting_confirmation' {
+  return mode === 'basic' ? 'confirmed' : 'awaiting_confirmation';
+}
+
+// ── Manual Entry Validation ─────────────────────────────────────────────────
+export function validateManualEntry(flatNumber: string, visitorName: string): { valid: boolean; reason?: string } {
+  if (!flatNumber.trim()) return { valid: false, reason: 'Flat number is required' };
+  if (!visitorName.trim()) return { valid: false, reason: 'Visitor name is required' };
+  return { valid: true };
+}
+
+export const MANUAL_ENTRY_TRANSITIONS: Record<string, string[]> = {
+  pending: ['approved', 'denied', 'expired'],
+  approved: [],
+  denied: [],
+  expired: [],
+};
+
+// ── Visitor Management ──────────────────────────────────────────────────────
+export const VISITOR_TRANSITIONS: Record<string, string[]> = {
+  expected: ['checked_in', 'cancelled'],
+  checked_in: ['checked_out'],
+  checked_out: [],
+  cancelled: [],
+};
+
+export function isOTPValid(otp: string): boolean {
+  return /^\d{6}$/.test(otp);
+}
+
+export function isOTPExpired(expiresAt: Date, now: Date = new Date()): boolean {
+  return expiresAt < now;
+}
+
+export function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// ── Parcel Management ───────────────────────────────────────────────────────
+export function canLogParcel(residentId: string, authUid: string, isAdmin: boolean): boolean {
+  return residentId === authUid || isAdmin;
+}
+
+export function filterParcelsByStatus<T extends { status: string }>(parcels: T[], status: string): T[] {
+  return parcels.filter(p => p.status === status);
+}
+
+// ── Security Audit Metrics ──────────────────────────────────────────────────
+export function computePercentage(count: number, total: number): number {
+  return total > 0 ? Math.round((count / total) * 100) : 0;
+}
+
+export function computeAverageMs(times: number[]): number {
+  return times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+}
+
+// ── Guard Confirmation Poller ───────────────────────────────────────────────
+export function decrementCountdown(remaining: number, step: number = 1): number {
+  return Math.max(remaining - step, 0);
+}
+
+export function isPollingIntervalValid(intervalMs: number): boolean {
+  return intervalMs >= 4000 && intervalMs <= 5000;
+}

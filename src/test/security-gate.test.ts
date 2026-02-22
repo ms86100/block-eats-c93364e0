@@ -4,6 +4,12 @@ import {
   paginationRange, computeDisputeResolutionRate,
   getFeatureState, isFeatureAccessible, getWriteSocietyId,
   computeSLADeadline, isSLABreached, haversineDistance,
+  isTokenExpired, isNonceDuplicate, getSecurityModeStatus,
+  validateManualEntry, MANUAL_ENTRY_TRANSITIONS,
+  VISITOR_TRANSITIONS, isOTPValid, isOTPExpired, generateOTP,
+  canLogParcel, filterParcelsByStatus,
+  computePercentage, computeAverageMs,
+  decrementCountdown, isPollingIntervalValid,
 } from './helpers/business-rules';
 
 // ─── Gate Token Logic ───────────────────────────────────────────────────────
@@ -14,32 +20,34 @@ describe('Gate Token — Edge Function Rules', () => {
   });
   it('token expiry is 60 seconds', () => {
     const issuedAt = Date.now();
-    const expiresAt = issuedAt + 60_000;
-    expect(expiresAt - issuedAt).toBe(60_000);
+    expect(isTokenExpired(issuedAt, 60_000, issuedAt + 60_000)).toBe(false);
+    expect(isTokenExpired(issuedAt, 60_000, issuedAt + 60_001)).toBe(true);
   });
   it('expired token detected', () => {
     const issuedAt = Date.now() - 61_000;
-    expect(Date.now() > issuedAt + 60_000).toBe(true);
+    expect(isTokenExpired(issuedAt)).toBe(true);
   });
   it('valid token passes', () => {
     const issuedAt = Date.now() - 30_000;
-    expect(Date.now() > issuedAt + 60_000).toBe(false);
+    expect(isTokenExpired(issuedAt)).toBe(false);
   });
   it('nonce format matches UUID', () => {
     const nonce = crypto.randomUUID();
     expect(`nonce:${nonce}`).toMatch(/^nonce:[0-9a-f-]{36}$/);
   });
-  it('duplicate nonce detected', () => {
-    const set = new Set(['nonce:abc-123']);
-    expect(set.has('nonce:abc-123')).toBe(true);
+  it('duplicate nonce detected via helper', () => {
+    const seen = new Set(['nonce:abc-123']);
+    expect(isNonceDuplicate('nonce:abc-123', seen)).toBe(true);
+    expect(isNonceDuplicate('nonce:new-one', seen)).toBe(false);
   });
   it('basic mode → confirmed', () => {
-    const status = 'basic' === 'basic' ? 'confirmed' : 'awaiting_confirmation';
-    expect(status).toBe('confirmed');
+    expect(getSecurityModeStatus('basic')).toBe('confirmed');
   });
   it('confirmation mode → awaiting', () => {
-    const mode: string = 'confirmation';
-    expect(mode === 'basic' ? 'confirmed' : 'awaiting_confirmation').toBe('awaiting_confirmation');
+    expect(getSecurityModeStatus('confirmation')).toBe('awaiting_confirmation');
+  });
+  it('ai_match mode → awaiting', () => {
+    expect(getSecurityModeStatus('ai_match')).toBe('awaiting_confirmation');
   });
 });
 
@@ -70,33 +78,59 @@ describe('Guard Kiosk — Access Control (Real Helper)', () => {
 // ─── Visitor OTP ───────────────────────────────────────────────────────────
 
 describe('Visitor OTP — Verification', () => {
-  it('OTP is 6 digits', () => { expect('482917').toMatch(/^\d{6}$/); });
-  it('rejects 5 digits', () => { expect(/^\d{6}$/.test('12345')).toBe(false); });
-  it('expired OTP detected', () => {
-    expect(new Date(Date.now() - 60_000) < new Date()).toBe(true);
+  it('valid 6-digit OTP accepted', () => {
+    expect(isOTPValid('482917')).toBe(true);
   });
-  it('valid OTP passes', () => {
-    expect(new Date(Date.now() + 3600_000) < new Date()).toBe(false);
+  it('rejects 5 digits', () => {
+    expect(isOTPValid('12345')).toBe(false);
+  });
+  it('rejects 7 digits', () => {
+    expect(isOTPValid('1234567')).toBe(false);
+  });
+  it('rejects non-numeric', () => {
+    expect(isOTPValid('abcdef')).toBe(false);
+  });
+  it('expired OTP detected', () => {
+    expect(isOTPExpired(new Date(Date.now() - 60_000))).toBe(true);
+  });
+  it('valid OTP not expired', () => {
+    expect(isOTPExpired(new Date(Date.now() + 3600_000))).toBe(false);
+  });
+  it('generated OTP is 6 digits', () => {
+    const otp = generateOTP();
+    expect(isOTPValid(otp)).toBe(true);
   });
 });
 
 // ─── Manual Entry ──────────────────────────────────────────────────────────
 
 describe('Manual Entry — Validation', () => {
-  it('requires flat + name', () => {
-    expect('A-101'.trim().length > 0 && 'John'.trim().length > 0).toBe(true);
+  it('valid flat + name passes', () => {
+    expect(validateManualEntry('A-101', 'John').valid).toBe(true);
   });
   it('rejects empty flat', () => {
-    expect(''.trim().length > 0 && 'John'.trim().length > 0).toBe(false);
+    const r = validateManualEntry('', 'John');
+    expect(r.valid).toBe(false);
+    expect(r.reason).toContain('Flat');
   });
   it('rejects empty name', () => {
-    expect('A-101'.trim().length > 0 && ''.trim().length > 0).toBe(false);
+    const r = validateManualEntry('A-101', '');
+    expect(r.valid).toBe(false);
+    expect(r.reason).toContain('Visitor');
+  });
+  it('rejects whitespace-only flat', () => {
+    expect(validateManualEntry('   ', 'John').valid).toBe(false);
   });
   it('status transitions: pending → approved/denied/expired', () => {
-    const t: Record<string, string[]> = { pending: ['approved', 'denied', 'expired'] };
-    expect(t['pending']).toContain('approved');
-    expect(t['pending']).toContain('denied');
-    expect(t['pending']).toContain('expired');
+    expect(MANUAL_ENTRY_TRANSITIONS['pending']).toContain('approved');
+    expect(MANUAL_ENTRY_TRANSITIONS['pending']).toContain('denied');
+    expect(MANUAL_ENTRY_TRANSITIONS['pending']).toContain('expired');
+  });
+  it('approved is terminal', () => {
+    expect(MANUAL_ENTRY_TRANSITIONS['approved']).toHaveLength(0);
+  });
+  it('denied is terminal', () => {
+    expect(MANUAL_ENTRY_TRANSITIONS['denied']).toHaveLength(0);
   });
 });
 
@@ -126,19 +160,33 @@ describe('Worker — Gate Validation (Real Helper)', () => {
   it('wrong day → invalid', () => {
     expect(validateWorkerEntry({ status: 'active', deactivated_at: null, flat_count: 2, active_days: ['NEVER'] }).valid).toBe(false);
   });
+  it('under_review → invalid', () => {
+    expect(validateWorkerEntry({ status: 'under_review', deactivated_at: null, flat_count: 2 }).valid).toBe(false);
+  });
 });
 
 // ─── Visitor Management ─────────────────────────────────────────────────────
 
 describe('Visitor Management', () => {
-  it('OTP generator produces 6 digits', () => {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    expect(otp).toMatch(/^\d{6}$/);
+  it('OTP generator produces valid 6 digits', () => {
+    for (let i = 0; i < 10; i++) {
+      expect(isOTPValid(generateOTP())).toBe(true);
+    }
   });
-  it('status transitions: expected → checked_in/cancelled', () => {
-    const t: Record<string, string[]> = { expected: ['checked_in', 'cancelled'], checked_in: ['checked_out'] };
-    expect(t['expected']).toContain('checked_in');
-    expect(t['checked_in']).toContain('checked_out');
+  it('expected → checked_in is valid', () => {
+    expect(VISITOR_TRANSITIONS['expected']).toContain('checked_in');
+  });
+  it('expected → cancelled is valid', () => {
+    expect(VISITOR_TRANSITIONS['expected']).toContain('cancelled');
+  });
+  it('checked_in → checked_out is valid', () => {
+    expect(VISITOR_TRANSITIONS['checked_in']).toContain('checked_out');
+  });
+  it('checked_out is terminal', () => {
+    expect(VISITOR_TRANSITIONS['checked_out']).toHaveLength(0);
+  });
+  it('cancelled is terminal', () => {
+    expect(VISITOR_TRANSITIONS['cancelled']).toHaveLength(0);
   });
 });
 
@@ -146,18 +194,21 @@ describe('Visitor Management', () => {
 
 describe('Parcel Management', () => {
   it('resident can log own parcel', () => {
-    expect('user-123' === 'user-123').toBe(true);
+    expect(canLogParcel('user-123', 'user-123', false)).toBe(true);
   });
   it('admin can log for another resident', () => {
-    const residentId: string = 'user-456';
-    const authUid: string = 'admin-789';
-    const isAdmin = true;
-    expect(residentId === authUid || isAdmin).toBe(true);
+    expect(canLogParcel('user-456', 'admin-789', true)).toBe(true);
+  });
+  it('non-admin cannot log for another resident', () => {
+    expect(canLogParcel('user-456', 'user-789', false)).toBe(false);
   });
   it('pending vs collected filtering', () => {
     const parcels = [{ status: 'pending' }, { status: 'collected' }, { status: 'pending' }];
-    expect(parcels.filter(p => p.status === 'pending')).toHaveLength(2);
-    expect(parcels.filter(p => p.status === 'collected')).toHaveLength(1);
+    expect(filterParcelsByStatus(parcels, 'pending')).toHaveLength(2);
+    expect(filterParcelsByStatus(parcels, 'collected')).toHaveLength(1);
+  });
+  it('no parcels → empty array', () => {
+    expect(filterParcelsByStatus([], 'pending')).toHaveLength(0);
   });
 });
 
@@ -167,18 +218,23 @@ describe('Security Audit — Metrics', () => {
   it('pagination range page 2', () => {
     expect(paginationRange(2, 20)).toEqual({ start: 40, end: 59 });
   });
-  it('manual percentage', () => {
-    expect(Math.round((10 / 50) * 100)).toBe(20);
+  it('manual percentage via helper', () => {
+    expect(computePercentage(10, 50)).toBe(20);
   });
-  it('denied percentage', () => {
-    expect(Math.round((5 / 100) * 100)).toBe(5);
+  it('denied percentage via helper', () => {
+    expect(computePercentage(5, 100)).toBe(5);
   });
   it('zero entries → 0%', () => {
-    expect(0 > 0 ? Math.round((0 / 0) * 100) : 0).toBe(0);
+    expect(computePercentage(0, 0)).toBe(0);
   });
   it('average confirmation time', () => {
-    const times = [3000, 5000, 7000];
-    expect(times.reduce((a, b) => a + b, 0) / times.length).toBeCloseTo(5000);
+    expect(computeAverageMs([3000, 5000, 7000])).toBeCloseTo(5000);
+  });
+  it('empty times → 0', () => {
+    expect(computeAverageMs([])).toBe(0);
+  });
+  it('dispute resolution rate', () => {
+    expect(computeDisputeResolutionRate(10, 8)).toBe(80);
   });
 });
 
@@ -191,28 +247,64 @@ describe('Write Safety — Real Helper', () => {
   it('write fallback', () => {
     expect(getWriteSocietyId(null, 'viewed')).toBe('viewed');
   });
+  it('both null → null', () => {
+    expect(getWriteSocietyId(null, null)).toBeNull();
+  });
 });
 
 // ─── Guard Confirmation Poller ──────────────────────────────────────────────
 
 describe('Guard Confirmation Poller', () => {
-  it('countdown decrements', () => {
-    let remaining = 20;
-    remaining -= 1;
-    expect(remaining).toBe(19);
+  it('countdown decrements via helper', () => {
+    expect(decrementCountdown(20)).toBe(19);
   });
-  it('reaches zero', () => {
-    let remaining = 1;
-    remaining -= 1;
-    expect(remaining).toBe(0);
+  it('reaches zero and clamps', () => {
+    expect(decrementCountdown(1)).toBe(0);
+    expect(decrementCountdown(0)).toBe(0);
+  });
+  it('custom step decrement', () => {
+    expect(decrementCountdown(10, 3)).toBe(7);
   });
   it('dual-mode: realtime + polling fallback', () => {
     const modes = ['realtime', 'polling'];
     expect(modes).toHaveLength(2);
   });
-  it('polling interval 4-5 seconds', () => {
-    const interval = 4500;
-    expect(interval).toBeGreaterThanOrEqual(4000);
-    expect(interval).toBeLessThanOrEqual(5000);
+  it('polling interval 4.5s is valid', () => {
+    expect(isPollingIntervalValid(4500)).toBe(true);
+  });
+  it('polling interval 3s is invalid', () => {
+    expect(isPollingIntervalValid(3000)).toBe(false);
+  });
+  it('polling interval 6s is invalid', () => {
+    expect(isPollingIntervalValid(6000)).toBe(false);
+  });
+  it('polling interval 4s boundary valid', () => {
+    expect(isPollingIntervalValid(4000)).toBe(true);
+  });
+  it('polling interval 5s boundary valid', () => {
+    expect(isPollingIntervalValid(5000)).toBe(true);
+  });
+});
+
+// ─── SLA & Haversine ────────────────────────────────────────────────────────
+
+describe('Security — SLA & Distance', () => {
+  it('SLA deadline computed correctly', () => {
+    const created = new Date('2026-01-01T00:00:00Z');
+    expect(computeSLADeadline(created, 24).toISOString()).toBe('2026-01-02T00:00:00.000Z');
+  });
+  it('SLA not breached before deadline', () => {
+    expect(isSLABreached(new Date(Date.now() + 100000))).toBe(false);
+  });
+  it('SLA breached after deadline', () => {
+    expect(isSLABreached(new Date(Date.now() - 1))).toBe(true);
+  });
+  it('haversine same point → 0', () => {
+    expect(haversineDistance(0, 0, 0, 0)).toBe(0);
+  });
+  it('haversine ~111km for 1 degree', () => {
+    const dist = haversineDistance(0, 0, 1, 0);
+    expect(dist).toBeGreaterThan(110000);
+    expect(dist).toBeLessThan(112000);
   });
 });
