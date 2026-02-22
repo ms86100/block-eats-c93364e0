@@ -5324,6 +5324,10 @@ export type Database = {
         Args: { _society_id: string; _user_id: string }
         Returns: boolean
       }
+      can_write_to_society: {
+        Args: { _society_id: string; _user_id: string }
+        Returns: boolean
+      }
       complete_worker_job: {
         Args: { _job_id: string; _worker_id: string }
         Returns: Json
@@ -5389,6 +5393,10 @@ export type Database = {
         Returns: number
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_builder_for_society: {
+        Args: { _society_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_builder_member: {
         Args: { _builder_id: string; _user_id: string }
         Returns: boolean
