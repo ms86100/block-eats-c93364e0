@@ -93,7 +93,7 @@ export default function ProfilePage() {
   const quickActions = [
     { icon: Package, label: 'Orders', to: '/orders' },
     { icon: Heart, label: 'Favorites', to: '/favorites' },
-    { icon: Repeat, label: 'Subscriptions', to: '/subscriptions' },
+    { icon: Repeat, label: 'Order Again', to: '/orders' },
   ];
 
   const menuItems = [
