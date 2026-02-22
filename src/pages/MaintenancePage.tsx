@@ -26,7 +26,8 @@ interface MaintenanceDue {
 }
 
 export default function MaintenancePage() {
-  const { user, profile, isAdmin, effectiveSocietyId } = useAuth();
+  const { user, profile, isAdmin, isSocietyAdmin, effectiveSocietyId } = useAuth();
+  const canManage = isAdmin || isSocietyAdmin;
   const [dues, setDues] = useState<MaintenanceDue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [generateMonth, setGenerateMonth] = useState('');
@@ -134,12 +135,12 @@ export default function MaintenancePage() {
   };
 
   // For residents, show only their own dues
-  const displayDues = isAdmin ? dues : dues.filter(d => (d as any).resident_id === user?.id);
+  const displayDues = canManage ? dues : dues.filter(d => (d as any).resident_id === user?.id);
 
   return (
     <AppLayout headerTitle="Maintenance" showLocation={false}>
       <div className="p-4 space-y-4">
-        {isAdmin && (
+        {canManage && (
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button className="w-full gap-2">
@@ -217,7 +218,7 @@ export default function MaintenancePage() {
                       {d.paid_date && ` · Paid ${d.paid_date}`}
                     </p>
                   </div>
-                  {isAdmin && d.status !== 'paid' && (
+                  {canManage && d.status !== 'paid' && (
                     <Button size="sm" variant="outline" className="text-xs" onClick={() => handleMarkPaid(d.id)}>
                       Mark Paid
                     </Button>

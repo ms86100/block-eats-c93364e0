@@ -41,7 +41,8 @@ interface Milestone {
 }
 
 export default function SocietyProgressPage() {
-  const { user, isAdmin, effectiveSocietyId, effectiveSociety } = useAuth();
+  const { user, isAdmin, isSocietyAdmin, isBuilderMember, effectiveSocietyId, effectiveSociety } = useAuth();
+  const canManageProgress = isAdmin || isSocietyAdmin || isBuilderMember;
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [towers, setTowers] = useState<Tower[]>([]);
   const [selectedTowerId, setSelectedTowerId] = useState<string | null>(null);
@@ -191,14 +192,14 @@ export default function SocietyProgressPage() {
               <h3 className="text-sm font-semibold text-muted-foreground">
                 Updates ({milestones.length})
               </h3>
-              {isAdmin && <AddMilestoneSheet onAdded={fetchMilestones} towers={towers} />}
+              {canManageProgress && <AddMilestoneSheet onAdded={fetchMilestones} towers={towers} />}
             </div>
 
             {milestones.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <HardHat className="mx-auto mb-3" size={32} />
                 <p className="text-sm">No milestone updates yet</p>
-                {isAdmin && <p className="text-xs mt-1">Tap "Add Milestone" to post the first update</p>}
+                {canManageProgress && <p className="text-xs mt-1">Tap "Add Milestone" to post the first update</p>}
               </div>
             ) : (
               <div className="space-y-3">

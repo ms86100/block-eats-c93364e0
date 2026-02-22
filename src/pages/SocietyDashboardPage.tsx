@@ -9,7 +9,8 @@ import { useEffectiveFeatures, type FeatureKey } from '@/hooks/useEffectiveFeatu
 import { 
   IndianRupee, Building2, Bug, ShieldAlert, FileText, 
   MessageCircle, Radio, ChevronRight, CreditCard, Clock, BarChart3, Shield,
-  Users, ClipboardCheck, Landmark, Package, UserCheck, ShieldCheck, Car, QrCode
+  Users, ClipboardCheck, Landmark, Package, UserCheck, ShieldCheck, Car, QrCode,
+  Wrench, Briefcase
 } from 'lucide-react';
 
 interface DashboardStat {
@@ -111,6 +112,8 @@ export default function SocietyDashboardPage() {
     { icon: FileText, label: 'Documents', to: '/society/progress', stat: `${stats.documents} uploaded`, color: 'text-info', featureKey: 'construction_progress' },
     { icon: MessageCircle, label: 'Q&A', to: '/society/progress', stat: `${stats.unansweredQs} unanswered`, color: 'text-primary', featureKey: 'construction_progress' },
     { icon: CreditCard, label: 'Maintenance', to: '/maintenance', stat: stats.pendingDues > 0 ? `${stats.pendingDues} pending` : 'All clear', color: 'text-success', featureKey: 'maintenance' },
+    { icon: Wrench, label: 'Workforce', to: '/workforce', stat: 'Manage workers', color: 'text-primary', featureKey: 'workforce_management' },
+    { icon: Briefcase, label: 'Hire Workers', to: '/worker-hire', stat: 'Find local help', color: 'text-primary', featureKey: 'worker_marketplace' },
     ...(isSocietyAdmin ? [
       { icon: QrCode, label: 'Security Verify', to: '/security/verify', stat: 'Scan resident QR', color: 'text-success', featureKey: 'resident_identity_verification' } as DashboardStat,
       { icon: ShieldCheck, label: 'Guard Kiosk', to: '/guard-kiosk', stat: 'Verify visitor OTPs', color: 'text-success', featureKey: 'guard_kiosk' } as DashboardStat,

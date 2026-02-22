@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBuilderStats } from '@/hooks/queries/useBuilderStats';
 import { BuilderFeaturePlan } from '@/components/builder/BuilderFeaturePlan';
 import { BuilderSocietyFeatures } from '@/components/builder/BuilderSocietyFeatures';
+import { BuilderActionCenter } from '@/components/builder/BuilderActionCenter';
 
 interface BuilderSociety {
   id: string;
@@ -154,6 +155,14 @@ export default function BuilderDashboardPage() {
         {/* Builder Feature Plan */}
         {managedBuilderIds.length > 0 && (
           <BuilderFeaturePlan builderId={managedBuilderIds[0]} />
+        )}
+
+        {/* Action Center - Consolidated snags & disputes */}
+        {societyIds.length > 0 && (
+          <BuilderActionCenter 
+            societyIds={societyIds} 
+            onNavigateToSociety={handleSocietyClick} 
+          />
         )}
 
         {/* Analytics Link */}
