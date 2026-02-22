@@ -72,13 +72,14 @@ export default function MaintenancePage() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const fetchResidentCount = async () => {
-    if (!profile?.society_id || !generateMonth || !generateAmount) return;
+    const targetSocietyId = effectiveSocietyId || profile?.society_id;
+    if (!targetSocietyId || !generateMonth || !generateAmount) return;
     setGenerating(true);
     try {
       const { data: residents, error } = await supabase
         .from('profiles')
         .select('id')
-        .eq('society_id', profile.society_id)
+        .eq('society_id', targetSocietyId)
         .eq('verification_status', 'approved');
       if (error) throw error;
       if (!residents?.length) { toast.error('No approved residents found'); setGenerating(false); return; }
@@ -92,20 +93,21 @@ export default function MaintenancePage() {
   };
 
   const handleBulkGenerate = async () => {
-    if (!generateMonth || !generateAmount || !profile?.society_id) return;
+    const targetSocietyId = effectiveSocietyId || profile?.society_id;
+    if (!generateMonth || !generateAmount || !targetSocietyId) return;
     setGenerating(true);
     setShowConfirm(false);
     try {
       const { data: residents } = await supabase
         .from('profiles')
         .select('id, block, flat_number')
-        .eq('society_id', profile.society_id)
+        .eq('society_id', targetSocietyId)
         .eq('verification_status', 'approved');
 
       if (!residents?.length) { toast.error('No approved residents found'); return; }
 
       const rows = residents.map(r => ({
-        society_id: profile.society_id!,
+        society_id: targetSocietyId,
         flat_identifier: `${r.block}-${r.flat_number}`,
         resident_id: r.id,
         month: generateMonth,
