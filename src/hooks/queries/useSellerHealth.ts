@@ -29,7 +29,7 @@ export function useSellerHealth(sellerId: string | null) {
       const [profileRes, productRes, licenseRes, categoryRes, groupRes] = await Promise.all([
         supabase
           .from('seller_profiles')
-          .select('verification_status, is_available, sell_beyond_community, delivery_radius_km, primary_group, categories, society_id, description, profile_image_url, cover_image_url, availability_start, availability_end, operating_days, societies!inner(latitude, longitude)')
+          .select('verification_status, is_available, sell_beyond_community, delivery_radius_km, primary_group, categories, society_id, description, profile_image_url, cover_image_url, availability_start, availability_end, operating_days, societies:societies!seller_profiles_society_id_fkey(latitude, longitude)')
           .eq('id', sellerId)
           .single(),
         supabase
