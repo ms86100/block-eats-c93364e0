@@ -93,7 +93,7 @@ export function CreateBuilderSheet({ onCreated }: CreateBuilderSheetProps) {
     toast.success('Builder created successfully');
     resetForm();
     setOpen(false);
-    onCreated();
+    await onCreated();
   };
 
   const resetForm = () => {
