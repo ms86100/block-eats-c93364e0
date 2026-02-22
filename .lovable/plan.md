@@ -1,394 +1,293 @@
 
-# Sociva -- Module-Level Functional and Structural Gap Analysis
+# Sociva Full Role-Based Dynamic Integrity Audit
 
-## Executive Summary
+## Audit Summary
 
-After reviewing every module listed, the system has solid individual implementations but suffers from **weak cross-module integration**, **missing automated workflows**, and **several operational gaps** that would be immediately apparent to anyone comparing this to MyGate or similar production systems. The most critical gap is the complete absence of **order-to-gate integration** -- the exact scenario you described.
-
----
-
-## MODULE-BY-MODULE GAP ANALYSIS
+This audit evaluates every module against five criteria: (1) database-backed, (2) no hardcoded values, (3) proper UI per stakeholder, (4) server-side permission enforcement, (5) dynamic adaptation by role and society config.
 
 ---
 
-### 1. VISITOR MANAGEMENT
+## MODULE-BY-MODULE ASSESSMENT
 
-**What works:** Resident pre-approves visitor with OTP. Guard verifies OTP in kiosk. Check-in/check-out tracked. CSV export.
+### A. FULLY DYNAMIC AND CORRECT
 
-**Gaps:**
+| Module | DB-Backed | Feature-Gated | RLS | Role Check | Notes |
+|---|---|---|---|---|---|
+| Marketplace (products, sellers, categories) | Yes - `category_config`, `parent_groups`, `system_settings` | Via `SocietyDashboardPage` featureKey | Yes | Yes | Categories, layout types, action types, badges all DB-driven |
+| Feature Package Hierarchy | Yes - `platform_features`, `feature_packages`, `feature_package_items`, `builder_feature_packages`, `society_feature_overrides` | `get_effective_society_features` RPC | Yes (SECURITY DEFINER) | Yes - 4-tier cascade | Fully correct |
+| Auth / Roles | Yes - `user_roles`, `society_admins`, `builder_members`, `security_staff` | N/A | Yes | `has_role()`, `is_admin()`, `is_society_admin()`, `is_security_officer()` - all SECURITY DEFINER | Correct |
+| Society Scoping | Yes - `effectiveSocietyId` with context switching | N/A | Yes - `get_user_society_id()` | Write isolation enforced via `can_write_to_society()` | Correct |
+| Order Lifecycle | Yes - status transitions enforced via DB trigger `validate_order_status_transition` | N/A | Yes | Buyer/seller/admin scoped | Correct |
+| Construction Progress | Yes | `FeatureGate feature="construction_progress"` | Yes | Society-scoped | Correct |
+| Snag Management | Yes | `FeatureGate feature="snag_management"` | Yes | Society-scoped | Correct |
+| Community Bulletin | Yes | `FeatureGate feature="bulletin"` | Yes | Society-scoped | Correct |
+| Disputes | Yes | `FeatureGate feature="disputes"` | Yes | Submitter + society admin | Correct |
+| Finances | Yes | `FeatureGate feature="finances"` | Yes | Society-scoped | Correct |
+| Workforce Management | Yes | `FeatureGate feature="workforce_management"` | Yes | Worker validation via `validate_worker_entry()` RPC | Correct |
+| Worker Marketplace | Yes | `FeatureGate feature="worker_marketplace"` | Yes | Atomic accept/complete via RPCs | Correct |
+| Seller Dashboard | Yes | Role-gated (`isSeller`) | Yes | Own seller_id scoped | Correct |
+| Builder Dashboard | Yes | Role-gated (`isBuilderMember`) | Yes | `is_builder_for_society()` | Correct |
+| Guard Kiosk | Yes | `SecurityRoute` + `is_security_officer` RPC | Yes | DB-backed security_staff check | Correct |
+| System Settings | Yes - `system_settings` table | N/A | Yes | Admin-only writes | Tagline, fees, emails, content all DB-driven |
+| Audit Log | Yes - append-only | N/A | Yes | Actor-based insert | Correct |
 
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| V1 | No resident notification on arrival | Critical | When a guard checks in a visitor via OTP, the resident is NOT notified. In MyGate, the resident gets a push notification: "Your visitor [name] has arrived." Currently the guard checks in silently. |
-| V2 | No visitor photo capture | High | No photo of the visitor is taken at the gate. MyGate captures a photo that the resident sees in their notification. The `visitor_entries` table has a `photo_url` column but it is never populated by the guard kiosk. |
-| V3 | OTP never expires server-side | High | The OTP is set to expire after 24 hours (`Date.now() + 24 * 3600000`), but the guard kiosk query (`eq('status', 'expected')`) does not check `otp_expires_at`. An expired OTP still works if the visitor entry is still "expected". No cron job or trigger marks expired visitors. |
-| V4 | No "unexpected visitor" flow for guards | High | If someone arrives without a pre-approved OTP, the guard has no way to notify the resident through the kiosk. The guard kiosk only has OTP verification, expected visitors list, and worker validation. The manual entry flow exists on SecurityVerifyPage but not on GuardKioskPage. |
-| V5 | Check-out is manual/optional | Medium | Residents must manually check out visitors. No auto-expiry of checked-in visitors at end of day. No guard-initiated check-out. |
-| V6 | No recurring visitor automation | Medium | `is_recurring` and `recurring_days` fields exist but are never used. No logic generates new daily entries for recurring visitors. |
-| V7 | No delivery agent auto-entry | Critical | See cross-module section below. |
+### B. HARDCODED OR PARTIALLY DYNAMIC AREAS
 
----
+#### B1. CRITICAL - Hardcoded Status/Type Labels (Frontend-Only Display Maps)
 
-### 2. PARCEL MANAGEMENT
+| Item | Location | Issue | Severity |
+|---|---|---|---|
+| `ORDER_STATUS_MAP` | `src/types/database.ts:321-335` | 13 order statuses with labels and colors are hardcoded as a JS object. If a new status is added to the DB trigger, the UI shows "Unknown" | **Medium** |
+| `ITEM_STATUS_LABELS` | `src/types/database.ts:236-243` | Item statuses hardcoded | **Medium** |
+| `PAYMENT_STATUS_LABELS` | `src/types/database.ts:343-351` | Payment statuses hardcoded | **Low** |
+| `STATUS_BADGES` in `DeliveryMonitoringTab` | `src/components/delivery/DeliveryMonitoringTab.tsx:26` | Delivery statuses hardcoded | **Low** |
+| `STATUS_COLORS` in `ResidentJobsList` | `src/components/worker/ResidentJobsList.tsx:18` | Worker job statuses hardcoded | **Low** |
+| `PRODUCT_ACTION_TYPES` | `src/types/database.ts:127-136` | Product action types with labels/icons hardcoded | **Medium** |
+| `ACTION_CONFIG` | `src/lib/marketplace-constants.ts:8-17` | Duplicate action config, also hardcoded | **Medium** |
+| `SORT_OPTIONS` | `src/lib/marketplace-constants.ts:20-27` | Sort options hardcoded | **Low** |
 
-**What works:** Residents can log parcels, mark them as collected.
+**Assessment**: These are display-layer mappings. The DB enforces valid values via triggers. Adding a new status to the DB without updating frontend code causes graceful degradation ("Unknown" label via Proxy). This is acceptable for a V1 but not enterprise-grade SaaS.
 
-**Gaps:**
+#### B2. CRITICAL - Hardcoded Domestic Help Types
 
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| P1 | Guard cannot log parcels for residents | Critical | Only residents can log their own parcels (`resident_id: user.id`). In reality, guards receive parcels and should log them FOR the resident by flat number. The `canLogParcels` check exists but the insert form still uses `user.id`, not a flat-number lookup. |
-| P2 | No notification to resident on parcel arrival | Critical | When a parcel is logged, the resident gets no push notification. MyGate immediately notifies: "A parcel from Amazon has arrived at the gate." |
-| P3 | No parcel photo | High | No photo of the parcel is captured. MyGate shows the parcel photo to the resident. |
-| P4 | No society-wide view for guards | High | Guards can only see their own parcels. There is no guard-facing view showing all pending parcels across all flats. |
-| P5 | No integration with delivery orders | Medium | If a Sociva marketplace order is being delivered, no parcel entry is auto-created. |
+| Item | Location | Issue | Severity |
+|---|---|---|---|
+| `HelpType` union | `src/pages/DomesticHelpPage.tsx:24` | `'maid' | 'cook' | 'driver' | 'nanny' | 'gardener' | 'other'` hardcoded | **High** |
+| `helpTypeLabels` | `src/pages/DomesticHelpPage.tsx:26-33` | Labels and emojis hardcoded | **High** |
 
----
+**Assessment**: The workforce management module has DB-driven worker categories via `worker_categories` table, but the legacy `DomesticHelpPage` still uses hardcoded types. This is a **duplicate system** that should be deprecated.
 
-### 3. VEHICLE PARKING
+#### B3. CRITICAL - Hardcoded Visitor Types
 
-**What works:** Admins create parking slots, residents report violations, admins resolve violations.
+| Item | Location | Issue | Severity |
+|---|---|---|---|
+| `VisitorType` union | `src/pages/VisitorManagementPage.tsx:29` | `'guest' | 'delivery' | 'cab' | 'domestic_help' | 'contractor'` hardcoded | **High** |
+| `VisitorStatus` union | `src/pages/VisitorManagementPage.tsx:30` | `'expected' | 'checked_in' | 'checked_out' | 'cancelled' | 'expired'` hardcoded | **Medium** |
 
-**Gaps:**
+**Assessment**: No `visitor_types` config table exists. Adding a new visitor type requires a code change.
 
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| VP1 | No vehicle-to-resident mapping | High | Parking slots track `vehicle_number` but not `resident_id` or `flat_number`. There's no way to identify who owns which vehicle for violation follow-up. |
-| VP2 | No visitor parking management | High | No flow for visitor vehicles to be assigned temporary parking. Guards can't allocate visitor slots. |
-| VP3 | No auto-detection of slot availability | Medium | Slot occupancy is manually toggled. No integration with gate entry (vehicle number check-in/out). |
-| VP4 | Violation notifications missing | Medium | When a violation is reported, no notification is sent to the vehicle owner or committee. |
+#### B4. HIGH - Feature Labels Hardcoded in Society Admin
 
----
+| Item | Location | Issue | Severity |
+|---|---|---|---|
+| `FEATURE_LABELS` | `src/pages/SocietyAdminPage.tsx:29-48` | 18 feature labels and descriptions hardcoded in frontend | **High** |
 
-### 4. GUARD KIOSK
+**Assessment**: The `platform_features` table exists but does not have `display_name` or `description` columns. The UI falls back to a hardcoded map. If a new feature is added to the DB, the Society Admin page won't show a label for it.
 
-**What works:** OTP verification for visitors, expected visitors list, worker gate validation.
+#### B5. MEDIUM - Approval Methods Hardcoded
 
-**Gaps:**
+| Item | Location | Issue | Severity |
+|---|---|---|---|
+| Approval method options | `src/pages/SocietyAdminPage.tsx:421-424` | `manual`, `invite_code`, `auto` hardcoded in a Select dropdown | **Medium** |
 
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| GK1 | No QR code scanning capability | Critical | Guard kiosk requires manual 6-digit OTP entry. No QR scanner integration. SecurityVerifyPage handles QR tokens but GuardKioskPage does not -- these are two separate, disconnected pages. |
-| GK2 | No delivery order verification tab | Critical | No tab for verifying marketplace delivery orders. See cross-module section. |
-| GK3 | No parcel logging from kiosk | High | Guard kiosk has no parcel logging capability. Guards need to switch to a completely different page. |
-| GK4 | No unified gate log | High | The kiosk tracks visitor check-ins, worker validations, and resident QR entries in separate tables with no unified view of "who entered the gate today." |
-| GK5 | Guard kiosk and SecurityVerify are duplicate interfaces | Medium | Two separate pages do overlapping things: `/guard-kiosk` (visitor OTP + expected list + worker) and `/security/verify` (resident QR + manual entry). A real guard needs ONE screen. |
+#### B6. LOW - Days of Week Hardcoded
 
----
-
-### 5. RESIDENT IDENTITY VERIFICATION (Gate Entry)
-
-**What works:** AES-encrypted rotating QR codes, confirmation mode, manual entry with resident approval, realtime updates.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| RIV1 | QR scan not integrated into guard kiosk | High | Resident QR verification is only on SecurityVerifyPage. The guard kiosk (the screen guards actually use) doesn't have it. |
-| RIV2 | No family member / authorized person concept | Medium | QR code is tied to one user. If a family member arrives, they must have their own account and QR. No "authorized persons" list per flat. |
-
----
-
-### 6. DOMESTIC HELP
-
-**What works:** Register helpers, daily attendance check-in/out.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| DH1 | Completely separate from Workforce Management | High | `DomesticHelpPage` uses `domestic_help_entries` + `domestic_help_attendance` tables. `WorkforceManagementPage` uses `society_workers` + `worker_flat_assignments`. These are two parallel, disconnected systems for the same concept. A maid registered in Domestic Help is invisible to Workforce Management and vice versa. |
-| DH2 | No gate integration for domestic help | High | Domestic help entries have no QR code, no gate validation. The worker gate validation only works for `society_workers`. If a resident registers a maid via DomesticHelpPage, the guard kiosk cannot verify them. |
-| DH3 | No leave/absence tracking | Medium | No way to mark planned absences or track missed days over time. |
-| DH4 | No salary tracking | Medium | No monthly salary record or payment history. |
+| Item | Location | Issue | Severity |
+|---|---|---|---|
+| `DAYS_OF_WEEK` / `DAY_LABELS` | `src/types/database.ts:354-365` | Hardcoded but universal constants, acceptable | **Low** |
 
 ---
 
-### 7. WORKFORCE MANAGEMENT
+### C. MISSING UI FOR STAKEHOLDERS
 
-**What works:** Worker registration with live camera, flat assignments, shift/day validation, gate validation, status management (active/suspended/blacklisted), dynamic categories.
+#### C1. Delivery Partner - No Dedicated UI
 
-**Gaps:**
+| Issue | Severity |
+|---|---|
+| `delivery_partner_pool` table exists with RLS, but the `DeliveryPartnerManagementPage` is an admin-facing CRUD, not a delivery partner's own operational UI | **High** |
+| No delivery partner login flow, no "my assigned deliveries" view, no delivery completion workflow from the partner's perspective | **High** |
+| `delivery_assignments` exist but partners cannot self-serve (accept, update status, navigate) | **High** |
 
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| WF1 | Not connected to Domestic Help module | High | See DH1 above. Two separate systems. |
-| WF2 | No worker attendance history | Medium | Gate validation happens but there's no attendance report showing daily/weekly/monthly records per worker. |
-| WF3 | No resident-facing worker assignment view | Medium | Residents can't see which workers are assigned to their flat from their side. Only admins see assignments. |
+#### C2. Worker - Partial UI
 
----
+| Issue | Severity |
+|---|---|
+| Workers can view and accept jobs (`WorkerJobsPage`, `WorkerMyJobsPage`) | Implemented |
+| Workers cannot view their own attendance history, leave records, or salary records from their perspective | **Medium** |
+| `WorkerAttendancePage`, `WorkerLeavePage`, `WorkerSalaryPage` exist but are admin-facing, not worker-self-service | **Medium** |
 
-### 8. WORKER MARKETPLACE
+#### C3. Resident - Missing Navigation Links
 
-**What works:** Post job requests, race-safe acceptance, AI voice summaries, worker navigation.
+| Issue | Severity |
+|---|---|
+| `AuthorizedPersonsPage` exists but no link from Profile or Society Dashboard | **Medium** |
+| `MyWorkersPage` exists but no link from Society Dashboard | **Medium** |
+| `WorkerLeavePage` / `WorkerSalaryPage` exist but no navigation from any resident-facing page | **Medium** |
+| `WorkerAttendancePage` has no navigation link | **Medium** |
 
-**Gaps:**
+#### C4. Guard - Redundant Pages
 
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| WM1 | No payment integration | Medium | Job completion doesn't trigger any payment flow. Price is shown but no way to pay through the app. |
-| WM2 | No repeat booking | Low | No "hire again" shortcut for previously hired workers. |
-
----
-
-### 9. COMMUNITY BULLETIN
-
-**What works:** Posts with categories, upvoting, comments, realtime updates, help requests with responses.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| CB1 | No admin moderation tools inline | Medium | Admins can't pin/archive/delete posts from the bulletin page directly. These would need to be done via database. |
-| CB2 | No image/media attachments for posts | Medium | Posts are text-only. No image upload in CreatePostSheet. |
+| Issue | Severity |
+|---|---|
+| `/security/verify` still exists as a separate route even though `GuardKioskPage` has a "Manual" tab. Guard bottom nav still points to `/security/verify` instead of `/guard-kiosk` | **Medium** |
 
 ---
 
-### 10. DISPUTE SYSTEM
+### D. BACKEND FEATURES WITHOUT USABLE UI
 
-**What works:** Create disputes with categories, SLA tracking, acknowledgement, resolution, anonymous submission.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| DS1 | No admin/committee view of all disputes | High | DisputesPage only shows disputes `submitted_by` the current user. The AdminDisputesTab exists separately. But there's no committee member view -- only platform admins can see disputes via AdminPage. Society admins need access. |
-| DS2 | No escalation path | Medium | If a dispute is not resolved by SLA deadline, nothing happens. No auto-escalation, no notification to higher authority. |
-| DS3 | No dispute comments/thread | Medium | DisputeDetailSheet shows resolution notes but there's no back-and-forth communication thread between resident and committee. |
-
----
-
-### 11. HELP REQUESTS (Bulletin Quick Help)
-
-**What works:** Post help request, receive responses, mark fulfilled.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| HR1 | No notification to neighbors | Medium | When a help request is posted, no notification is sent to society members. The `notify-help-request` edge function exists but is not triggered from the frontend. |
+| DB Feature | Table/Function | UI Status | Severity |
+|---|---|---|---|
+| `auto_checkout_visitors()` | DB function exists | No manual trigger or status display | **Low** (cron-only) |
+| `apply_maintenance_late_fees()` | DB function exists | No UI to view late fees applied, no admin trigger | **Medium** |
+| `notify_upcoming_maintenance_dues()` | DB function exists | No cron scheduled, no UI | **Medium** |
+| `log_worker_gate_attendance()` | DB function exists | Attendance auto-logged but no attendance analytics UI | **Low** |
+| `get_unified_gate_log()` | DB RPC exists | `GuardGateLogTab` calls it - OK | Implemented |
+| `auto_create_parcel_on_delivery()` | DB trigger exists | No UI indication that parcels auto-appear | **Low** |
+| `society_budgets` table | Table with RLS exists | `BudgetManager` component exists - OK | Implemented |
+| `authorized_persons` table | Table with RLS exists | `AuthorizedPersonsPage` exists but unreachable from nav | **Medium** |
+| `worker_leave_records` table | Table with RLS exists | Page exists but unreachable | **Medium** |
+| `worker_salary_records` table | Table with RLS exists | Page exists but unreachable | **Medium** |
 
 ---
 
-### 12. MARKETPLACE (Orders & Delivery)
+### E. PAGES MISSING `FeatureGate`
 
-**What works:** Multi-vendor cart, order lifecycle with status triggers, delivery assignments, Razorpay payments, order chat, reviews, per-item status management.
+These pages are feature-dependent but lack `FeatureGate` wrapping:
 
-**Gaps:**
+| Page | Expected Feature Key | Severity |
+|---|---|---|
+| `MaintenancePage` | `maintenance` | **High** |
+| `VisitorManagementPage` | `visitor_management` | **High** |
+| `DomesticHelpPage` | `domestic_help` | **High** |
+| `VehicleParkingPage` | `vehicle_parking` | **High** |
+| `ParcelManagementPage` | `parcel_management` | **High** |
+| `InspectionChecklistPage` | `inspection` | **High** |
+| `PaymentMilestonesPage` | `payment_milestones` | **High** |
+| `SocietyNoticesPage` | (no feature key) | **Medium** |
+| `AuthorizedPersonsPage` | `visitor_management` | **Medium** |
 
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| MK1 | No delivery-to-gate integration | Critical | When a delivery partner arrives at the gate with an order, there's no way for the guard to verify them against the order. No delivery QR code, no order-based gate pass. This is the exact gap you identified. |
-| MK2 | Delivery partner assignment is a stub | High | `delivery_assignments` table records are created by trigger but `rider_name`, `rider_phone` are always null. There's no delivery partner pool, no assignment logic, no partner app/interface. The entire delivery tracking UI (`DeliveryStatusCard`) shows "Assigning Rider" indefinitely. |
-| MK3 | No delivery partner management | High | No UI to register, manage, or assign delivery partners. The `manage-delivery` edge function exists but has no admin interface. |
-| MK4 | Delivery OTP exists in schema but is not generated | Medium | `delivery_assignments` has `otp_hash` and `otp_expires_at` columns, but no code generates or validates delivery OTPs. |
-
----
-
-### 13. MAINTENANCE DUES
-
-**What works:** Bulk generation for all flats, Razorpay payment, mark-as-paid for admins, CSV export.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| MD1 | No auto-overdue marking | High | There is no cron job or trigger that changes status from "pending" to "overdue" when the month passes. Status is only "pending" or "paid". |
-| MD2 | No payment reminders | High | No push notification for upcoming or overdue dues. |
-| MD3 | No partial payment support | Medium | Residents must pay the full amount or nothing. |
-| MD4 | No penalty/late fee logic | Medium | No automatic late fee calculation. |
-| MD5 | Hardcoded ₹ in amount display | Low | Still uses bare ₹ instead of `formatPrice()`. |
+**Assessment**: The `SocietyDashboardPage` hides cards based on feature flags, but if a user navigates directly to the URL, they bypass the gate entirely. This is a **visibility-without-enforcement** gap.
 
 ---
 
-### 14. PAYMENT MILESTONES
+### F. ROUTE-LEVEL PERMISSION GAPS
 
-**What works:** Display construction-linked payment milestones, track paid status per resident.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| PM1 | No payment action | High | Residents can see milestones but cannot pay through the app. No Razorpay integration on this page. The "Pay" button is completely absent. |
-| PM2 | Admin can't create milestones from UI | High | No UI for creating or managing payment milestones. They must be inserted via database directly. |
-| PM3 | No demand letter / notice generation | Medium | No way to generate formal payment demand letters for overdue milestones. |
-
----
-
-### 15. SOCIETY FINANCES
-
-**What works:** Income/expense tracking, pie chart breakdown, monthly comparison, expense flagging, CSV export.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| SF1 | No integration with maintenance dues | High | Maintenance dues collected don't appear as society income. These are two completely disconnected financial systems. |
-| SF2 | No budget planning | Medium | No way to set budgets per category and track against actual spending. |
-| SF3 | Expense flag has no resolution workflow | Medium | Residents can flag expenses but there's no admin UI to view or respond to flags. |
+| Route | Current Protection | Missing | Severity |
+|---|---|---|---|
+| `/society/admin` | `ProtectedRoute` only | No `isSocietyAdmin` check at route level (page does internal check but renders before redirect) | **High** |
+| `/builder` | `ProtectedRoute` only | No `isBuilderMember` check at route level | **High** |
+| `/builder-inspections` | `ProtectedRoute` only | No builder role check | **High** |
+| `/builder/analytics` | `ProtectedRoute` only | No builder role check | **High** |
+| `/seller` | `ProtectedRoute` only | No seller check (page handles gracefully but renders) | **Medium** |
+| `/delivery-partners` | `ProtectedRoute` only | No admin/society admin check | **High** |
+| `/worker-attendance` | `ProtectedRoute` only | No admin/society admin check | **High** |
+| `/worker-leave` | `ProtectedRoute` only | No admin/society admin check | **Medium** |
+| `/worker-salary` | `ProtectedRoute` only | No admin/society admin check | **Medium** |
 
 ---
 
-### 16. CONSTRUCTION PROGRESS
+## GAP CLASSIFICATION SUMMARY
 
-**What works:** Tower management, milestone posting with photos, reactions, progress timeline, document vault, Q&A with answers.
+### Critical (Breaks Production Credibility)
+1. **No FeatureGate on 7+ pages** - Users can directly navigate to disabled features
+2. **No route-level guards** for society admin, builder, and management pages
+3. **Domestic Help is a duplicate system** with hardcoded types while Workforce Management has DB-driven categories
 
-**Gaps:**
+### High (Breaks Scalability or Role Integrity)
+4. Feature labels hardcoded in `SocietyAdminPage` instead of from `platform_features` table
+5. Visitor types hardcoded (no config table)
+6. Delivery Partner has no self-service UI
+7. Created pages (authorized persons, worker leave/salary/attendance) have no navigation links
 
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| CP1 | No notification on milestone posts | Medium | When a builder posts a milestone update, residents are not notified. The `log_milestone_activity` trigger adds to `society_activity` but no push notification is sent. |
-| CP2 | No photo gallery for milestone updates | Low | Photos are stored in `photos` array but the MilestoneCard doesn't render them. |
+### Medium (Partial Implementation)
+8. Order/payment/item status labels are frontend-only display maps
+9. Product action types duplicated between two files
+10. Late fee function exists but no UI to view/trigger
+11. Guard bottom nav still points to old `/security/verify` route
+12. Approval methods hardcoded in dropdown
 
----
-
-### 17. SNAG MANAGEMENT
-
-**What works:** Report snags with photos, collective escalation detection, SLA tracking, status lifecycle.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| SN1 | No builder notification on new snags | High | When a resident reports a snag, the builder/society admin is not notified. |
-| SN2 | No snag-to-worker assignment | Medium | `assigned_to_name` is a text field, not a reference to any worker or user. No assignment workflow. |
-
----
-
-### 18. PRE-HANDOVER INSPECTION
-
-**What works:** Comprehensive 70+ item checklist, pass/fail/NA status, notes on failed items, submit to builder, convert failed items to snag tickets.
-
-**Gaps:**
-
-| # | Gap | Severity | Description |
-|---|-----|----------|-------------|
-| IH1 | No photo capture for failed items | High | Despite having `photo_urls` in the schema, there's no photo upload UI on inspection items. |
-| IH2 | No builder acknowledgement | Medium | Builder has no UI to view or respond to submitted inspection reports. |
+### Low (Technical Debt)
+13. Sort options hardcoded (acceptable for now)
+14. Days of week hardcoded (universal constant)
+15. Auto-checkout and attendance logging are DB-only with no visibility UI
 
 ---
 
-## CRITICAL CROSS-MODULE GAPS
+## REMEDIATION PLAN
 
-### GAP X1: Order-to-Gate Integration (Your Proposed Model)
+### Phase 1: Security and Enforcement (Critical)
 
-**Current state:** Zero integration. Marketplace orders and gate security are completely separate systems. A delivery person arriving with a Sociva order is treated as an unknown visitor.
+**1.1 Add FeatureGate to all feature pages**
+Wrap these pages: `MaintenancePage`, `VisitorManagementPage`, `DomesticHelpPage`, `VehicleParkingPage`, `ParcelManagementPage`, `InspectionChecklistPage`, `PaymentMilestonesPage`, `AuthorizedPersonsPage`
 
-**Your proposed model assessment:**
+**1.2 Add route-level guards**
+Create `SocietyAdminRoute`, `BuilderRoute`, `SellerRoute` wrappers (similar to existing `AdminRoute` and `SecurityRoute`). Apply to: `/society/admin`, `/builder`, `/builder/*`, `/delivery-partners`, `/worker-attendance`, `/worker-leave`, `/worker-salary`
 
-| Criterion | Assessment |
-|-----------|------------|
-| Operationally sound | YES -- This is exactly how food delivery apps (Swiggy, Zomato) work with gated communities today. The order IS the authorization. |
-| Secure | YES with conditions -- The system must verify: (1) a real order exists in "ready" or "picked_up" status, (2) the delivery person identity matches the assignment, (3) the order is destined for this society, (4) the QR/code is time-limited. |
-| Scalable | YES -- The architecture supports this. `delivery_assignments` already has `otp_hash` and `otp_expires_at` columns. The guard kiosk already validates workers; adding delivery orders is the same pattern. |
-| Suitable for target audience | YES -- This reduces friction for both residents and guards. Residents don't have to manually approve every delivery. Guards get system-verified authorization. |
+**1.3 Deprecate DomesticHelpPage**
+Redirect `/domestic-help` to `/workforce`. Remove the legacy `domestic_help_entries` path. Worker categories are already DB-driven via `worker_categories`.
 
-**Verdict: This approach is strongly advisable.**
+### Phase 2: Database-Driven Display (High)
 
-**Implementation feasibility within current architecture:** HIGH.
+**2.1 Add display metadata to `platform_features`**
+Migration: `ALTER TABLE platform_features ADD COLUMN IF NOT EXISTS display_name TEXT, ADD COLUMN IF NOT EXISTS description TEXT, ADD COLUMN IF NOT EXISTS icon_name TEXT;`
+Then seed values. Update `SocietyAdminPage` to read from DB instead of `FEATURE_LABELS` constant.
 
-The required pieces mostly exist:
-1. `delivery_assignments` table already tracks order-to-delivery mapping
-2. `delivery_assignments` already has `otp_hash` and `otp_expires_at` columns (unused)
-3. Guard kiosk already has a tab system (OTP / Expected / Worker)
-4. The order status lifecycle already tracks "ready" and "picked_up" states
-5. The `manage-delivery` edge function exists for delivery operations
+**2.2 Create `visitor_types` config table**
+```sql
+CREATE TABLE visitor_types (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  society_id UUID REFERENCES societies(id),
+  type_key TEXT NOT NULL,
+  label TEXT NOT NULL,
+  icon TEXT,
+  is_active BOOLEAN DEFAULT true,
+  display_order INT DEFAULT 0
+);
+```
+Update `VisitorManagementPage` to fetch types from DB.
 
-What needs to be built:
-1. Generate a delivery OTP/QR when order status becomes "ready" or "picked_up"
-2. Add a "Delivery" tab to GuardKioskPage
-3. Guard enters delivery code -> system validates against `delivery_assignments`
-4. Auto check-in the delivery person + notify resident
-5. Optionally auto-create a `visitor_entries` record for audit trail
+**2.3 Move status labels to a `status_display_config` table or add to system_settings**
+This is lower priority since the Proxy pattern provides graceful fallback. Could be done as a JSON value in `system_settings` keyed by domain (order_status, payment_status, etc.).
 
-### GAP X2: Unified Guard Console
+### Phase 3: Navigation and Discoverability (High)
 
-The guard currently needs 3+ separate pages:
-- `/guard-kiosk` -- Visitor OTP, expected visitors, worker validation
-- `/security/verify` -- Resident QR scanning, manual entry
-- (missing) -- Parcel logging, delivery verification
+**3.1 Add missing nav links to Society Dashboard**
+Add cards for: Authorized Persons, My Workers, Worker Attendance, Worker Leave, Worker Salary
 
-**Recommendation:** Merge into one unified guard console with 5 tabs: Resident QR | Visitor OTP | Deliveries | Workers | Parcels.
+**3.2 Fix Guard bottom nav**
+Change `securityNavItems` to point to `/guard-kiosk` instead of `/security/verify`. Consider removing `/security/verify` route entirely.
 
-### GAP X3: Notification Deficit
+**3.3 Add Delivery Partner self-service view**
+Create `DeliveryPartnerDashboardPage` showing: assigned deliveries, completion workflow, earnings. Gate behind a `delivery_partner` role or `delivery_partner_pool` membership check.
 
-Across all modules, the most consistent gap is **missing push notifications**. Events that should trigger notifications but don't:
-- Visitor checked in at gate
-- Parcel received at gate
-- New snag reported (to builder)
-- Milestone posted (to residents)
-- Help request posted (to society)
-- Maintenance due approaching/overdue
-- Dispute SLA breaching
-- Expense flagged (to committee)
+### Phase 4: Worker Self-Service (Medium)
 
-### GAP X4: Domestic Help vs. Workforce Duplication
+**4.1 Worker attendance self-view**
+Let workers see their own attendance via a filtered view of `worker_attendance`.
 
-Two parallel systems for the same concept. This must be resolved -- either deprecate DomesticHelpPage in favor of WorkforceManagement, or merge them. Currently a maid registered via DomesticHelpPage cannot be verified at the gate.
+**4.2 Worker leave self-request**
+Let workers submit leave requests that admins approve.
 
----
+**4.3 Worker salary self-view**
+Let workers see their salary records.
 
-## RISK CLASSIFICATION SUMMARY
+### Phase 5: Cleanup (Low)
 
-| Severity | Count | Key Items |
-|----------|-------|-----------|
-| Critical | 7 | Order-to-gate integration, Guard kiosk missing QR/delivery, Parcel logging by guards, Visitor arrival notification, OTP expiry not enforced |
-| High | 18 | Domestic/Workforce duplication, Delivery partner stub, Dispute committee view, Maintenance auto-overdue, Payment milestone admin UI, Visitor photo, unified guard console |
-| Medium | 20 | Various notification gaps, attendance history, budget planning, moderation tools, partial payments |
-| Low | 4 | Repeat booking, photo gallery, currency formatting remnants |
+**5.1 Deduplicate ACTION_CONFIG**
+Remove `PRODUCT_ACTION_TYPES` from `database.ts` (or make it reference `ACTION_CONFIG`).
 
----
+**5.2 Consider moving sort options to system_settings**
+Only if multi-tenant customization of sort behavior is needed.
 
-## PRIORITIZED REMEDIATION PLAN
-
-### Phase 1 -- Demo-Critical (Order-to-Gate + Guard Unification)
-
-| # | Item | Effort | Impact |
-|---|------|--------|--------|
-| 1 | Build delivery OTP generation on order "ready" status | Medium | Enables the core differentiator |
-| 2 | Add "Delivery" tab to GuardKioskPage with order verification | Medium | Completes the order-to-gate flow |
-| 3 | Merge SecurityVerifyPage QR scanning into GuardKioskPage | Medium | One screen for guards |
-| 4 | Add visitor arrival push notification | Low | Matches MyGate baseline |
-| 5 | Fix OTP expiry check in guard kiosk query | Low | Security fix |
-
-### Phase 2 -- Operational Depth
-
-| # | Item | Effort |
-|---|------|--------|
-| 6 | Guard-facing parcel logging (by flat number) with resident notification | Medium |
-| 7 | Resolve Domestic Help vs. Workforce duplication | Medium |
-| 8 | Auto-overdue marking for maintenance dues with notification | Low |
-| 9 | Society admin dispute view | Low |
-| 10 | Payment milestone admin creation UI | Medium |
-
-### Phase 3 -- Production Polish
-
-| # | Item | Effort |
-|---|------|--------|
-| 11 | Visitor/parcel photo capture at gate | Medium |
-| 12 | Maintenance dues to society income integration | Low |
-| 13 | Snag assignment workflow with builder notification | Medium |
-| 14 | Inspection photo upload for failed items | Low |
-| 15 | Expense flag resolution workflow | Low |
-| 16 | Recurring visitor automation | Medium |
-
-### Phase 4 -- Competitive Parity
-
-| # | Item | Effort |
-|---|------|--------|
-| 17 | Delivery partner pool management | High |
-| 18 | Vehicle-to-resident mapping and visitor parking | Medium |
-| 19 | Dispute escalation and threaded communication | Medium |
-| 20 | Budget planning for society finances | Medium |
+**5.3 Add late fee visibility**
+Show late fee column in `MaintenancePage` table. Add admin button to manually trigger `apply_maintenance_late_fees()`.
 
 ---
 
-## DIRECT ANSWER TO YOUR QUESTION
+## POST-REMEDIATION STATE
 
-**"Is the order-based gate validation model advisable?"**
+After implementing Phases 1-3:
+- Every feature page is gated by `FeatureGate` (UI) and route guards (navigation)
+- Every role has a clear, navigable workflow
+- All display labels for features come from the database
+- Visitor types are configurable per society
+- The duplicate Domestic Help system is eliminated
+- New pages are reachable from the main navigation
+- Guard console is the single entry point for all gate operations
+- Delivery partners have a self-service operational view
 
-Yes. It is operationally sound, architecturally feasible, and more practical than requiring manual resident approval for every delivery. The current architecture has 80% of the required infrastructure -- delivery_assignments table, OTP columns, guard kiosk tab system, order status triggers. The main work is connecting these existing pieces.
-
-**"Are these modules production-grade?"**
-
-No. They are **feature-complete individually** but **operationally shallow**. Each module works in isolation but the cross-module integrations that make a real gated community system work -- gate + orders, gate + parcels, domestic help + gate, finances + dues, notifications across all modules -- are mostly absent. A MyGate comparison would expose this immediately. The system has the data model depth but not the workflow depth.
+The system will then meet the standard of a configurable enterprise SaaS platform where:
+- A new society creation inherits all feature defaults dynamically
+- A new role introduction only requires DB entries, not code changes (for feature access)
+- Feature package changes cascade automatically
+- No business logic is embedded in frontend display constants that affect behavior
