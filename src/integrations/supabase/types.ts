@@ -526,6 +526,7 @@ export type Database = {
           id: string
           product_id: string
           quantity: number
+          society_id: string | null
           user_id: string
         }
         Insert: {
@@ -533,6 +534,7 @@ export type Database = {
           id?: string
           product_id: string
           quantity?: number
+          society_id?: string | null
           user_id: string
         }
         Update: {
@@ -540,6 +542,7 @@ export type Database = {
           id?: string
           product_id?: string
           quantity?: number
+          society_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -548,6 +551,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_items_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
             referencedColumns: ["id"]
           },
         ]
@@ -1341,18 +1351,21 @@ export type Database = {
           created_at: string | null
           id: string
           seller_id: string
+          society_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           seller_id: string
+          society_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           seller_id?: string
+          society_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1361,6 +1374,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorites_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
             referencedColumns: ["id"]
           },
         ]
@@ -2692,6 +2712,7 @@ export type Database = {
           payment_status: string
           platform_fee: number | null
           seller_id: string | null
+          society_id: string | null
           transaction_reference: string | null
           updated_at: string | null
         }
@@ -2707,6 +2728,7 @@ export type Database = {
           payment_status?: string
           platform_fee?: number | null
           seller_id?: string | null
+          society_id?: string | null
           transaction_reference?: string | null
           updated_at?: string | null
         }
@@ -2722,6 +2744,7 @@ export type Database = {
           payment_status?: string
           platform_fee?: number | null
           seller_id?: string | null
+          society_id?: string | null
           transaction_reference?: string | null
           updated_at?: string | null
         }
@@ -2738,6 +2761,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
             referencedColumns: ["id"]
           },
         ]
@@ -3408,6 +3438,7 @@ export type Database = {
           order_id: string
           rating: number
           seller_id: string
+          society_id: string | null
         }
         Insert: {
           buyer_id?: string | null
@@ -3419,6 +3450,7 @@ export type Database = {
           order_id: string
           rating: number
           seller_id: string
+          society_id?: string | null
         }
         Update: {
           buyer_id?: string | null
@@ -3430,6 +3462,7 @@ export type Database = {
           order_id?: string
           rating?: number
           seller_id?: string
+          society_id?: string | null
         }
         Relationships: [
           {
@@ -3451,6 +3484,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
             referencedColumns: ["id"]
           },
         ]
