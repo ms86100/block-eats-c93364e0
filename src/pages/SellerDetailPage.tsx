@@ -287,12 +287,17 @@ export default function SellerDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-3 mt-4 text-sm text-muted-foreground">
-            {profile && (
+            {((seller as any).society || profile) && (
               <span className="flex items-center gap-1">
-                <MapPin size={14} />
-                Block {profile.block}, {profile.flat_number}
-                {(seller as any).society?.name && `, ${(seller as any).society.name}`}
-                {(seller as any).society?.city && `, ${(seller as any).society.city}`}
+                <MapPin size={14} className="shrink-0" />
+                <span>
+                  {profile && `Block ${profile.block}, ${profile.flat_number}`}
+                  {(seller as any).society?.name && `${profile ? ', ' : ''}${(seller as any).society.name}`}
+                  {(seller as any).society?.address && `, ${(seller as any).society.address}`}
+                  {(seller as any).society?.city && `, ${(seller as any).society.city}`}
+                  {(seller as any).society?.state && `, ${(seller as any).society.state}`}
+                  {(seller as any).society?.pincode && ` - ${(seller as any).society.pincode}`}
+                </span>
               </span>
             )}
             {seller.availability_start && seller.availability_end && (
