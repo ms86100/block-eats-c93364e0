@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.manage-delivery]
 verify_jwt = false
+
+[functions.save-test-results]
+verify_jwt = false

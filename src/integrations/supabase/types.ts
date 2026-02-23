@@ -5327,6 +5327,60 @@ export type Database = {
         }
         Relationships: []
       }
+      test_results: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_code: string | null
+          error_message: string | null
+          executed_at: string
+          file_path: string | null
+          http_status_code: number | null
+          id: string
+          input_data: Json | null
+          module_name: string
+          outcome: string
+          page_or_api_url: string | null
+          response_payload: Json | null
+          run_id: string
+          test_name: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          executed_at?: string
+          file_path?: string | null
+          http_status_code?: number | null
+          id?: string
+          input_data?: Json | null
+          module_name: string
+          outcome?: string
+          page_or_api_url?: string | null
+          response_payload?: Json | null
+          run_id: string
+          test_name: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          executed_at?: string
+          file_path?: string | null
+          http_status_code?: number | null
+          id?: string
+          input_data?: Json | null
+          module_name?: string
+          outcome?: string
+          page_or_api_url?: string | null
+          response_payload?: Json | null
+          run_id?: string
+          test_name?: string
+        }
+        Relationships: []
+      }
       trigger_errors: {
         Row: {
           created_at: string
