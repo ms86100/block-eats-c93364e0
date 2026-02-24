@@ -33,6 +33,7 @@ import { ArrowLeft, Clock, MapPin, Phone, Search, ShoppingCart, Star, Calendar, 
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function SellerDetailPage() {
   const { id } = useParams();
@@ -40,6 +41,7 @@ export default function SellerDetailPage() {
   const { user, effectiveSocietyId } = useAuth();
   const { configs: allCategoryConfigs } = useCategoryConfigs();
   const { items, totalAmount } = useCart();
+  const { formatPrice } = useCurrency();
   const [seller, setSeller] = useState<SellerProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -368,7 +370,7 @@ export default function SellerDetailPage() {
             )}
             {(seller as any).minimum_order_amount != null && (seller as any).minimum_order_amount > 0 && (
               <Badge variant="outline" className="text-[10px] font-medium">
-                Min ₹{(seller as any).minimum_order_amount}
+                Min {formatPrice((seller as any).minimum_order_amount)}
               </Badge>
             )}
             {(seller as any).delivery_note && (
@@ -515,7 +517,7 @@ export default function SellerDetailPage() {
                 </div>
                 <div>
                   <p className="font-semibold">{cartCount} items</p>
-                  <p className="text-sm opacity-90">₹{cartTotal.toFixed(0)}</p>
+                  <p className="text-sm opacity-90">{formatPrice(cartTotal)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">

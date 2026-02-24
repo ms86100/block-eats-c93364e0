@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { useCurrency } from '@/hooks/useCurrency';
 import { Pause, Play, X, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
@@ -35,6 +36,7 @@ interface Subscription {
 
 export default function MySubscriptionsPage() {
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -100,7 +102,7 @@ export default function MySubscriptionsPage() {
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span>Qty: {sub.quantity}</span>
                 <span className="capitalize">{sub.frequency}</span>
-                <span>₹{(sub.product?.price || 0) * sub.quantity}/{sub.frequency === 'daily' ? 'day' : sub.frequency === 'weekly' ? 'week' : 'month'}</span>
+                <span>{formatPrice((sub.product?.price || 0) * sub.quantity)}/{sub.frequency === 'daily' ? 'day' : sub.frequency === 'weekly' ? 'week' : 'month'}</span>
               </div>
               {sub.status === 'active' && (
                 <p className="text-xs text-muted-foreground">

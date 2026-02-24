@@ -106,7 +106,7 @@ export function CouponInput({ sellerId, totalAmount, onApply, onRemove, appliedC
           <Check className="text-primary" size={18} />
           <div>
             <span className="font-mono font-bold text-primary text-sm">{appliedCoupon.code}</span>
-            <p className="text-xs text-muted-foreground">You save ₹{appliedCoupon.discountAmount.toFixed(0)}</p>
+            <p className="text-xs text-muted-foreground">You save {formatPrice(appliedCoupon.discountAmount)}</p>
           </div>
         </div>
         <Button size="sm" variant="ghost" onClick={onRemove}>

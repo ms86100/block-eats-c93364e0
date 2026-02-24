@@ -25,7 +25,7 @@ interface WorkerOption {
 export default function WorkerSalaryPage() {
   const { effectiveSocietyId, isSocietyAdmin, isAdmin, user, profile } = useAuth();
   const { workerProfile, isWorker } = useWorkerRole();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currencySymbol } = useCurrency();
   const [salaries, setSalaries] = useState<any[]>([]);
   const [workers, setWorkers] = useState<WorkerOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,7 +144,7 @@ export default function WorkerSalaryPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Month</Label><Input type="month" value={month} onChange={e => setMonth(e.target.value)} /></div>
-                  <div><Label>Amount (₹)</Label><Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. 5000" /></div>
+                  <div><Label>Amount ({currencySymbol})</Label><Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. 5000" /></div>
                 </div>
                 <Button onClick={handleAdd} disabled={submitting || !workerId || !amount} className="w-full">
                   {submitting ? <Loader2 size={16} className="mr-1 animate-spin" /> : null} Record Salary

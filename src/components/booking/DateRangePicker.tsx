@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { CalendarDays, ArrowRight } from 'lucide-react';
 import { RentalPeriodType } from '@/types/categories';
 import { useMarketplaceConfig } from '@/hooks/useMarketplaceConfig';
+import { useCurrency } from '@/hooks/useCurrency';
 import { DateRange } from 'react-day-picker';
 
 interface DateRangePickerProps {
@@ -37,6 +38,7 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const today = startOfToday();
   const maxDate = addDays(today, 90); // Allow booking up to 90 days ahead
+  const { formatPrice } = useCurrency();
 
   // Calculate total rental cost
   const rentalSummary = useMemo(() => {
@@ -129,22 +131,22 @@ export function DateRangePicker({
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">
               {rentalSummary.duration} {rentalPeriodType === 'hourly' ? 'hour' : rentalPeriodType.replace('ly', '')}
-              {rentalSummary.duration > 1 ? 's' : ''} × ₹{pricePerPeriod}
+              {rentalSummary.duration > 1 ? 's' : ''} × {formatPrice(pricePerPeriod)}
             </span>
-            <span>₹{rentalSummary.totalCost}</span>
+            <span>{formatPrice(rentalSummary.totalCost)}</span>
           </div>
 
           {rentalSummary.deposit > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Refundable Deposit</span>
-              <span>₹{rentalSummary.deposit}</span>
+              <span>{formatPrice(rentalSummary.deposit)}</span>
             </div>
           )}
 
           <div className="border-t pt-2 mt-2">
             <div className="flex justify-between font-semibold">
               <span>Total</span>
-              <span className="text-primary">₹{rentalSummary.grandTotal}</span>
+              <span className="text-primary">{formatPrice(rentalSummary.grandTotal)}</span>
             </div>
             {rentalSummary.deposit > 0 && (
               <p className="text-xs text-muted-foreground mt-1">

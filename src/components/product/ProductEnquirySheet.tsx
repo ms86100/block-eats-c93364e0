@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { ProductActionType } from '@/types/database';
 import { Loader2, MessageCircle, Calendar, Send, Home, Handshake } from 'lucide-react';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface ProductEnquirySheetProps {
   open: boolean;
@@ -65,6 +66,7 @@ export function ProductEnquirySheet({
 }: ProductEnquirySheetProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -141,7 +143,7 @@ export function ProductEnquirySheet({
             <p className="font-medium text-sm">{productName}</p>
             <p className="text-xs text-muted-foreground">
               by {sellerName}
-              {price ? ` · ₹${price}` : ''}
+              {price ? ` · ${formatPrice(price)}` : ''}
             </p>
           </div>
 

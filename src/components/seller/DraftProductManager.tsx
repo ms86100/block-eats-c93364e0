@@ -15,6 +15,7 @@ import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { friendlyError } from '@/lib/utils';
 import { AttributeBlockBuilder } from '@/components/seller/AttributeBlockBuilder';
 import { type BlockData } from '@/hooks/useAttributeBlocks';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface DraftProduct {
   id?: string;
@@ -47,6 +48,7 @@ export function DraftProductManager({
   const [isSaving, setIsSaving] = useState(false);
   const [attributeBlocks, setAttributeBlocks] = useState<BlockData[]>([]);
   const { configs } = useCategoryConfigs();
+  const { formatPrice, currencySymbol } = useCurrency();
   const [newProduct, setNewProduct] = useState<DraftProduct>({
     name: '',
     price: 0,
@@ -223,11 +225,11 @@ export function DraftProductManager({
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-sm font-bold text-primary">
-                      {product.price > 0 ? `₹${product.price}` : 'Price on request'}
+                      {product.price > 0 ? formatPrice(product.price) : 'Price on request'}
                     </p>
                     {product.mrp && product.mrp > product.price && (
                       <>
-                        <span className="text-xs text-muted-foreground line-through">₹{product.mrp}</span>
+                        <span className="text-xs text-muted-foreground line-through">{formatPrice(product.mrp)}</span>
                         <span className="text-[10px] font-bold text-green-600 bg-green-500/10 px-1.5 py-0.5 rounded">
                           {product.discount_percentage}% OFF
                         </span>
@@ -273,7 +275,7 @@ export function DraftProductManager({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="prod-price" className="text-xs">
-                  {activeConfig?.formHints.priceLabel || 'Selling Price'} (₹) {requiresPrice ? '*' : ''}
+                  {activeConfig?.formHints.priceLabel || 'Selling Price'} ({currencySymbol}) {requiresPrice ? '*' : ''}
                 </Label>
                 <Input
                   id="prod-price"
@@ -287,7 +289,7 @@ export function DraftProductManager({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="prod-mrp" className="text-xs">MRP (₹) <span className="text-muted-foreground">(optional)</span></Label>
+                <Label htmlFor="prod-mrp" className="text-xs">MRP ({currencySymbol}) <span className="text-muted-foreground">(optional)</span></Label>
                 <Input
                   id="prod-mrp"
                   type="number"
@@ -309,7 +311,7 @@ export function DraftProductManager({
                   {computedDiscount}% OFF
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  (₹{newProduct.mrp! - newProduct.price} savings)
+                  ({formatPrice(newProduct.mrp! - newProduct.price)} savings)
                 </span>
               </div>
             )}

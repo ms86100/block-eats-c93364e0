@@ -20,11 +20,13 @@ import { ArrowLeft, Phone, MapPin, Check, Star, MessageCircle, CreditCard, XCirc
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { FeedbackSheet } from '@/components/feedback/FeedbackSheet';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function OrderDetailPage() {
   const { id } = useParams();
   const { user, isSeller } = useAuth();
   const { getOrderStatus, getPaymentStatus, getItemStatus } = useStatusLabels();
+  const { formatPrice } = useCurrency();
   const [order, setOrder] = useState<Order | null>(null);
   const [hasReview, setHasReview] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -394,14 +396,14 @@ export default function OrderDetailPage() {
               {(order as any).discount_amount > 0 && (
                 <div className="flex justify-between text-primary">
                   <span>Discount</span>
-                  <span>-₹{(order as any).discount_amount}</span>
+                  <span>-{formatPrice((order as any).discount_amount)}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery</span>
                 {orderFulfillmentType === 'delivery' ? (
                   <span className={`font-medium ${(order as any).delivery_fee > 0 ? '' : 'text-primary'}`}>
-                    {(order as any).delivery_fee > 0 ? `₹${(order as any).delivery_fee}` : 'FREE'}
+                    {(order as any).delivery_fee > 0 ? formatPrice((order as any).delivery_fee) : 'FREE'}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">Self Pickup</span>
@@ -409,7 +411,7 @@ export default function OrderDetailPage() {
               </div>
               <div className="flex justify-between font-bold pt-1 border-t border-border">
                 <span>Total</span>
-                <span>₹{order.total_amount}</span>
+                <span>{formatPrice(order.total_amount)}</span>
               </div>
             </div>
           </div>

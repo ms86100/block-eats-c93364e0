@@ -10,6 +10,7 @@ import { useStatusLabels } from '@/hooks/useStatusLabels';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { friendlyError } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ import { Label } from '@/components/ui/label';
 export function ResidentJobsList() {
   const { profile } = useAuth();
   const { getWorkerJobStatus } = useStatusLabels();
+  const { formatPrice } = useCurrency();
   const queryClient = useQueryClient();
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -76,7 +78,7 @@ export function ResidentJobsList() {
             </div>
             {job.description && <p className="text-xs text-muted-foreground">{job.description}</p>}
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              {job.price && <span>₹{job.price}</span>}
+              {job.price && <span>{formatPrice(job.price)}</span>}
               {job.duration_hours && <span>• {job.duration_hours}h</span>}
               {job.start_time && <span>• {format(new Date(job.start_time), 'dd MMM, h:mm a')}</span>}
             </div>

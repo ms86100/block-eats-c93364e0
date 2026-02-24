@@ -308,7 +308,7 @@ export function BulkProductUpload({ isOpen, onClose, sellerId, allowedCategories
                         type="number"
                         value={row.price}
                         onChange={(e) => updateRow(idx, 'price', e.target.value)}
-                        placeholder="₹"
+                        placeholder="Price"
                         className="h-8 text-sm"
                       />
                     </TableCell>

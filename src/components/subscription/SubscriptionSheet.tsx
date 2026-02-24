@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { DAYS_OF_WEEK } from '@/types/database';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface SubscriptionSheetProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface SubscriptionSheetProps {
 
 export function SubscriptionSheet({ open, onOpenChange, product }: SubscriptionSheetProps) {
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const [frequency, setFrequency] = useState('daily');
   const [quantity, setQuantity] = useState(1);
   const [deliveryDays, setDeliveryDays] = useState<string[]>([]);
@@ -64,7 +66,7 @@ export function SubscriptionSheet({ open, onOpenChange, product }: SubscriptionS
         <div className="space-y-4 mt-4">
           <div className="p-3 rounded-lg bg-muted/50 border border-border">
             <p className="font-medium text-sm">{product.name}</p>
-            <p className="text-xs text-muted-foreground">₹{product.price} per unit</p>
+            <p className="text-xs text-muted-foreground">{formatPrice(product.price)} per unit</p>
           </div>
 
           <div>
@@ -112,7 +114,7 @@ export function SubscriptionSheet({ open, onOpenChange, product }: SubscriptionS
 
           <div className="p-3 rounded-lg bg-secondary/50 border border-border">
             <p className="text-xs text-secondary-foreground">
-              Estimated cost: <strong>₹{product.price * quantity}</strong> per {frequency === 'daily' ? 'day' : frequency === 'weekly' ? 'delivery' : 'month'}
+              Estimated cost: <strong>{formatPrice(product.price * quantity)}</strong> per {frequency === 'daily' ? 'day' : frequency === 'weekly' ? 'delivery' : 'month'}
             </p>
           </div>
 

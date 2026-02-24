@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { friendlyError } from '@/lib/utils';
 import { FeatureGate } from '@/components/ui/FeatureGate';
+import { useCurrency } from '@/hooks/useCurrency';
 
 // Job type labels fetched dynamically from worker categories or used as structural display-only labels
 function useJobTypeLabels() {
@@ -55,6 +56,7 @@ function useLangVoiceMap() {
 export default function WorkerJobsPage() {
   const { profile, effectiveSocietyId } = useAuth();
   const { isWorker, workerProfile } = useWorkerRole();
+  const { formatPrice } = useCurrency();
   const queryClient = useQueryClient();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [speakingJobId, setSpeakingJobId] = useState<string | null>(null);
@@ -264,7 +266,7 @@ export default function WorkerJobsPage() {
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                     {job.price && (
                       <span className="flex items-center gap-1">
-                        <IndianRupee size={12} /> ₹{job.price}
+                        <IndianRupee size={12} /> {formatPrice(job.price)}
                       </span>
                     )}
                     {job.duration_hours && (

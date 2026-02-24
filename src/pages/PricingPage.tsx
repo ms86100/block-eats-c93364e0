@@ -179,7 +179,7 @@ export default function PricingPage() {
         )}
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          All prices are in {settings.currencySymbol === '₹' ? 'INR' : settings.currencySymbol}. GST applicable where required.
+          All prices are in {settings.currencySymbol === '₹' ? 'INR' : settings.currencySymbol}. Taxes applicable where required.
         </p>
       </div>
     </AppLayout>

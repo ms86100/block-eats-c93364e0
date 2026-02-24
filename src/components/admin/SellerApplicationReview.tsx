@@ -13,6 +13,7 @@ import {
   ChevronDown, ChevronUp, MapPin, Phone, Calendar, CreditCard, Truck, User,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCurrency } from '@/hooks/useCurrency';
 import { format } from 'date-fns';
 import { logAudit } from '@/lib/audit';
 
@@ -79,6 +80,7 @@ interface GroupConfig {
 }
 
 export function SellerApplicationReview() {
+  const { formatPrice } = useCurrency();
   const [applications, setApplications] = useState<SellerApplication[]>([]);
   const [groups, setGroups] = useState<GroupConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -489,7 +491,7 @@ export function SellerApplicationReview() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium truncate">{prod.name}</p>
                                 <div className="flex items-center gap-1">
-                                  {prod.price > 0 && <span className="text-[10px] text-primary font-semibold">₹{prod.price}</span>}
+                                  {prod.price > 0 && <span className="text-[10px] text-primary font-semibold">{formatPrice(prod.price)}</span>}
                                   <Badge variant="outline" className="text-[8px] px-1 py-0">{prod.category.replace(/_/g, ' ')}</Badge>
                                 </div>
                               </div>

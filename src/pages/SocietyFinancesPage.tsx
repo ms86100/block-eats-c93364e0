@@ -19,6 +19,7 @@ import { ExpenseFlagManager } from '@/components/finances/ExpenseFlagManager';
 import { Loader2, Plus, TrendingUp, TrendingDown, Wallet, Download, Flag, Target } from 'lucide-react';
 import { exportFinances } from '@/lib/csv-export';
 import { ModuleSearchBar } from '@/components/search/ModuleSearchBar';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface Expense {
   id: string;
@@ -42,6 +43,7 @@ interface Income {
 
 export default function SocietyFinancesPage() {
   const { user, profile, isAdmin, isSocietyAdmin, effectiveSocietyId } = useAuth();
+  const { formatPrice } = useCurrency();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [income, setIncome] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,14 +113,14 @@ export default function SocietyFinancesPage() {
                 <CardContent className="p-3 text-center">
                   <TrendingUp size={16} className="mx-auto text-success mb-1" />
                   <p className="text-xs text-muted-foreground">Collected</p>
-                  <p className="text-sm font-bold">₹{totalIncome.toLocaleString()}</p>
+                  <p className="text-sm font-bold">{formatPrice(totalIncome)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-3 text-center">
                   <TrendingDown size={16} className="mx-auto text-destructive mb-1" />
                   <p className="text-xs text-muted-foreground">Spent</p>
-                  <p className="text-sm font-bold">₹{totalExpenses.toLocaleString()}</p>
+                  <p className="text-sm font-bold">{formatPrice(totalExpenses)}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -126,7 +128,7 @@ export default function SocietyFinancesPage() {
                   <Wallet size={16} className="mx-auto text-primary mb-1" />
                   <p className="text-xs text-muted-foreground">Balance</p>
                   <p className={`text-sm font-bold ${balance >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    ₹{balance.toLocaleString()}
+                    {formatPrice(balance)}
                   </p>
                 </CardContent>
               </Card>

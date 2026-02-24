@@ -8,6 +8,7 @@ import {
   Building2, CreditCard, Users, ChevronRight, TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const TRUST_LABELS: { min: number; label: string; color: string }[] = [
   { min: 9, label: 'Model Community', color: 'text-emerald-600 dark:text-emerald-400' },
@@ -24,6 +25,7 @@ function getTrustInfo(score: number) {
 export function SocietyHealthDashboard() {
   const { effectiveSociety } = useAuth();
   const { data: metrics, isLoading } = useSocietyHealthMetrics();
+  const { formatPrice } = useCurrency();
 
   if (isLoading) {
     return (
@@ -116,7 +118,7 @@ export function SocietyHealthDashboard() {
                 <IndianRupee size={14} className="text-warning" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold truncate">₹{metrics.expenseAmountThisMonth.toLocaleString()}</p>
+                <p className="text-xs font-semibold truncate">{formatPrice(metrics.expenseAmountThisMonth)}</p>
                 <p className="text-[9px] text-muted-foreground">{metrics.expensesThisMonth} entries this month</p>
               </div>
             </CardContent>

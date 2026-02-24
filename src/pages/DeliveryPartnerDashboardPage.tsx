@@ -12,12 +12,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Truck, Package, MapPin, Clock, CheckCircle2, Phone, Navigation, Loader2 } from 'lucide-react';
 import { useStatusLabels } from '@/hooks/useStatusLabels';
+import { useCurrency } from '@/hooks/useCurrency';
 import { format } from 'date-fns';
 
 export default function DeliveryPartnerDashboardPage() {
   const { user, effectiveSocietyId } = useAuth();
   const queryClient = useQueryClient();
   const { getDeliveryStatus } = useStatusLabels();
+  const { formatPrice } = useCurrency();
   const [activeTab, setActiveTab] = useState('active');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -236,7 +238,7 @@ export default function DeliveryPartnerDashboardPage() {
                     📍 {d.order?.buyer?.block}-{d.order?.buyer?.flat_number}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    💰 Delivery fee: ₹{d.delivery_fee}
+                    💰 Delivery fee: {formatPrice(d.delivery_fee)}
                   </p>
                   <Button
                     size="sm"
@@ -297,8 +299,8 @@ export default function DeliveryPartnerDashboardPage() {
                         )}
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span>₹{delivery.order?.total_amount?.toLocaleString()}</span>
-                        <span className="text-success font-medium">Fee: ₹{delivery.delivery_fee}</span>
+                        <span>{formatPrice(delivery.order?.total_amount || 0)}</span>
+                        <span className="text-success font-medium">Fee: {formatPrice(delivery.delivery_fee)}</span>
                       </div>
 
                       {/* Action Buttons */}

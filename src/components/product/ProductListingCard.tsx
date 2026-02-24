@@ -330,11 +330,11 @@ export function ProductListingCard({
         {/* Price row */}
         <div className="flex items-end gap-0.5 mt-auto">
           <span className="font-bold text-xs text-foreground leading-none">
-            {mc.currencySymbol}{product.price}
+            {mc.currencySymbol}{product.price.toLocaleString()}
           </span>
           {hasDiscount && (
             <span className="text-[8px] text-muted-foreground line-through leading-none">
-              {mc.currencySymbol}{product.mrp}
+              {mc.currencySymbol}{product.mrp?.toLocaleString()}
             </span>
           )}
         </div>

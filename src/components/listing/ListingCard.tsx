@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Plus, Minus, Clock, Star, Zap } from 'lucide-react';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export interface Listing {
   id: string;
@@ -63,6 +64,7 @@ export function ListingCard({
   const { behavior, listingType, supportsCart, requiresTimeSlot, hasDateRange, enquiryOnly, isNegotiable, hasDuration } = 
     useCategoryBehavior(listing.category);
   const marketplaceConfig = useMarketplaceConfig();
+  const { formatPrice } = useCurrency();
 
   // Use action_type from the listing (set by DB trigger), fallback to deriving from behavior
   const actionType: ProductActionType = (listing.action_type as ProductActionType) || 'add_to_cart';
@@ -118,13 +120,13 @@ export function ListingCard({
     if (listing.rental_period_type) {
       return (
         <div>
-          <span className="font-bold text-lg">₹{listing.price}</span>
+          <span className="font-bold text-lg">{formatPrice(listing.price)}</span>
           <span className="text-xs text-muted-foreground ml-1">
             {marketplaceConfig.rentalPeriodLabels[listing.rental_period_type] || listing.rental_period_type}
           </span>
           {listing.deposit_amount && listing.deposit_amount > 0 && (
             <p className="text-xs text-muted-foreground">
-              + ₹{listing.deposit_amount} deposit
+              + {formatPrice(listing.deposit_amount)} deposit
             </p>
           )}
         </div>
@@ -135,7 +137,7 @@ export function ListingCard({
     if (listing.service_duration_minutes) {
       return (
         <div>
-          <span className="font-bold text-lg">₹{listing.price}</span>
+          <span className="font-bold text-lg">{formatPrice(listing.price)}</span>
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Clock size={10} />
             {listing.service_duration_minutes} min
@@ -147,7 +149,7 @@ export function ListingCard({
     // Standard pricing
     return (
       <div>
-        <span className="font-bold text-lg">₹{listing.price}</span>
+        <span className="font-bold text-lg">{formatPrice(listing.price)}</span>
         {isNegotiable && (
           <Badge variant="outline" className="ml-2 text-[10px]">
             Negotiable
@@ -204,7 +206,7 @@ export function ListingCard({
         )}
         <div className="flex-1 min-w-0">
           <p className="font-medium truncate">{listing.name}</p>
-          <p className="text-sm font-semibold text-primary">₹{listing.price}</p>
+          <p className="text-sm font-semibold text-primary">{formatPrice(listing.price)}</p>
         </div>
         {renderActionButton()}
       </div>

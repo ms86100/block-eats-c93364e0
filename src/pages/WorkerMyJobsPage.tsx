@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { friendlyError } from '@/lib/utils';
 import { FeatureGate } from '@/components/ui/FeatureGate';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   accepted: { label: 'Active', color: 'bg-blue-100 text-blue-800' },
@@ -23,6 +24,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 export default function WorkerMyJobsPage() {
   const { profile } = useAuth();
   const { isWorker } = useWorkerRole();
+  const { formatPrice } = useCurrency();
   const queryClient = useQueryClient();
 
   const { data: myJobs = [], isLoading } = useQuery({
@@ -103,7 +105,7 @@ export default function WorkerMyJobsPage() {
                     <p className="text-xs text-muted-foreground">
                       📍 {(job.resident as any)?.block}-{(job.resident as any)?.flat_number} • 
                       {job.start_time && ` ${format(new Date(job.start_time), 'dd MMM, h:mm a')}`}
-                      {job.price && ` • ₹${job.price}`}
+                      {job.price && ` • ${formatPrice(job.price)}`}
                     </p>
                     <Button
                       size="sm"
@@ -133,7 +135,7 @@ export default function WorkerMyJobsPage() {
                     <p className="text-xs text-muted-foreground mt-1">
                       {job.completed_at && format(new Date(job.completed_at), 'dd MMM yyyy')}
                       {job.resident_rating && ` • ⭐ ${job.resident_rating}/5`}
-                      {job.price && ` • ₹${job.price}`}
+                      {job.price && ` • ${formatPrice(job.price)}`}
                     </p>
                   </CardContent>
                 </Card>

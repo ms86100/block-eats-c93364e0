@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Ticket, Plus, Trash2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface Coupon {
   id: string;
@@ -30,6 +31,7 @@ interface Coupon {
 
 export function CouponManager() {
   const { currentSellerId, profile, viewAsSocietyId } = useAuth();
+  const { formatPrice, currencySymbol } = useCurrency();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -137,7 +139,7 @@ export function CouponManager() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="percentage">Percentage (%)</SelectItem>
-                    <SelectItem value="flat">Flat (₹)</SelectItem>
+                    <SelectItem value="flat">Flat ({currencySymbol})</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -148,13 +150,13 @@ export function CouponManager() {
                 <Input type="number" placeholder={formData.discount_type === 'percentage' ? '10' : '50'} value={formData.discount_value} onChange={e => setFormData({ ...formData, discount_value: e.target.value })} />
               </div>
               <div>
-                <Label className="text-xs">Min Order (₹)</Label>
+                <Label className="text-xs">Min Order ({currencySymbol})</Label>
                 <Input type="number" placeholder="0" value={formData.min_order_amount} onChange={e => setFormData({ ...formData, min_order_amount: e.target.value })} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Max Discount (₹)</Label>
+                <Label className="text-xs">Max Discount ({currencySymbol})</Label>
                 <Input type="number" placeholder="No limit" value={formData.max_discount_amount} onChange={e => setFormData({ ...formData, max_discount_amount: e.target.value })} />
               </div>
               <div>
@@ -199,9 +201,9 @@ export function CouponManager() {
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% off` : `₹${coupon.discount_value} off`}
-                      {coupon.min_order_amount ? ` on orders above ₹${coupon.min_order_amount}` : ''}
-                      {coupon.max_discount_amount ? ` (max ₹${coupon.max_discount_amount})` : ''}
+                      {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% off` : `${formatPrice(coupon.discount_value)} off`}
+                      {coupon.min_order_amount ? ` on orders above ${formatPrice(coupon.min_order_amount)}` : ''}
+                      {coupon.max_discount_amount ? ` (max ${formatPrice(coupon.max_discount_amount)})` : ''}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Used: {coupon.times_used}{coupon.usage_limit ? `/${coupon.usage_limit}` : ''} times

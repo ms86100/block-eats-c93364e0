@@ -4,6 +4,7 @@ import { ProductListingCard, ProductWithSeller } from './ProductListingCard';
 import { CategoryBehavior } from '@/types/categories';
 import { cn } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface ProductCarouselProps {
   title: string;
@@ -33,6 +34,7 @@ export function ProductCarousel({
     dragFree: true,
     containScroll: 'trimSnaps',
   });
+  const { formatPrice } = useCurrency();
 
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
@@ -66,7 +68,7 @@ export function ProductCarousel({
           {itemCount !== undefined && (
             <span className="text-xs font-normal text-muted-foreground">({itemCount})</span>
           )}
-          <span className="text-xs font-semibold text-success ml-1">Starting ₹{minPrice}</span>
+          <span className="text-xs font-semibold text-success ml-1">Starting {formatPrice(minPrice)}</span>
         </h3>
         {onSeeAll && (
           <button

@@ -44,6 +44,7 @@ import { ArrowLeft, Plus, Edit, Trash2, Loader2, Star, Award, Bell, AlertTriangl
 import { toast } from 'sonner';
 import { friendlyError } from '@/lib/utils';
 import { BulkProductUpload } from '@/components/seller/BulkProductUpload';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useSubcategories } from '@/hooks/useSubcategories';
 import { AttributeBlockBuilder } from '@/components/seller/AttributeBlockBuilder';
 import { type BlockData } from '@/hooks/useAttributeBlocks';
@@ -51,6 +52,7 @@ import { type BlockData } from '@/hooks/useAttributeBlocks';
 export default function SellerProductsPage() {
   const { user, sellerProfiles, currentSellerId } = useAuth();
   const { groupedConfigs, configs } = useCategoryConfigs();
+  const { formatPrice, currencySymbol } = useCurrency();
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
   const [primaryGroup, setPrimaryGroup] = useState<ParentGroup | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -471,7 +473,7 @@ export default function SellerProductsPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="price">{activeCategoryConfig?.formHints.priceLabel || 'Price'} (₹) *</Label>
+                    <Label htmlFor="price">{activeCategoryConfig?.formHints.priceLabel || 'Price'} ({currencySymbol}) *</Label>
                     <Input
                       id="price"
                       type="number"
@@ -483,7 +485,7 @@ export default function SellerProductsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="mrp">MRP (₹)</Label>
+                    <Label htmlFor="mrp">MRP ({currencySymbol})</Label>
                     <Input
                       id="mrp"
                       type="number"
@@ -502,7 +504,7 @@ export default function SellerProductsPage() {
                   <div className="space-y-2">
                     {formData.mrp && formData.price && parseFloat(formData.mrp) > parseFloat(formData.price) && (
                       <p className="text-[10px] text-green-600 font-medium">
-                        {Math.round(((parseFloat(formData.mrp) - parseFloat(formData.price)) / parseFloat(formData.mrp)) * 100)}% OFF — Selling at ₹{formData.price} (MRP ₹{formData.mrp})
+                        {Math.round(((parseFloat(formData.mrp) - parseFloat(formData.price)) / parseFloat(formData.mrp)) * 100)}% OFF — Selling at {currencySymbol}{formData.price} (MRP {currencySymbol}{formData.mrp})
                       </p>
                     )}
                   </div>
@@ -909,7 +911,7 @@ export default function SellerProductsPage() {
                           )}
                         </div>
                         <p className="text-sm font-semibold text-primary">
-                          ₹{product.price}
+                          {formatPrice(product.price)}
                         </p>
                       </div>
                     </div>

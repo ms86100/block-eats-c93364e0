@@ -4,6 +4,7 @@ import { Flag, ExternalLink, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface Expense {
   id: string;
@@ -35,6 +36,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export function ExpenseList({ expenses, onFlag, showFlag = true }: Props) {
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -82,7 +84,7 @@ export function ExpenseList({ expenses, onFlag, showFlag = true }: Props) {
                 {format(new Date(exp.expense_date), 'MMM d, yyyy')}
               </p>
             </div>
-            <p className="text-sm font-bold">₹{Number(exp.amount).toLocaleString()}</p>
+            <p className="text-sm font-bold">{formatPrice(Number(exp.amount))}</p>
           </div>
           <div className="flex items-center gap-2">
             {exp.invoice_url && (

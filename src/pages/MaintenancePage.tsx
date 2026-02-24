@@ -283,7 +283,7 @@ export default function MaintenancePage() {
                         });
                       }}
                     >
-                      Pay ₹{d.amount.toLocaleString()}
+                      Pay {formatPrice(d.amount)}
                     </Button>
                   )}
                 </CardContent>

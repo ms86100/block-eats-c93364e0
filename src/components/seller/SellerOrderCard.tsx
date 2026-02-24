@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { useStatusLabels } from '@/hooks/useStatusLabels';
 import { OrderItemStatusBadge, ItemStatus } from './OrderItemStatusBadge';
 import { ChevronRight, Clock, CreditCard, Package, MessageSquare, User, Truck, ShoppingBag } from 'lucide-react';
+import { useCurrency } from '@/hooks/useCurrency';
 import { format } from 'date-fns';
 
 interface OrderItemWithStatus {
@@ -32,6 +33,7 @@ interface SellerOrderCardProps {
 
 export function SellerOrderCard({ order }: SellerOrderCardProps) {
   const { getOrderStatus } = useStatusLabels();
+  const { formatPrice } = useCurrency();
   const buyer = order.buyer;
   const items = order.items || [];
   const statusInfo = getOrderStatus(order.status);
@@ -99,7 +101,7 @@ export function SellerOrderCard({ order }: SellerOrderCardProps) {
             </div>
             <div className="flex items-center gap-1.5 text-muted-foreground justify-end">
               <CreditCard size={12} />
-              <span className="font-medium text-foreground">₹{order.total_amount}</span>
+              <span className="font-medium text-foreground">{formatPrice(order.total_amount)}</span>
             </div>
           </div>
 
