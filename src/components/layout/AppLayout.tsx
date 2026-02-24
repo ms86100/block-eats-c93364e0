@@ -27,7 +27,7 @@ export function AppLayout({
   className,
 }: AppLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       {showHeader && (
         <Header 
           showCart={showCart} 

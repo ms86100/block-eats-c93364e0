@@ -8,7 +8,8 @@ export async function initializeCapacitorPlugins() {
   }
 
   try {
-    // Configure status bar
+    // Ensure WebView renders edge-to-edge; CSS safe-area handles content padding
+    await StatusBar.setOverlaysWebView({ overlay: true });
     await StatusBar.setStyle({ style: Style.Light });
     await StatusBar.setBackgroundColor({ color: '#F97316' });
   } catch (error) {
