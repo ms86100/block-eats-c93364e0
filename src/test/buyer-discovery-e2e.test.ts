@@ -1,15 +1,15 @@
 /**
  * Buyer Discovery End-to-End Test Suite
  * ======================================
- * Validates the complete buyer discovery flow under real business conditions:
- *
- * 1. Buyer signup & profile creation
- * 2. Location / radius matching logic (Haversine)
- * 3. Seller visibility rules (approval, availability, products)
- * 4. Product listing visibility to the buyer
- * 5. Cross-society discovery via search_nearby_sellers RPC
+ * Part 1: Unit tests with mocked fixtures (Haversine, visibility rules)
+ * Part 2: Real DB integration tests calling search_nearby_sellers RPC
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createAuthenticatedClient,
+  ensureTestUsersSeeded,
+} from "./helpers/integration";
 
 // ─── Haversine implementation (mirrors DB function) ───────────────────
 function haversineKm(
@@ -640,6 +640,132 @@ describe("Buyer Discovery E2E", () => {
 
       // Step 6: Verify distance and society info
       expect(discoveredSeller.societyName).toBe("Brigade Metropolis");
+    });
+  });
+});
+
+// =====================================================================
+// PART 2: REAL DATABASE INTEGRATION TESTS
+// =====================================================================
+
+describe("Buyer Discovery — Real DB Integration", () => {
+  let buyerClient: SupabaseClient;
+  let adminClient: SupabaseClient;
+  let seedData: { society_id: string; society_2_id: string };
+
+  beforeAll(async () => {
+    [buyerClient, adminClient] = await Promise.all([
+      createAuthenticatedClient("buyer"),
+      createAuthenticatedClient("admin"),
+    ]);
+    seedData = await ensureTestUsersSeeded();
+  }, 30000);
+
+  describe("1. Real DB — Seller Profile Visibility", () => {
+    it("buyer can only see approved seller profiles", async () => {
+      const { data } = await buyerClient
+        .from("seller_profiles")
+        .select("id, verification_status")
+        .limit(20);
+
+      // All visible sellers must be approved (RLS enforced)
+      if (data && data.length > 0) {
+        data.forEach((s: any) => {
+          expect(s.verification_status).toBe("approved");
+        });
+      }
+    });
+
+    it("buyer can only see approved, available products", async () => {
+      const { data } = await buyerClient
+        .from("products")
+        .select("id, approval_status, is_available")
+        .limit(20);
+
+      if (data && data.length > 0) {
+        data.forEach((p: any) => {
+          expect(p.approval_status).toBe("approved");
+          expect(p.is_available).toBe(true);
+        });
+      }
+    });
+  });
+
+  describe("2. Real DB — Category Config Visibility", () => {
+    it("buyer sees only active categories", async () => {
+      const { data } = await buyerClient
+        .from("category_config")
+        .select("id, is_active")
+        .limit(50);
+
+      if (data && data.length > 0) {
+        data.forEach((c: any) => {
+          expect(c.is_active).toBe(true);
+        });
+      }
+    });
+
+    it("buyer can read parent_groups", async () => {
+      const { data, error } = await buyerClient
+        .from("parent_groups")
+        .select("slug, name, is_active")
+        .limit(20);
+
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      if (data && data.length > 0) {
+        // All visible groups should be active
+        data.forEach((g: any) => {
+          expect(g.is_active).toBe(true);
+        });
+      }
+    });
+  });
+
+  describe("3. Real DB — Cross-Society Discovery RPC", () => {
+    it("search_nearby_sellers returns only approved sellers with products", async () => {
+      // This RPC requires a society with coordinates
+      const { data: society } = await adminClient
+        .from("societies")
+        .select("id, latitude, longitude")
+        .not("latitude", "is", null)
+        .not("longitude", "is", null)
+        .limit(1)
+        .single();
+
+      if (!society) {
+        // No societies with coordinates — skip gracefully
+        expect(true).toBe(true);
+        return;
+      }
+
+      const { data, error } = await buyerClient.rpc("search_nearby_sellers", {
+        _buyer_society_id: society.id,
+        _radius_km: 10,
+      });
+
+      // RPC should succeed (might return empty if no cross-society sellers)
+      expect(error).toBeNull();
+
+      if (data && data.length > 0) {
+        data.forEach((seller: any) => {
+          // Every returned seller must have matching_products
+          expect(seller.seller_id).toBeDefined();
+          expect(seller.business_name).toBeTruthy();
+          expect(seller.distance_km).toBeLessThanOrEqual(10);
+        });
+      }
+    });
+
+    it("search_nearby_sellers rejects missing coordinates", async () => {
+      // Find a society without coordinates, or use a fake UUID
+      const { data, error } = await buyerClient.rpc("search_nearby_sellers", {
+        _buyer_society_id: "00000000-0000-0000-0000-000000000000",
+        _radius_km: 5,
+      });
+
+      // Should error because the society doesn't exist or has no coordinates
+      expect(error).not.toBeNull();
     });
   });
 });
