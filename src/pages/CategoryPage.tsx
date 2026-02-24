@@ -118,7 +118,7 @@ export default function CategoryPage() {
     <AppLayout showHeader={false}>
       {/* Sticky Header */}
       <div className="sticky top-0 z-30 bg-background border-b border-border safe-top">
-        <div className="px-3 pt-2.5 pb-2">
+        <div className="px-3 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-2">
             <Link to="/" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
               <ArrowLeft size={18} />

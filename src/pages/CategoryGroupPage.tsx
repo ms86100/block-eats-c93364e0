@@ -139,7 +139,7 @@ export default function CategoryGroupPage() {
     <AppLayout showHeader={false}>
       {/* Sticky Header */}
       <div className="sticky top-0 z-30 bg-background safe-top">
-        <div className="px-4 pt-3 pb-2">
+        <div className="px-4 pt-1 pb-2">
           {/* Back + title */}
           <div className="flex items-center gap-2.5 mb-2.5">
             <Link to="/" className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
