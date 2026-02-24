@@ -6,17 +6,101 @@ import { useParentGroups } from '@/hooks/useParentGroups';
 import { useProductsByCategory } from '@/hooks/queries/useProductsByCategory';
 import { useNearbySocietySellers } from '@/hooks/queries/useStoreDiscovery';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/hooks/useCurrency';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { Store, Sparkles, Clock } from 'lucide-react';
+import { Store, Sparkles, Clock, Star, Users, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchPlaceholder } from '@/hooks/useSearchPlaceholder';
+
+/* ── Helpers ─────────────────────────────────────────────── */
+
+interface CategoryMeta {
+  count: number;
+  sellerCount: number;
+  minPrice: number | null;
+  collageImages: string[];
+  hasBestseller: boolean;
+}
+
+function buildCategoryMeta(
+  productCategories: { category: string; products: any[] }[],
+): Record<string, CategoryMeta> {
+  const map: Record<string, CategoryMeta> = {};
+  for (const pc of productCategories) {
+    const products = pc.products ?? [];
+    const sellers = new Set<string>();
+    const images: string[] = [];
+    let min: number | null = null;
+    let bestseller = false;
+
+    for (const p of products) {
+      if (p.seller_id) sellers.add(p.seller_id);
+      if (p.image_url && images.length < 4 && !images.includes(p.image_url)) {
+        images.push(p.image_url);
+      }
+      const price = typeof p.price === 'number' ? p.price : parseFloat(p.price);
+      if (!isNaN(price) && (min === null || price < min)) min = price;
+      if (p.is_bestseller) bestseller = true;
+    }
+
+    map[pc.category] = {
+      count: products.length,
+      sellerCount: sellers.size,
+      minPrice: min,
+      collageImages: images,
+      hasBestseller: bestseller,
+    };
+  }
+  return map;
+}
+
+/* ── Collage component (inline) ──────────────────────────── */
+
+function ImageCollage({ images, fallbackIcon, fallbackUrl, alt }: {
+  images: string[];
+  fallbackIcon: string;
+  fallbackUrl?: string | null;
+  alt: string;
+}) {
+  if (images.length === 0 && fallbackUrl) {
+    return (
+      <img src={fallbackUrl} alt={alt} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+    );
+  }
+  if (images.length === 0) {
+    return (
+      <div className="absolute inset-0 bg-muted flex items-center justify-center">
+        <span className="text-4xl">{fallbackIcon}</span>
+      </div>
+    );
+  }
+
+  const itemClass = `items-${Math.min(images.length, 4)}`;
+
+  return (
+    <div className={cn('category-collage absolute inset-0', itemClass)}>
+      {images.slice(0, 4).map((src, i) => (
+        <img
+          key={i}
+          src={src}
+          alt={`${alt} ${i + 1}`}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────── */
 
 export default function CategoriesPage() {
   const { profile, isLoading: authLoading, effectiveSocietyId } = useAuth();
   const { configs, isLoading: configsLoading } = useCategoryConfigs();
   const { groups, isLoading: groupsLoading } = useParentGroups();
   const { data: productCategories = [], isLoading: productsLoading } = useProductsByCategory();
+  const { formatPrice } = useCurrency();
 
   const browseBeyond = profile?.browse_beyond_community ?? true;
   const searchRadius = profile?.search_radius_km ?? 10;
@@ -26,16 +110,10 @@ export default function CategoriesPage() {
   const [activeGroup, setActiveGroup] = useState<string>('all');
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Build product count map
-  const productCountMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const pc of productCategories) {
-      map[pc.category] = (pc.products?.length ?? 0);
-    }
-    return map;
-  }, [productCategories]);
+  // Build enriched metadata map
+  const metaMap = useMemo(() => buildCategoryMeta(productCategories), [productCategories]);
 
-  // Compute active categories inline — useMemo was producing stale results
+  // Compute active categories
   const activeCategorySet = (() => {
     const s = new Set(productCategories.map(c => c.category));
     if (browseBeyond && nearbyBands.length > 0) {
@@ -56,7 +134,6 @@ export default function CategoriesPage() {
 
   const isLoading = authLoading || !effectiveSocietyId || configsLoading || groupsLoading || productsLoading || (browseBeyond && nearbyLoading);
 
-  // Compute grouped inline — useMemo was producing stale results
   const grouped = (() => {
     const q = searchQuery.toLowerCase().trim();
     return groups
@@ -81,7 +158,6 @@ export default function CategoriesPage() {
     : grouped.filter(g => g.slug === activeGroup);
 
   const isEmpty = !isLoading && grouped.length === 0;
-  
 
   const handlePillClick = (slug: string) => {
     setActiveGroup(slug);
@@ -99,16 +175,14 @@ export default function CategoriesPage() {
 
   return (
     <AppLayout showHeader={false}>
-      {/* Custom header: app top bar content + title + search */}
+      {/* Header */}
       <div className="sticky top-0 z-40 safe-top bg-background">
-        {/* Title + subtitle + accent line */}
         <div className="px-4 pt-3 pb-1">
           <h1 className="text-lg font-bold text-foreground">Explore Categories</h1>
           <p className="text-xs text-muted-foreground mb-1">Find what you love</p>
           <div className="h-[2px] rounded-full bg-gradient-to-r from-primary via-primary/50 to-transparent" />
         </div>
 
-        {/* Search bar — same as Header */}
         <div className="px-3 pb-2">
           <Link to="/search" className="block">
             <div className="flex items-center gap-2.5 bg-secondary rounded-2xl px-4 py-3">
@@ -160,16 +234,15 @@ export default function CategoriesPage() {
             {[1, 2].map(i => (
               <div key={i}>
                 <Skeleton className="h-4 w-28 mb-2 rounded-full" />
-                <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-                  {[1, 2, 3, 4, 5, 6].map(j => (
-                    <Skeleton key={j} className="aspect-[4/5] rounded-2xl" />
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[1, 2, 3, 4].map(j => (
+                    <Skeleton key={j} className="aspect-[3/2] rounded-2xl" />
                   ))}
                 </div>
               </div>
             ))}
           </div>
         ) : isEmpty ? (
-          /* Keep existing empty state */
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -230,55 +303,72 @@ export default function CategoriesPage() {
                   <div className="flex-1 h-px bg-border" />
                 </div>
 
-                {/* Category Cards Grid */}
-                <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                {/* Category Cards Grid — 2 cols mobile, 3 cols md+ */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {group.categories.map((cat, catIdx) => {
-                    const count = productCountMap[cat.category] || 0;
+                    const meta = metaMap[cat.category] || { count: 0, sellerCount: 0, minPrice: null, collageImages: [], hasBestseller: false };
                     return (
                       <motion.div
                         key={cat.category}
-                        initial={{ opacity: 0, scale: 0.92 }}
+                        initial={{ opacity: 0, scale: 0.94 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: groupIdx * 0.08 + catIdx * 0.04, duration: 0.3 }}
                       >
                         <Link
                           to={`/category/${cat.parentGroup}?sub=${cat.category}`}
-                          className="block relative aspect-[4/5] rounded-2xl overflow-hidden active:scale-[0.97] transition-transform group"
+                          className="block rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform group bg-card border border-border"
                         >
-                          {/* Image or emoji fallback */}
-                          {cat.imageUrl ? (
-                            <img
-                              src={cat.imageUrl}
+                          {/* Image area */}
+                          <div className="relative aspect-[3/2] overflow-hidden">
+                            <ImageCollage
+                              images={meta.collageImages}
+                              fallbackIcon={cat.icon}
+                              fallbackUrl={cat.imageUrl}
                               alt={cat.displayName}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              loading="lazy"
                             />
-                          ) : (
-                            <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                              <span className="text-3xl">{cat.icon}</span>
+
+                            {/* Gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+
+                            {/* Count badge — top right */}
+                            {meta.count > 0 && (
+                              <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-full bg-primary/90 text-primary-foreground text-[9px] font-bold shadow-sm">
+                                {meta.count} items
+                              </div>
+                            )}
+
+                            {/* Bestseller star — top left */}
+                            {meta.hasBestseller && (
+                              <div className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-warning/90 flex items-center justify-center shadow-sm">
+                                <Star size={12} className="text-white fill-white" />
+                              </div>
+                            )}
+
+                            {/* Category name overlay */}
+                            <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                              <span className="text-sm font-bold text-white leading-tight line-clamp-2 drop-shadow-md">
+                                {cat.displayName}
+                              </span>
                             </div>
-                          )}
-
-                          {/* Gradient overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-                          {/* Icon badge top-left */}
-                          <div className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-xs shadow-sm">
-                            {cat.icon}
                           </div>
 
-                          {/* Product count badge top-right */}
-                          {count > 0 && (
-                            <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-primary/90 text-primary-foreground text-[8px] font-bold shadow-sm">
-                              {count}
-                            </div>
-                          )}
-
-                          {/* Category name */}
-                          <div className="absolute bottom-0 left-0 right-0 p-2">
-                            <span className="text-[10px] font-bold text-white leading-tight line-clamp-2 drop-shadow-md">
-                              {cat.displayName}
-                            </span>
+                          {/* Metadata row */}
+                          <div className="flex items-center gap-2 px-2.5 py-2 text-[10px] text-muted-foreground">
+                            {meta.sellerCount > 0 && (
+                              <span className="inline-flex items-center gap-0.5">
+                                <Users size={10} className="shrink-0" />
+                                {meta.sellerCount} {meta.sellerCount === 1 ? 'seller' : 'sellers'}
+                              </span>
+                            )}
+                            {meta.minPrice !== null && (
+                              <span className="inline-flex items-center gap-0.5">
+                                <Tag size={10} className="shrink-0" />
+                                From {formatPrice(meta.minPrice)}
+                              </span>
+                            )}
+                            {meta.sellerCount === 0 && meta.minPrice === null && (
+                              <span className="text-muted-foreground/60">Explore →</span>
+                            )}
                           </div>
                         </Link>
                       </motion.div>

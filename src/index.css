@@ -394,3 +394,29 @@ html.large-font button,
 html.large-font a {
   min-height: 48px;
 }
+
+/* Category collage grid */
+.category-collage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.category-collage.items-1 > :first-child {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+}
+
+.category-collage.items-2 > :first-child {
+  grid-row: 1 / -1;
+}
+.category-collage.items-2 > :nth-child(2) {
+  grid-row: 1 / -1;
+}
+
+.category-collage.items-3 > :first-child {
+  grid-row: 1 / -1;
+}
