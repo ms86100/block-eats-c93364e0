@@ -95,7 +95,7 @@ function DistanceBandSection({ band }: { band: DistanceBand }) {
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex items-center gap-2 px-4 w-full text-left">
-        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+        <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
           {band.label}
         </span>
         <ChevronDown
@@ -119,11 +119,11 @@ function DistanceBandSection({ band }: { band: DistanceBand }) {
 function SocietyCard({ society }: { society: SocietyGroup }) {
   return (
     <div className="mx-4 rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="px-3 py-2 bg-muted/30 flex items-center justify-between">
-        <span className="text-xs font-semibold text-foreground">{society.societyName}</span>
-        <span className="text-[10px] text-muted-foreground">{society.distanceKm} km</span>
+      <div className="px-3 py-2.5 bg-secondary flex items-center justify-between">
+        <span className="text-xs font-bold text-foreground">{society.societyName}</span>
+        <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{society.distanceKm} km</span>
       </div>
-      <div className="p-2 space-y-2">
+      <div className="p-3 space-y-3">
         {Object.entries(society.sellersByGroup).map(([group, sellers]) => (
           <CategorySellerRow
             key={group}
@@ -170,7 +170,7 @@ function CategorySellerRow({
               className={cn(
                 'shrink-0 rounded-2xl overflow-hidden cursor-pointer',
                 'bg-card border border-border',
-                'transition-all duration-200 hover:shadow-md hover:scale-[1.03] active:scale-95',
+                'transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.97]',
                 compact ? 'w-20' : 'w-24'
               )}
             >
@@ -189,7 +189,7 @@ function CategorySellerRow({
                 )}
               </div>
               <div className="px-1.5 pb-2 pt-1.5 text-center">
-                <p className={cn('font-semibold text-foreground line-clamp-2 leading-tight', compact ? 'text-[9px]' : 'text-[10px]')}>
+                <p className={cn('font-bold text-foreground line-clamp-2 leading-tight', compact ? 'text-[9px]' : 'text-[11px]')}>
                   {seller.business_name}
                 </p>
                 {seller.rating > 0 && (
