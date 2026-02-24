@@ -1,5 +1,5 @@
 import { useMemo, memo } from 'react';
-import { Plus, Minus, Clock, MapPin } from 'lucide-react';
+import { Plus, Minus, Clock, MapPin, ShoppingCart } from 'lucide-react';
 import { useHaptics } from '@/hooks/useHaptics';
 import { Badge } from '@/components/ui/badge';
 import { VegBadge } from '@/components/ui/veg-badge';
@@ -222,8 +222,8 @@ function ProductListingCardInner({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <div className="w-14 h-14 rounded-full bg-card shadow-md flex items-center justify-center dark:bg-[hsl(0_0%_20%)]">
-                <span className="text-2xl opacity-50">{placeholderEmoji}</span>
+              <div className="w-12 h-12 rounded-xl bg-card/80 shadow-sm flex items-center justify-center dark:bg-[hsl(0_0%_25%)]">
+                <ShoppingCart size={24} className="text-muted-foreground/60" strokeWidth={1.5} />
               </div>
             </div>
           )}
