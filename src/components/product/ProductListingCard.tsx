@@ -216,7 +216,7 @@ function ProductListingCardInner({
             <img
               src={product.image_url}
               alt={product.name}
-              className="w-full h-full object-contain p-3"
+              className="w-full h-full object-contain p-2"
               loading="lazy"
             />
           ) : (
@@ -267,90 +267,24 @@ function ProductListingCardInner({
             </div>
           )}
         </div>
-      </div>
 
-      {/* ━━━ CONTENT ━━━ */}
-      <div className="px-3 pb-3 pt-2.5 flex flex-col flex-1">
-        {variantText && (
-          <span className="inline-flex items-center justify-center border border-border rounded-full text-[9px] font-medium px-1.5 py-px mb-1 w-fit text-muted-foreground">
-            {variantText}
-          </span>
-        )}
-
-        <h4 className="font-medium text-sm leading-snug line-clamp-2 text-foreground mb-1">
-          {product.name}
-        </h4>
-
-        {product.seller_name && (
-          <p className="text-[9px] text-muted-foreground leading-tight line-clamp-1 mb-1">
-            by {product.seller_name}
-          </p>
-        )}
-
-        {deliveryText && (
-          <div className="flex items-center gap-1 mb-1">
-            <Clock size={9} className="text-warning" />
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wide leading-none">
-              {deliveryText}
-            </span>
-          </div>
-        )}
-
-        {product.lead_time_hours != null && product.lead_time_hours > 0 && (
-          <div className="flex items-center gap-1 mb-1">
-            <Clock size={9} className="text-primary" />
-            <span className="text-[9px] font-medium text-muted-foreground leading-none">
-              Order {product.lead_time_hours}h ahead
-            </span>
-          </div>
-        )}
-        {product.accepts_preorders && (
-          <span className="inline-block bg-accent/20 text-accent-foreground text-[8px] font-bold px-1.5 py-0.5 rounded w-fit mb-1">
-            Pre-order
-          </span>
-        )}
-        <div className="flex-1 min-h-1" />
-
-        {hasDiscount && discountPct > 0 && (
-          <span className="text-[10px] font-bold text-info leading-none mb-1">
-            {discountPct}{mc.labels.discountSuffix}
-          </span>
-        )}
-
-        <div className="flex items-end gap-1 mt-auto">
-          <span className="font-bold text-base text-foreground leading-none">
-            {mc.currencySymbol}{product.price.toLocaleString()}
-          </span>
-          {hasDiscount && (
-            <span className="text-[10px] text-muted-foreground line-through leading-none">
-              MRP {mc.currencySymbol}{product.mrp?.toLocaleString()}
-            </span>
-          )}
-        </div>
-
-        {product.price_per_unit && (
-          <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
-            {product.price_per_unit}
-          </span>
-        )}
-
-        {/* ADD button — full-width at bottom of card */}
+        {/* ━━━ ADD button overlapping image bottom edge ━━━ */}
         {!viewOnly && !isOutOfStock && (
-          <div className="mt-2.5">
+          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10">
             {isCartAction && quantity > 0 ? (
-              <div className="flex items-center justify-between bg-primary rounded-lg overflow-hidden h-[38px] animate-stepper-pop">
-                <button onClick={handleDecrement} className="px-3.5 h-full text-primary-foreground hover:bg-primary/80 transition-colors">
-                  <Minus size={14} strokeWidth={3} />
+              <div className="flex items-center bg-primary rounded-md overflow-hidden shadow-md animate-stepper-pop">
+                <button onClick={handleDecrement} className="px-2.5 py-1 text-primary-foreground hover:bg-primary/80 transition-colors">
+                  <Minus size={12} strokeWidth={3} />
                 </button>
-                <span className="font-bold text-sm text-primary-foreground">{quantity}</span>
-                <button onClick={handleIncrement} className="px-3.5 h-full text-primary-foreground hover:bg-primary/80 transition-colors">
-                  <Plus size={14} strokeWidth={3} />
+                <span className="font-bold text-[11px] text-primary-foreground px-1">{quantity}</span>
+                <button onClick={handleIncrement} className="px-2.5 py-1 text-primary-foreground hover:bg-primary/80 transition-colors">
+                  <Plus size={12} strokeWidth={3} />
                 </button>
               </div>
             ) : (
               <button
                 onClick={handleAdd}
-                className="w-full bg-primary text-primary-foreground font-bold text-sm h-[38px] rounded-lg shadow-md hover:opacity-90 transition-all duration-100 uppercase tracking-wide active:scale-95"
+                className="bg-card text-primary font-bold text-[11px] px-5 py-1.5 rounded-md shadow-md border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all duration-100 uppercase tracking-wide active:scale-95"
               >
                 {actionConfig.shortLabel}
               </button>
@@ -359,11 +293,77 @@ function ProductListingCardInner({
         )}
       </div>
 
+      {/* ━━━ CONTENT ━━━ */}
+      <div className="px-2 pb-2 pt-4 flex flex-col flex-1">
+        {variantText && (
+          <span className="inline-flex items-center justify-center border border-border rounded-full text-[8px] font-medium px-1.5 py-px mb-0.5 w-fit text-muted-foreground">
+            {variantText}
+          </span>
+        )}
+
+        <h4 className="font-medium text-[11px] leading-snug line-clamp-2 text-foreground mb-0.5">
+          {product.name}
+        </h4>
+
+        {product.seller_name && (
+          <p className="text-[9px] text-muted-foreground leading-tight line-clamp-1 mb-0.5">
+            by {product.seller_name}
+          </p>
+        )}
+
+        {deliveryText && (
+          <div className="flex items-center gap-1 mb-0.5">
+            <Clock size={8} className="text-warning" />
+            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wide leading-none">
+              {deliveryText}
+            </span>
+          </div>
+        )}
+
+        {product.lead_time_hours != null && product.lead_time_hours > 0 && (
+          <div className="flex items-center gap-1 mb-0.5">
+            <Clock size={8} className="text-primary" />
+            <span className="text-[8px] font-medium text-muted-foreground leading-none">
+              Order {product.lead_time_hours}h ahead
+            </span>
+          </div>
+        )}
+        {product.accepts_preorders && (
+          <span className="inline-block bg-accent/20 text-accent-foreground text-[7px] font-bold px-1.5 py-0.5 rounded w-fit mb-0.5">
+            Pre-order
+          </span>
+        )}
+        <div className="flex-1 min-h-0.5" />
+
+        {hasDiscount && discountPct > 0 && (
+          <span className="text-[9px] font-bold text-info leading-none mb-0.5">
+            {discountPct}{mc.labels.discountSuffix}
+          </span>
+        )}
+
+        <div className="flex items-end gap-1 mt-auto">
+          <span className="font-bold text-xs text-foreground leading-none">
+            {mc.currencySymbol}{product.price.toLocaleString()}
+          </span>
+          {hasDiscount && (
+            <span className="text-[9px] text-muted-foreground line-through leading-none">
+              MRP {mc.currencySymbol}{product.mrp?.toLocaleString()}
+            </span>
+          )}
+        </div>
+
+        {product.price_per_unit && (
+          <span className="text-[8px] text-muted-foreground leading-none mt-0.5">
+            {product.price_per_unit}
+          </span>
+        )}
+      </div>
+
       {viewOnly && (
-        <div className="px-3 pb-3">
+        <div className="px-2 pb-2">
           <button
             onClick={(e) => { e.stopPropagation(); onNavigate?.(`/seller/${product.seller_id}`); }}
-            className="w-full border border-primary text-primary font-bold text-xs py-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="w-full border border-primary text-primary font-bold text-[10px] py-1.5 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors"
           >
             {mc.labels.viewButton}
           </button>
@@ -371,7 +371,7 @@ function ProductListingCardInner({
       )}
 
       {!viewOnly && isOutOfStock && (
-        <div className="px-3 pb-3 text-center">
+        <div className="px-2 pb-2 text-center">
           <span className="text-[9px] font-medium text-muted-foreground">
             {mc.labels.soldOut}
           </span>
