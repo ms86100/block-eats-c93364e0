@@ -113,19 +113,19 @@ export function AdminCatalogManager() {
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               {linkedBlocks.length > 0 && (
-                                <div className="flex -space-x-1">
+                                <div className="flex flex-wrap gap-1">
                                   {linkedBlocks.slice(0, 3).map(b => (
                                     <Badge
                                       key={b.id}
                                       variant="secondary"
-                                      className="text-[8px] px-1.5 py-0 h-4 border border-background"
+                                      className="text-[9px] px-1.5 py-0.5 h-auto"
                                     >
-                                      {b.icon || '📦'}
+                                      {b.icon} {b.display_name}
                                     </Badge>
                                   ))}
                                   {linkedBlocks.length > 3 && (
-                                    <Badge variant="secondary" className="text-[8px] px-1.5 py-0 h-4 border border-background">
-                                      +{linkedBlocks.length - 3}
+                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0.5 h-auto">
+                                      +{linkedBlocks.length - 3} more
                                     </Badge>
                                   )}
                                 </div>
