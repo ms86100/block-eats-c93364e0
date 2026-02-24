@@ -715,3 +715,54 @@ export const MAINTENANCE_DUE_TRANSITIONS: Record<string, string[]> = {
 export function isValidMaintenanceDueTransition(from: string, to: string): boolean {
   return (MAINTENANCE_DUE_TRANSITIONS[from] || []).includes(to);
 }
+
+// ── Delivery Hardening ──────────────────────────────────────────────────────
+export const VALID_FAILURE_OWNERS = ['seller_fault', 'rider_fault', 'buyer_unavailable', 'guard_rejected'] as const;
+
+export function isValidFailureOwner(owner: string): boolean {
+  return (VALID_FAILURE_OWNERS as readonly string[]).includes(owner);
+}
+
+export const DELIVERY_STATUSES = ['pending', 'assigned', 'picked_up', 'at_gate', 'delivered', 'failed', 'cancelled'] as const;
+
+export function isValidDeliveryStatus(status: string): boolean {
+  return (DELIVERY_STATUSES as readonly string[]).includes(status);
+}
+
+export const OTP_BLOCKED_REGEN_STATUSES = ['at_gate', 'delivered'] as const;
+
+export function canRegenerateOTP(status: string): boolean {
+  return !(OTP_BLOCKED_REGEN_STATUSES as readonly string[]).includes(status);
+}
+
+export function isOTPLocked(attemptCount: number, maxAttempts: number): boolean {
+  return attemptCount >= maxAttempts;
+}
+
+export function shouldSetAssignedAt(oldStatus: string, newStatus: string): boolean {
+  return oldStatus === 'pending' && newStatus === 'assigned';
+}
+
+export function shouldSetAtGateAt(newStatus: string): boolean {
+  return newStatus === 'at_gate';
+}
+
+// ── Payment Hardening ───────────────────────────────────────────────────────
+export const VALID_PAYMENT_MODES = ['cod', 'upi', 'card'] as const;
+export const VALID_PAYMENT_COLLECTIONS = ['online', 'doorstep'] as const;
+
+export function isValidPaymentMode(mode: string): boolean {
+  return (VALID_PAYMENT_MODES as readonly string[]).includes(mode);
+}
+
+export function isValidPaymentCollection(collection: string): boolean {
+  return (VALID_PAYMENT_COLLECTIONS as readonly string[]).includes(collection);
+}
+
+export function isOrderAmountFrozen(razorpayOrderId: string | null): boolean {
+  return razorpayOrderId !== null;
+}
+
+export function isDuplicateWebhook(existingPaymentId: string | null): boolean {
+  return existingPaymentId !== null;
+}
