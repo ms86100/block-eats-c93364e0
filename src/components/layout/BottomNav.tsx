@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react';
 import { Home, Building2, LayoutGrid, ShoppingCart, User, Shield, ClipboardList, Briefcase, ListChecks } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -29,12 +30,15 @@ const workerNavItems: { to: string; icon: typeof Briefcase; label: string }[] = 
   { to: '/profile', icon: User, label: 'Profile' },
 ];
 
-export function BottomNav() {
+function BottomNavInner() {
   const location = useLocation();
   const { isFeatureEnabled, isLoading } = useEffectiveFeatures();
-  const { isSecurityOfficer } = useSecurityOfficer();
-  const { isWorker } = useWorkerRole();
   const { isAdmin, isSocietyAdmin, isBuilderMember } = useAuth();
+  // Fix #8: Gate role hooks — skip RPC for admins/builders/society admins (they always see resident nav)
+  // For regular residents, these still fire but are cached with 5min staleTime
+  const skipRoleCheck = isAdmin || isSocietyAdmin || isBuilderMember;
+  const { isSecurityOfficer } = useSecurityOfficer(!skipRoleCheck);
+  const { isWorker } = useWorkerRole(!skipRoleCheck);
   const { itemCount } = useCart();
   const { selectionChanged } = useHaptics();
 
@@ -89,3 +93,6 @@ export function BottomNav() {
     </nav>
   );
 }
+
+// Fix #1: React.memo prevents re-renders from parent (AppLayout) state changes
+export const BottomNav = memo(BottomNavInner);

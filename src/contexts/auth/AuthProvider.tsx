@@ -1,4 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { AuthContextType } from './types';
 import { useAuthState } from './useAuthState';
 import {
@@ -14,6 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { state, setPartial, refreshProfile, setViewAsSociety, signOut } = useAuthState();
+  const queryClient = useQueryClient();
 
   const {
     user, session, profile, society, roles, sellerProfiles,
@@ -29,6 +32,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const effectiveSocietyId = viewAsSocietyId || profile?.society_id || null;
   const effectiveSociety = viewAsSocietyId ? viewAsSociety : society;
+
+  // Fix #15: Prefetch critical data once auth context is established
+  useEffect(() => {
+    if (!effectiveSocietyId || !profile) return;
+    // Fire all prefetches in parallel — these populate cache for downstream consumers
+    queryClient.prefetchQuery({
+      queryKey: ['category-configs'],
+      queryFn: async () => {
+        const { data } = await supabase.from('category_config').select('*').eq('is_active', true).order('display_order');
+        return data || [];
+      },
+      staleTime: 10 * 60 * 1000,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ['badge-config'],
+      queryFn: async () => {
+        const { data } = await supabase.from('badge_config').select('*').eq('is_active', true).order('priority', { ascending: true });
+        return data || [];
+      },
+      staleTime: 10 * 60 * 1000,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ['parent-groups'],
+      queryFn: async () => {
+        const { data } = await supabase.from('parent_groups').select('*').order('sort_order');
+        return data || [];
+      },
+      staleTime: 10 * 60 * 1000,
+    });
+  }, [effectiveSocietyId, !!profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Memoized sub-context values ───────────────────────
   const identityValue = useMemo<IdentityContextType>(() => ({

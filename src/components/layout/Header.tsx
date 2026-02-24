@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { ArrowLeft, Bell, Building, Building2, ChevronDown } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ interface HeaderProps {
   className?: string;
 }
 
-export function Header({ 
+function HeaderInner({ 
   showCart = true, 
   showLocation = true, 
   title,
@@ -209,3 +209,6 @@ export function Header({
     </>
   );
 }
+
+// Fix #2: React.memo — Header only re-renders when its props change
+export const Header = memo(HeaderInner);

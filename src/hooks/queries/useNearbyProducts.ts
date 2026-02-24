@@ -20,7 +20,8 @@ export function useNearbyProducts() {
   const searchRadius = profile?.search_radius_km ?? 10;
 
   return useQuery({
-    queryKey: ['nearby-products', effectiveSocietyId, searchRadius],
+    // Fix #4: Use same key pattern as useStoreDiscovery to allow React Query dedup
+    queryKey: ['store-discovery', 'nearby-products', effectiveSocietyId, searchRadius],
     queryFn: async (): Promise<ProductWithSeller[]> => {
       const { data, error } = await supabase.rpc('search_nearby_sellers', {
         _buyer_society_id: effectiveSocietyId!,

@@ -1,8 +1,8 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useHaptics } from '@/hooks/useHaptics';
 
 interface CategoryImageGridProps {
   parentGroup: string;
@@ -10,9 +10,9 @@ interface CategoryImageGridProps {
   activeCategories?: Set<string>;
 }
 
-export function CategoryImageGrid({ parentGroup, title, activeCategories }: CategoryImageGridProps) {
+// Fix #14 + #19: lazy images already present, removed useHaptics overhead
+function CategoryImageGridInner({ parentGroup, title, activeCategories }: CategoryImageGridProps) {
   const { groupedConfigs, isLoading } = useCategoryConfigs();
-  const { selectionChanged } = useHaptics();
   const allCategories = groupedConfigs[parentGroup] || [];
   const categories = activeCategories
     ? allCategories.filter(c => activeCategories.has(c.category))
@@ -43,10 +43,9 @@ export function CategoryImageGrid({ parentGroup, title, activeCategories }: Cate
       {/* 4-column grid — Blinkit style with dark rounded cards */}
       <div className="grid grid-cols-4 gap-2 px-4">
         {categories.slice(0, 8).map((cat) => (
-          <Link
+            <Link
             key={cat.category}
             to={`/category/${cat.parentGroup}?sub=${cat.category}`}
-            onClick={() => selectionChanged()}
             className="group flex flex-col items-center"
           >
             <div
@@ -77,3 +76,5 @@ export function CategoryImageGrid({ parentGroup, title, activeCategories }: Cate
     </div>
   );
 }
+
+export const CategoryImageGrid = memo(CategoryImageGridInner);

@@ -369,7 +369,7 @@ function ProductListingCardInner({
   );
 }
 
-// Fix #2: React.memo with custom comparator
+// Fix #5: React.memo with complete comparator including config refs
 export const ProductListingCard = memo(ProductListingCardInner, (prev, next) => {
   return (
     prev.product.id === next.product.id &&
@@ -378,6 +378,10 @@ export const ProductListingCard = memo(ProductListingCardInner, (prev, next) => 
     prev.product.stock_quantity === next.product.stock_quantity &&
     prev.layout === next.layout &&
     prev.viewOnly === next.viewOnly &&
-    prev.className === next.className
+    prev.className === next.className &&
+    // Fix #5: Include config refs to prevent memo bypass
+    prev.categoryConfigs === next.categoryConfigs &&
+    prev.marketplaceConfig === next.marketplaceConfig &&
+    prev.badgeConfigs === next.badgeConfigs
   );
 });

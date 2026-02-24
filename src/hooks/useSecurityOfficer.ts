@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
  * Checks if the current user is a security officer for the effective society.
  * Uses the is_security_officer RPC (SECURITY DEFINER) — no client-side role string checks.
  */
-export function useSecurityOfficer() {
+export function useSecurityOfficer(roleHint: boolean = true) {
   const { profile, effectiveSocietyId } = useAuth();
 
   const { data: isSecurityOfficer = false, isLoading } = useQuery({
@@ -23,7 +23,8 @@ export function useSecurityOfficer() {
       }
       return !!data;
     },
-    enabled: !!profile?.id && !!effectiveSocietyId,
+    // Fix #8: Only fire RPC when caller signals the user might have this role
+    enabled: !!profile?.id && !!effectiveSocietyId && roleHint,
     staleTime: 5 * 60 * 1000,
   });
 

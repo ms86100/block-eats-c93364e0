@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { MessageCircle, ChevronRight, Heart } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { jitteredStaleTime } from '@/lib/query-utils';
 
 interface RecentPost {
   id: string;
@@ -13,36 +14,38 @@ interface RecentPost {
   created_at: string;
 }
 
+// Fix #3: Convert to useQuery for caching + deduplication
 export function CommunityTeaser() {
   const { effectiveSocietyId } = useAuth();
-  const [posts, setPosts] = useState<RecentPost[]>([]);
-  const [helpCount, setHelpCount] = useState(0);
 
-  useEffect(() => {
-    if (!effectiveSocietyId) return;
-    
-    const fetchData = async () => {
+  const { data } = useQuery({
+    queryKey: ['community-teaser', effectiveSocietyId],
+    queryFn: async () => {
       const [postsRes, helpRes] = await Promise.all([
         supabase
           .from('bulletin_posts')
           .select('id, title, category, comment_count, vote_count, created_at')
-          .eq('society_id', effectiveSocietyId)
+          .eq('society_id', effectiveSocietyId!)
           .eq('is_archived', false)
           .order('created_at', { ascending: false })
           .limit(2),
         supabase
           .from('help_requests')
           .select('id', { count: 'exact', head: true })
-          .eq('society_id', effectiveSocietyId)
+          .eq('society_id', effectiveSocietyId!)
           .eq('status', 'open'),
       ]);
-      
-      setPosts((postsRes.data || []) as RecentPost[]);
-      setHelpCount(helpRes.count || 0);
-    };
+      return {
+        posts: (postsRes.data || []) as RecentPost[],
+        helpCount: helpRes.count || 0,
+      };
+    },
+    enabled: !!effectiveSocietyId,
+    staleTime: jitteredStaleTime(3 * 60 * 1000),
+  });
 
-    fetchData();
-  }, [effectiveSocietyId]);
+  const posts = data?.posts || [];
+  const helpCount = data?.helpCount || 0;
 
   if (!effectiveSocietyId || (posts.length === 0 && helpCount === 0)) return null;
 

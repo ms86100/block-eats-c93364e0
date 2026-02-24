@@ -39,19 +39,24 @@ const CONTEXT_WORDS: Record<string, string[]> = {
 };
 
 export function useSearchPlaceholder(context: SearchContext = 'home') {
-  // Fix #4: Lightweight category-only query — no product fetching
-  const { data: categoryNames = [] } = useQuery({
-    queryKey: ['category-display-names'],
+  // Fix #13: Reuse the shared 'category-configs' query key to avoid duplicate fetch
+  const { data: categoryConfigs = [] } = useQuery({
+    queryKey: ['category-configs'],
     queryFn: async () => {
       const { data } = await supabase
         .from('category_config')
-        .select('display_name')
+        .select('*')
         .eq('is_active', true)
         .order('display_order');
-      return (data || []).map((c: any) => c.display_name);
+      return data || [];
     },
-    staleTime: jitteredStaleTime(15 * 60 * 1000),
+    staleTime: jitteredStaleTime(10 * 60 * 1000),
   });
+
+  const categoryNames = useMemo(
+    () => categoryConfigs.map((c: any) => c.display_name),
+    [categoryConfigs]
+  );
 
   const words = useMemo(() => {
     if (['home', 'marketplace', 'search'].includes(context)) {

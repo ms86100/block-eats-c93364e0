@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -64,47 +65,42 @@ export function useEffectiveFeatures() {
     retry: 2,
   });
 
-  const featureMap = new Map(features.map(f => [f.feature_key, f]));
+  // Fix #16: Memoize featureMap and all accessor functions
+  const featureMap = useMemo(() => new Map(features.map(f => [f.feature_key, f])), [features]);
 
-  const isFeatureEnabled = (key: FeatureKey): boolean => {
-    // No society context → fail closed (features disabled)
+  const isFeatureEnabled = useCallback((key: FeatureKey): boolean => {
     if (!effectiveSocietyId) return false;
-    
     const feature = featureMap.get(key);
-    if (!feature) {
-      // RPC returned features but this key is missing → not in package → disabled
-      // RPC returned empty (no builder/package assigned) → also disabled (strict package enforcement)
-      return false;
-    }
+    if (!feature) return false;
     return feature.is_enabled;
-  };
+  }, [effectiveSocietyId, featureMap]);
 
-  const getFeatureState = (key: FeatureKey): FeatureState => {
+  const getFeatureState = useCallback((key: FeatureKey): FeatureState => {
     const feature = featureMap.get(key);
     if (!feature) return 'unavailable';
     if (feature.source === 'core') return 'locked';
     if (!feature.society_configurable) return feature.is_enabled ? 'locked' : 'disabled';
     return feature.is_enabled ? 'enabled' : 'disabled';
-  };
+  }, [featureMap]);
 
-  const getFeatureSource = (key: FeatureKey): string => {
+  const getFeatureSource = useCallback((key: FeatureKey): string => {
     return featureMap.get(key)?.source || 'default';
-  };
+  }, [featureMap]);
 
-  const getFeatureDisplayName = (key: FeatureKey): string => {
+  const getFeatureDisplayName = useCallback((key: FeatureKey): string => {
     return featureMap.get(key)?.display_name || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  };
+  }, [featureMap]);
 
-  const getFeatureDescription = (key: FeatureKey): string => {
+  const getFeatureDescription = useCallback((key: FeatureKey): string => {
     return featureMap.get(key)?.description || '';
-  };
+  }, [featureMap]);
 
-  const isConfigurable = (key: FeatureKey): boolean => {
+  const isConfigurable = useCallback((key: FeatureKey): boolean => {
     const feature = featureMap.get(key);
     if (!feature) return false;
     if (feature.source === 'core') return false;
     return feature.society_configurable;
-  };
+  }, [featureMap]);
 
   const toggleFeature = useMutation({
     mutationFn: async ({ key, enabled }: { key: FeatureKey; enabled: boolean }) => {
@@ -139,7 +135,8 @@ export function useEffectiveFeatures() {
     },
   });
 
-  return {
+  // Fix #16: Memoize the entire return value
+  return useMemo(() => ({
     features,
     isLoading,
     isError,
@@ -150,5 +147,5 @@ export function useEffectiveFeatures() {
     getFeatureDescription,
     isConfigurable,
     toggleFeature,
-  };
+  }), [features, isLoading, isError, isFeatureEnabled, getFeatureState, getFeatureSource, getFeatureDisplayName, getFeatureDescription, isConfigurable, toggleFeature]);
 }

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 /**
  * Checks if the current user is a registered worker in the effective society.
  */
-export function useWorkerRole() {
+export function useWorkerRole(roleHint: boolean = true) {
   const { profile, effectiveSocietyId } = useAuth();
 
   const { data: workerProfile = null, isLoading } = useQuery({
@@ -25,7 +25,8 @@ export function useWorkerRole() {
       }
       return data;
     },
-    enabled: !!profile?.id && !!effectiveSocietyId,
+    // Fix #8: Only fire query when caller signals the user might have this role
+    enabled: !!profile?.id && !!effectiveSocietyId && roleHint,
     staleTime: 5 * 60 * 1000,
   });
 

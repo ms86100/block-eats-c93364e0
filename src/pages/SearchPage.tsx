@@ -70,6 +70,36 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
   return d;
 }
+// Fix #11: Module-level helper — no closures, avoids re-creation per render
+function toProductWithSellerHelper(p: ProductSearchResult): ProductWithSeller {
+  return {
+    id: p.product_id,
+    seller_id: p.seller_id,
+    name: p.product_name,
+    price: p.price,
+    image_url: p.image_url,
+    is_veg: p.is_veg ?? true,
+    is_available: true,
+    is_bestseller: false,
+    is_recommended: false,
+    is_urgent: false,
+    category: p.category || '',
+    description: p.description || null,
+    mrp: p.mrp || null,
+    discount_percentage: p.discount_percentage || null,
+    distance_km: p.distance_km || null,
+    society_name: p.society_name || null,
+    is_same_society: p.is_same_society,
+    created_at: '',
+    updated_at: '',
+    seller_name: p.seller_name,
+    seller_rating: p.seller_rating,
+    fulfillment_mode: p.fulfillment_mode || null,
+    delivery_note: p.delivery_note || null,
+    action_type: p.action_type || null,
+    contact_phone: p.contact_phone || null,
+  } as ProductWithSeller;
+}
 
 // ── Component ──────────────────────────────────────────
 export default function SearchPage() {
@@ -260,6 +290,9 @@ export default function SearchPage() {
   // Fix #14: Require 2+ chars for text search to avoid slow LIKE '%a%' queries
   const isSearchActive = debouncedQuery.length >= 2 || hasActiveFilters() || selectedCategory !== null;
 
+  // Fix #12: Stabilize filters dependency with JSON.stringify to prevent re-fires
+  const filtersKey = JSON.stringify(filters);
+
   // ── Fire search on query / filter / category change ──
   useEffect(() => {
     if (isSearchActive) {
@@ -269,7 +302,7 @@ export default function SearchPage() {
       setResults([]);
       setHasSearched(false);
     }
-  }, [debouncedQuery, filters, browseBeyond, searchRadius, selectedCategory]);
+  }, [debouncedQuery, filtersKey, browseBeyond, searchRadius, selectedCategory]);
 
   // Abort controller ref for cancelling stale searches
   const abortRef = useRef<AbortController | null>(null);
@@ -614,7 +647,8 @@ export default function SearchPage() {
               <span className="text-xs text-muted-foreground whitespace-nowrap">Radius</span>
               <Slider
                 value={[searchRadius]}
-                onValueChange={([v]) => setSearchRadius(v)}
+                onValueChange={([v]) => setSearchRadiusLocal(v)}
+                onValueCommit={([v]) => setSearchRadius(v)}
                 min={1}
                 max={10}
                 step={1}
@@ -758,35 +792,10 @@ function ProductGridByCategory({
     return g;
   }, [products]);
 
-  const categories = Object.keys(grouped);
+  // Fix #11: Module-level helper — no closures, no re-creation per render
+  const toProductWithSeller = toProductWithSellerHelper;
 
-  const toProductWithSeller = (p: ProductSearchResult): ProductWithSeller => ({
-    id: p.product_id,
-    seller_id: p.seller_id,
-    name: p.product_name,
-    price: p.price,
-    image_url: p.image_url,
-    is_veg: p.is_veg ?? true,
-    is_available: true,
-    is_bestseller: false,
-    is_recommended: false,
-    is_urgent: false,
-    category: p.category || '',
-    description: p.description || null,
-    mrp: p.mrp || null,
-    discount_percentage: p.discount_percentage || null,
-    distance_km: p.distance_km || null,
-    society_name: p.society_name || null,
-    is_same_society: p.is_same_society,
-    created_at: '',
-    updated_at: '',
-    seller_name: p.seller_name,
-    seller_rating: p.seller_rating,
-    fulfillment_mode: p.fulfillment_mode || null,
-    delivery_note: p.delivery_note || null,
-    action_type: p.action_type || null,
-    contact_phone: p.contact_phone || null,
-  } as ProductWithSeller);
+  const categories = Object.keys(grouped);
 
   const totalCount = products.length;
 
