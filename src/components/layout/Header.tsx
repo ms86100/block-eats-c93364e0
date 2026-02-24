@@ -169,16 +169,18 @@ export function Header({
             </div>
           </div>
 
-          {/* Search bar — Blinkit style */}
-          <Link to="/search" className="block mt-2">
-            <div className="flex items-center gap-2.5 bg-muted rounded-xl px-3 py-2.5">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground shrink-0">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.3-4.3"/>
-              </svg>
-              <span className="text-sm text-muted-foreground flex-1 transition-opacity duration-300 truncate">{searchPlaceholder}</span>
-            </div>
-          </Link>
+          {/* Search bar — only on home/marketplace, not on titled society pages */}
+          {!title && (
+            <Link to="/search" className="block mt-2">
+              <div className="flex items-center gap-2.5 bg-muted rounded-xl px-3 py-2.5">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground shrink-0">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.3-4.3"/>
+                </svg>
+                <span className="text-sm text-muted-foreground flex-1 transition-opacity duration-300 truncate">{searchPlaceholder}</span>
+              </div>
+            </Link>
+          )}
         </div>
       </header>
 
