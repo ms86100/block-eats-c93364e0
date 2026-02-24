@@ -1,96 +1,43 @@
 
-## Understanding
-You are seeing persistent mobile alignment issues:
-- visible empty space at the top and bottom
-- bottom nav feels lifted above the screen edge
-- top navigation sits lower than expected
 
-## Root cause analysis (what’s actually wrong)
-I reviewed the current implementation and identified multiple compounding causes:
+## Restore Compact Card Design
 
-1. **Forced safe-area padding is always added**
-- In `src/index.css`:
-  - `.safe-top { padding-top: max(12px, env(safe-area-inset-top)); }`
-  - `.safe-bottom { padding-bottom: max(8px, env(safe-area-inset-bottom)); }`
-- This guarantees extra top (+12px) and bottom (+8px) space even on devices where inset is zero.
+### Problem
+The `ProductListingCard` was altered during the category page cosmetic transformation. The cards are now nearly double the intended size because:
+1. The action button (ADD/BUY) was changed from a small pill overlapping the image bottom-edge to a full-width 38px button at the bottom of the card content area
+2. The image area uses full `aspect-square` with generous `p-3` padding, making it oversized
+3. The content section has larger spacing (`px-3 pb-3 pt-2.5`) than the original compact layout
 
-2. **Viewport sizing is conflicting**
-- In `src/index.css`, `html/body/#root` set both:
-  - `height: 100dvh;`
-  - `height: 100%;`
-- The later `height: 100%` overrides `100dvh`, which can produce unstable mobile viewport behavior and visible edge gaps.
+### Reference (from screenshot)
+The intended card design has:
+- A compact square image area with `object-contain`, smaller padding
+- A small centered action button (ADD/BUY) **overlapping the bottom edge of the image** (positioned absolutely, translated -50% vertically)
+- Below the image: product name (11-12px, 2-line clamp), seller name (9px), discount text, price + MRP strikethrough
+- Quantity stepper also overlaps the image bottom when active
+- Overall card is tight with minimal internal spacing
 
-3. **Sticky headers across pages stack with safe-top**
-- Many pages (`CategoriesPage`, `CategoryPage`, `SearchPage`, etc.) use sticky wrappers + `.safe-top`.
-- Because `.safe-top` is currently forced, headers appear pushed down globally.
+### Changes to `src/components/product/ProductListingCard.tsx`
 
-4. **Bottom nav alignment is affected by global spacing strategy**
-- `BottomNav` is fixed to `bottom-0`, but global safe spacing and mixed padding behavior make it look visually detached from the bottom.
+**Image section (lines 212-270):**
+- Reduce image padding from `p-3` to `p-2`
+- Add the absolute-positioned action button overlapping the image bottom edge (restore the old `ProductGridCard` pattern)
 
-## Implementation plan
+**Action button (lines 338-358):**
+- Move the ADD button from inside the content section to overlap the image bottom edge
+- Change from full-width `h-[38px]` to a compact centered pill: `px-5 py-1.5 text-[11px]` with border styling
+- Quantity stepper also becomes compact centered overlay
 
-### Phase 1 — Fix global viewport baseline
-**File:** `src/index.css`
-- Remove conflicting duplicate height declarations (`height: 100%`) from `html, body, #root`.
-- Keep a single viewport source of truth based on `100dvh`.
-- Add/reset:
-  - `margin: 0; padding: 0;` on `html, body`
-  - ensure background on `html, body, #root` so no edge strip can appear.
+**Content section (lines 272-335):**
+- Reduce padding from `px-3 pb-3 pt-2.5` to `px-2 pb-2 pt-4` (pt-4 accounts for the overlapping button)
+- Reduce product name from `text-sm` to `text-[11px]`
+- Reduce price from `text-base` to `text-xs`
 
-### Phase 2 — Correct safe-area utilities (no forced phantom space)
-**File:** `src/index.css`
-- Replace:
-  - `.safe-top` from `max(12px, env(...))` → `env(safe-area-inset-top)`
-  - `.safe-bottom` from `max(8px, env(...))` → `env(safe-area-inset-bottom)`
-- Add optional utility for components that intentionally need extra comfort spacing:
-  - `.safe-bottom-comfort { padding-bottom: calc(env(safe-area-inset-bottom) + 8px); }`
+### What stays unchanged
+- All data, hooks, analytics, cart logic, memo comparator
+- Badge system, veg badge, distance badge positioning
+- All handler functions
+- Type definitions and props interface
 
-### Phase 3 — Bottom nav visual anchoring
-**File:** `src/components/layout/BottomNav.tsx`
-- Keep functional behavior unchanged.
-- Normalize safe-area handling to utility class usage for consistency.
-- Tune internal vertical padding so nav appears flush while preserving touch targets.
+### Technical details
+The button repositioning uses `absolute -bottom-3 left-1/2 -translate-x-1/2 z-10` on a wrapper div inside the image container (same pattern as the existing `ProductGridCard` component at line 113-128 of that file). The content area gets `pt-4` to account for the button overlap space.
 
-### Phase 4 — Top header lift adjustment
-**File:** `src/components/layout/Header.tsx`
-- Keep logic and actions identical.
-- After global `.safe-top` correction, fine-tune header row spacing (`pt/pb`) so it sits slightly higher without clipping status-bar-safe content.
-
-### Phase 5 — Screen-level verification and targeted polish
-Validate and apply only minimal class tweaks (if needed) on pages that use custom sticky headers:
-- `src/pages/CategoriesPage.tsx`
-- `src/pages/CategoryPage.tsx`
-- `src/pages/SearchPage.tsx`
-- `src/pages/CartPage.tsx`
-- `src/pages/SocietyDashboardPage.tsx`
-
-## Technical details (dedicated)
-
-```text
-Current:
-safe-top    = max(12px, insetTop)
-safe-bottom = max(8px, insetBottom)
-viewport    = 100dvh overridden by 100%
-
-Target:
-safe-top    = insetTop
-safe-bottom = insetBottom
-viewport    = 100dvh only
-```
-
-Expected impact:
-- removes fixed phantom spacing on devices with no inset
-- keeps proper notch/home-indicator safety on devices that need it
-- aligns bottom nav to edge consistently
-- lifts top nav to intended position
-- no changes to routing, data, cart, or user flows
-
-## Non-technical summary
-The layout issue is not a single component bug; it’s caused by global spacing rules adding extra space by default. I’ll correct the base mobile sizing and safe-area behavior, then lightly retune header/nav spacing. This will eliminate the top/bottom blank space and properly anchor navigation without changing app functionality.
-
-## Acceptance checklist
-1. Home: no visible gap above header or below bottom nav.
-2. Categories and Category pages: top header sits correctly; bottom nav flush to edge.
-3. Works consistently on iPhone-size and Android-size viewports.
-4. Scrolling and route changes do not reintroduce gaps.
-5. All interactions (tabs, cart, badges, search, navigation) remain unchanged.
