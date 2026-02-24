@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,16 +9,21 @@ import { CategoryImageGrid } from '@/components/home/CategoryImageGrid';
 import { FeaturedBanners } from '@/components/home/FeaturedBanners';
 import { ShopByStoreDiscovery } from '@/components/home/ShopByStoreDiscovery';
 import { ProductListingCard, ProductWithSeller } from '@/components/product/ProductListingCard';
+import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Store, ChevronRight, ShoppingBag, Sparkles, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { escapeIlike } from '@/lib/query-utils';
+import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 
 export function MarketplaceSection() {
   const navigate = useNavigate();
   const { user, profile, effectiveSocietyId } = useAuth();
 
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const { configs: categoryConfigs } = useCategoryConfigs();
 
   const { data: localCategories = [], isLoading: loadingLocal } = useProductsByCategory(80);
   const { parentGroupInfos } = useParentGroups();
@@ -33,6 +38,35 @@ export function MarketplaceSection() {
   const activeParentGroups = activeGroup
     ? parentGroupInfos.filter(g => g.value === activeGroup && activeParentGroupSet.has(g.value))
     : parentGroupInfos.filter(g => activeParentGroupSet.has(g.value));
+
+  const handleProductTap = useCallback((product: ProductWithSeller) => {
+    const catConfig = categoryConfigs.find(c => c.category === product.category);
+    setSelectedProduct({
+      product_id: product.id,
+      product_name: product.name,
+      price: product.price,
+      image_url: product.image_url,
+      is_veg: product.is_veg,
+      category: product.category,
+      description: product.description,
+      prep_time_minutes: product.prep_time_minutes,
+      fulfillment_mode: product.fulfillment_mode,
+      delivery_note: product.delivery_note,
+      action_type: product.action_type,
+      contact_phone: product.contact_phone,
+      specifications: product.specifications || null,
+      seller_id: product.seller_id,
+      seller_name: product.seller_name || 'Seller',
+      seller_rating: product.seller_rating || 0,
+      seller_reviews: product.seller_reviews || 0,
+      society_name: (product as any).society_name || null,
+      distance_km: (product as any).distance_km ?? null,
+      is_same_society: (product as any).is_same_society ?? true,
+      _catIcon: catConfig?.icon || '🛍️',
+      _catName: catConfig?.displayName || product.category,
+    });
+    setDetailOpen(true);
+  }, [categoryConfigs]);
 
   return (
     <div className="pb-2">
@@ -58,20 +92,30 @@ export function MarketplaceSection() {
       <ProductListings
         categories={filteredCategories}
         isLoading={loadingLocal}
+        onProductTap={handleProductTap}
       />
 
       {/* ━━━ Shop by Store Discovery ━━━ */}
       <ShopByStoreDiscovery />
+
+      {/* ━━━ Product Detail Sheet ━━━ */}
+      <ProductDetailSheet
+        product={selectedProduct}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        categoryIcon={selectedProduct?._catIcon}
+        categoryName={selectedProduct?._catName}
+      />
     </div>
   );
 }
-
 // ── Product Listings by Category ──
 function ProductListings({
-  categories, isLoading,
+  categories, isLoading, onProductTap,
 }: {
   categories: { category: string; parentGroup: string; displayName: string; icon: string; products: ProductWithSeller[] }[];
   isLoading: boolean;
+  onProductTap?: (product: ProductWithSeller) => void;
 }) {
   if (isLoading) {
     return (
@@ -156,7 +200,7 @@ function ProductListings({
             <div className="flex gap-2.5 overflow-x-auto scrollbar-hide px-4 pb-1">
               {cat.products.slice(0, 8).map(product => (
                 <div key={product.id} className="w-[140px] shrink-0">
-                  <ProductListingCard product={product} />
+                  <ProductListingCard product={product} onTap={onProductTap} />
                 </div>
               ))}
             </div>
