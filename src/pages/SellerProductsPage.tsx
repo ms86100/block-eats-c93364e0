@@ -45,6 +45,8 @@ import { toast } from 'sonner';
 import { friendlyError } from '@/lib/utils';
 import { BulkProductUpload } from '@/components/seller/BulkProductUpload';
 import { useSubcategories } from '@/hooks/useSubcategories';
+import { AttributeBlockBuilder } from '@/components/seller/AttributeBlockBuilder';
+import { type BlockData } from '@/hooks/useAttributeBlocks';
 
 export default function SellerProductsPage() {
   const { user, sellerProfiles, currentSellerId } = useAuth();
@@ -58,6 +60,7 @@ export default function SellerProductsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [licenseBlocked, setLicenseBlocked] = useState<{ blocked: boolean; status: string; licenseName: string } | null>(null);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [attributeBlocks, setAttributeBlocks] = useState<BlockData[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -208,6 +211,7 @@ export default function SellerProductsPage() {
       accepts_preorders: false,
     });
     setEditingProduct(null);
+    setAttributeBlocks([]);
   };
 
   const openEditDialog = (product: Product) => {
@@ -234,6 +238,13 @@ export default function SellerProductsPage() {
       lead_time_hours: (product as any).lead_time_hours?.toString() || '',
       accepts_preorders: (product as any).accepts_preorders || false,
     });
+    // Load attribute blocks from specifications
+    const specs = (product as any).specifications;
+    if (specs?.blocks && Array.isArray(specs.blocks)) {
+      setAttributeBlocks(specs.blocks as BlockData[]);
+    } else {
+      setAttributeBlocks([]);
+    }
     setIsDialogOpen(true);
   };
 
@@ -298,6 +309,7 @@ export default function SellerProductsPage() {
         subcategory_id: formData.subcategory_id || null,
         lead_time_hours: formData.lead_time_hours ? parseInt(formData.lead_time_hours) : null,
         accepts_preorders: formData.accepts_preorders,
+        specifications: attributeBlocks.length > 0 ? { blocks: attributeBlocks } : null,
         ...(editingProduct ? { approval_status: 'pending' } : { approval_status: 'draft' }),
       };
 
@@ -712,6 +724,14 @@ export default function SellerProductsPage() {
                     </div>
                   )}
                 </div>
+
+
+                {/* Attribute Block Builder */}
+                <AttributeBlockBuilder
+                  category={formData.category || null}
+                  value={attributeBlocks}
+                  onChange={setAttributeBlocks}
+                />
 
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <span className="text-sm font-medium">Available for order</span>

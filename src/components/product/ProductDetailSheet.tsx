@@ -10,6 +10,7 @@ import { useSellerTrustSnapshot } from '@/hooks/queries/useProductTrustMetrics';
 import { ContactSellerModal } from './ContactSellerModal';
 import { ProductEnquirySheet } from './ProductEnquirySheet';
 import { ReportSheet } from '@/components/report/ReportSheet';
+import { ProductAttributeBlocks } from './ProductAttributeBlocks';
 import { ProductActionType } from '@/types/database';
 import { ACTION_CONFIG } from '@/lib/marketplace-constants';
 import { Plus, Minus, Store, MapPin, Home, Clock, Truck, Users, Zap, RotateCcw, ChevronRight, ChevronDown, Shield, Flag } from 'lucide-react';
@@ -28,6 +29,7 @@ interface ProductDetail {
   delivery_note?: string | null;
   action_type?: string | null;
   contact_phone?: string | null;
+  specifications?: Record<string, any> | null;
   seller_id: string;
   seller_name: string;
   seller_rating: number;
@@ -235,6 +237,9 @@ export function ProductDetailSheet({
                     <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
                   </div>
                 )}
+
+                {/* Dynamic Attribute Blocks */}
+                <ProductAttributeBlocks specifications={product.specifications} />
 
                 {/* Trust Snapshot */}
                 {trustSnapshot && (trustSnapshot.completed_orders > 0 || trustSnapshot.avg_response_min > 0) && (

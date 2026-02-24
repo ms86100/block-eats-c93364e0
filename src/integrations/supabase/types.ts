@@ -44,6 +44,48 @@ export type Database = {
         }
         Relationships: []
       }
+      attribute_block_library: {
+        Row: {
+          block_type: string
+          category_hints: string[] | null
+          created_at: string
+          description: string | null
+          display_name: string
+          display_order: number
+          icon: string | null
+          id: string
+          is_active: boolean
+          renderer_type: string
+          schema: Json
+        }
+        Insert: {
+          block_type: string
+          category_hints?: string[] | null
+          created_at?: string
+          description?: string | null
+          display_name: string
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          renderer_type?: string
+          schema?: Json
+        }
+        Update: {
+          block_type?: string
+          category_hints?: string[] | null
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          renderer_type?: string
+          schema?: Json
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -4128,6 +4170,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_form_configs: {
+        Row: {
+          blocks: Json
+          category: string | null
+          created_at: string
+          id: string
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          blocks?: Json
+          category?: string | null
+          created_at?: string
+          id?: string
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          blocks?: Json
+          category?: string | null
+          created_at?: string
+          id?: string
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_form_configs_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_form_configs_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_audit_trail"
+            referencedColumns: ["seller_id"]
           },
         ]
       }
