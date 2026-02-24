@@ -16,7 +16,6 @@ export function ParentGroupTabs({ activeGroup, onGroupChange, activeParentGroups
     ? parentGroupInfos.filter(g => activeParentGroups.has(g.value))
     : parentGroupInfos;
 
-  // Hide tabs entirely when no active parent groups have products
   if (!isLoading && filteredGroups.length === 0) {
     return null;
   }
@@ -25,13 +24,12 @@ export function ParentGroupTabs({ activeGroup, onGroupChange, activeParentGroups
     return (
       <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-1">
         {[1, 2, 3, 4, 5].map(i => (
-          <Skeleton key={i} className="w-20 h-9 rounded-full shrink-0" />
+          <Skeleton key={i} className="w-24 h-9 rounded-full shrink-0" />
         ))}
       </div>
     );
   }
 
-  // Only show "All" tab when there are 2+ groups to switch between
   const tabs: ParentGroupInfo[] = filteredGroups.length > 1
     ? [{ value: '__all__', label: 'All', icon: '🏠', color: '', description: '', layoutType: 'ecommerce' }, ...filteredGroups]
     : filteredGroups;
@@ -48,10 +46,10 @@ export function ParentGroupTabs({ activeGroup, onGroupChange, activeParentGroups
               onGroupChange(tab.value === '__all__' ? null : tab.value);
             }}
             className={cn(
-              'shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full transition-all duration-200 text-[11px] font-bold whitespace-nowrap',
+              'shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full transition-all duration-200 text-[12px] font-bold whitespace-nowrap',
               isActive
-                ? 'bg-primary text-primary-foreground shadow-md'
-                : 'bg-secondary text-foreground border border-border hover:bg-muted active:scale-95'
+                ? 'bg-primary text-primary-foreground shadow-cta'
+                : 'bg-card text-foreground border border-border hover:border-primary/30 active:scale-95'
             )}
           >
             <span className="text-sm leading-none">{tab.icon}</span>

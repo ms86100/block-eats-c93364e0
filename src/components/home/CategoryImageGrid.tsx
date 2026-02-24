@@ -5,7 +5,7 @@ import { useProductsByCategory } from '@/hooks/queries/useProductsByCategory';
 import { useCurrency } from '@/hooks/useCurrency';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Users, Tag, Star } from 'lucide-react';
+import { Users, Tag, Star, ChevronRight } from 'lucide-react';
 
 interface CategoryImageGridProps {
   parentGroup: string;
@@ -13,7 +13,7 @@ interface CategoryImageGridProps {
   activeCategories?: Set<string>;
 }
 
-/* ── Metadata builder (same logic as CategoriesPage) ─── */
+/* ── Metadata builder ─── */
 
 interface CategoryMeta {
   count: number;
@@ -49,7 +49,7 @@ function buildCategoryMeta(
   return map;
 }
 
-/* ── Image collage (same as CategoriesPage) ──────────── */
+/* ── Image collage ──────────── */
 
 function ImageCollage({ images, fallbackIcon, fallbackUrl, alt }: {
   images: string[];
@@ -93,7 +93,7 @@ function CategoryImageGridInner({ parentGroup, title, activeCategories }: Catego
 
   if (isLoading || productsLoading) {
     return (
-      <div className="px-4 mb-4">
+      <div className="px-4 mb-5">
         <Skeleton className="h-5 w-40 mb-3" />
         <div className="grid grid-cols-2 gap-3">
           {[1, 2, 3, 4].map(i => (
@@ -107,15 +107,19 @@ function CategoryImageGridInner({ parentGroup, title, activeCategories }: Catego
   if (categories.length === 0) return null;
 
   return (
-    <div className="mb-4">
+    <div className="mb-6">
       {/* Section header */}
-      <div className="flex items-center gap-2 mb-2 px-4">
-        <h3 className="font-bold text-sm text-foreground">{title}</h3>
-        <span className="text-[10px] text-muted-foreground">({categories.length})</span>
-        <div className="flex-1 h-px bg-border" />
+      <div className="flex items-center justify-between mb-3 px-4">
+        <h3 className="font-extrabold text-[15px] text-foreground tracking-tight">{title}</h3>
+        <Link
+          to={`/category/${parentGroup}`}
+          className="text-[11px] font-bold text-primary flex items-center gap-0.5"
+        >
+          See all <ChevronRight size={12} />
+        </Link>
       </div>
 
-      {/* 2-column enriched card grid — matches CategoriesPage */}
+      {/* 2-column enriched card grid */}
       <div className="grid grid-cols-2 gap-3 px-4">
         {categories.slice(0, 6).map((cat) => {
           const meta = metaMap[cat.category] || { count: 0, sellerCount: 0, minPrice: null, collageImages: [], hasBestseller: false };
@@ -123,7 +127,7 @@ function CategoryImageGridInner({ parentGroup, title, activeCategories }: Catego
             <Link
               key={cat.category}
               to={`/category/${cat.parentGroup}?sub=${cat.category}`}
-              className="block rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform group bg-card border border-border"
+              className="block rounded-2xl overflow-hidden active:scale-[0.97] transition-all duration-200 group bg-card border border-border hover:border-primary/20 hover:shadow-md"
             >
               {/* Image area */}
               <div className="relative aspect-[3/2] overflow-hidden">
@@ -134,46 +138,46 @@ function CategoryImageGridInner({ parentGroup, title, activeCategories }: Catego
                   alt={cat.displayName}
                 />
                 {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
                 {/* Count badge — top right */}
                 {meta.count > 0 && (
-                  <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-full bg-primary/90 text-primary-foreground text-[9px] font-bold shadow-sm">
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-primary/90 text-primary-foreground text-[9px] font-bold shadow-sm">
                     {meta.count} items
                   </div>
                 )}
 
                 {/* Bestseller star — top left */}
                 {meta.hasBestseller && (
-                  <div className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-warning/90 flex items-center justify-center shadow-sm">
-                    <Star size={12} className="text-white fill-white" />
+                  <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-rating-star/90 flex items-center justify-center shadow-sm">
+                    <Star size={12} className="text-foreground fill-foreground" />
                   </div>
                 )}
 
                 {/* Category name overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                  <span className="text-sm font-bold text-white leading-tight line-clamp-2 drop-shadow-md">
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <span className="text-[14px] font-extrabold text-white leading-tight line-clamp-2 drop-shadow-lg tracking-tight">
                     {cat.displayName}
                   </span>
                 </div>
               </div>
 
               {/* Metadata row */}
-              <div className="flex items-center gap-2 px-2.5 py-2 text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-2.5 px-3 py-2.5 text-[10px] text-muted-foreground">
                 {meta.sellerCount > 0 && (
-                  <span className="inline-flex items-center gap-0.5">
-                    <Users size={10} className="shrink-0" />
-                    {meta.sellerCount} {meta.sellerCount === 1 ? 'seller' : 'sellers'}
+                  <span className="inline-flex items-center gap-1">
+                    <Users size={10} className="shrink-0 text-primary/70" />
+                    <span className="font-medium">{meta.sellerCount} {meta.sellerCount === 1 ? 'seller' : 'sellers'}</span>
                   </span>
                 )}
                 {meta.minPrice !== null && (
-                  <span className="inline-flex items-center gap-0.5">
-                    <Tag size={10} className="shrink-0" />
-                    From {formatPrice(meta.minPrice)}
+                  <span className="inline-flex items-center gap-1">
+                    <Tag size={10} className="shrink-0 text-primary/70" />
+                    <span className="font-medium">From {formatPrice(meta.minPrice)}</span>
                   </span>
                 )}
                 {meta.sellerCount === 0 && meta.minPrice === null && (
-                  <span className="text-muted-foreground/60">Explore →</span>
+                  <span className="text-muted-foreground/60 font-medium">Explore →</span>
                 )}
               </div>
             </Link>

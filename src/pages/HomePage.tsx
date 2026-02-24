@@ -7,7 +7,8 @@ import { MarketplaceSection } from '@/components/home/MarketplaceSection';
 import { SocietyQuickLinks } from '@/components/home/SocietyQuickLinks';
 import { CommunityTeaser } from '@/components/home/CommunityTeaser';
 import { useAuth } from '@/contexts/AuthContext';
-import { PartyPopper, X } from 'lucide-react';
+import { PartyPopper, X, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function HomePage() {
   const { user, profile, isApproved, isSeller, sellerProfiles } = useAuth();
@@ -50,35 +51,39 @@ export default function HomePage() {
 
   return (
     <AppLayout>
-      <div className="pb-4">
+      <div className="pb-6">
         {/* ═══ SELLER CONGRATS BANNER ═══ */}
         {showSellerCongrats && (
-          <div className="mx-4 mt-3 relative overflow-hidden rounded-2xl bg-primary p-4 text-primary-foreground shadow-lg">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-4 mt-3 relative overflow-hidden rounded-2xl bg-primary p-4 text-primary-foreground shadow-cta"
+          >
             <button
               onClick={dismissCongrats}
-              className="absolute top-2 right-2 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              className="absolute top-3 right-3 p-1 rounded-full bg-primary-foreground/20 hover:bg-primary-foreground/30 transition-colors"
             >
               <X size={14} />
             </button>
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center shrink-0">
                 <PartyPopper size={22} />
               </div>
               <div>
-                <h3 className="font-bold text-sm">🎉 Congratulations! Your store is approved!</h3>
-                <p className="text-xs mt-1 text-white/90">
-                  Your store is now live. You can add products and start selling to your neighbors!
+                <h3 className="font-extrabold text-sm tracking-tight">🎉 Your store is approved!</h3>
+                <p className="text-xs mt-1 text-primary-foreground/85 leading-relaxed">
+                  Start adding products and selling to your neighbors.
                 </p>
                 <Link
                   to="/seller/products"
                   onClick={dismissCongrats}
-                  className="inline-block mt-2 text-xs font-bold underline underline-offset-2 hover:text-white/80"
+                  className="inline-flex items-center gap-1 mt-2.5 text-xs font-bold bg-primary-foreground/20 px-3 py-1.5 rounded-lg hover:bg-primary-foreground/30 transition-colors"
                 >
-                  Add Products →
+                  Add Products <ArrowRight size={12} />
                 </Link>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* ═══ SOCIETY QUICK LINKS ═══ */}
