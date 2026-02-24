@@ -207,18 +207,12 @@ function ProductListingCardInner({
       {/* ━━━ IMAGE ━━━ */}
       <div className="relative">
         <div className="relative aspect-[4/3] rounded-t-xl overflow-hidden product-image-bg">
-          {product.image_url ? (
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="w-full h-full object-contain p-2"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ShoppingCart size={28} className="text-muted-foreground/40" strokeWidth={1.5} />
-            </div>
-          )}
+          <img
+            src={product.image_url || `https://picsum.photos/seed/${product.id}/400/300`}
+            alt={product.name}
+            className={cn("w-full h-full", product.image_url ? "object-contain p-2" : "object-cover")}
+            loading="lazy"
+          />
 
           {isOutOfStock && (
             <div className="absolute inset-0 bg-background/60 flex items-center justify-center">

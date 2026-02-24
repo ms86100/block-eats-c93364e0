@@ -84,18 +84,12 @@ export function ProductGridCard({ product, behavior, onTap, className, viewOnly 
       {/* Image */}
       <div className="relative p-2 pb-0">
         <div className="relative aspect-square rounded-[10px] overflow-hidden product-image-bg">
-          {product.image_url ? (
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="w-full h-full object-contain"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-3xl">🛍️</span>
-            </div>
-          )}
+          <img
+            src={product.image_url || `https://picsum.photos/seed/${product.id}/300/300`}
+            alt={product.name}
+            className={cn("w-full h-full", product.image_url ? "object-contain" : "object-cover")}
+            loading="lazy"
+          />
 
           {!product.is_available && (
             <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-[10px]">
