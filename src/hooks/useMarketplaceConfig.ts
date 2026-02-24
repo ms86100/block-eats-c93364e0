@@ -160,7 +160,7 @@ export function useMarketplaceConfig(): MarketplaceConfig {
         rentalPeriodLabels,
       };
     },
-    staleTime: 15 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 min — system settings are near-static
   });
 
   // Fix #6: useQuery already returns stable `data` reference when unchanged,

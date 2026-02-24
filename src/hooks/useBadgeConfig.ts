@@ -32,7 +32,7 @@ export function useBadgeConfig() {
       }
       return (data as BadgeConfigRow[]) || [];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 min — badge config is near-static
   });
 
   // Fix #6: Memoize return to stabilize object reference for memo comparators

@@ -43,7 +43,7 @@ export function useParentGroups() {
       if (error) throw error;
       return (data as ParentGroupRow[]) || [];
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes — this data rarely changes
+    staleTime: 30 * 60 * 1000, // 30 min — parent groups are near-static
   });
 
   // Map to the same shape as the old PARENT_GROUPS constant for easy migration

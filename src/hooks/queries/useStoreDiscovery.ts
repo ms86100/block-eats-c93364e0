@@ -76,7 +76,7 @@ export function useLocalSellers() {
       return grouped;
     },
     enabled: !!isApproved && !!effectiveSocietyId,
-    staleTime: jitteredStaleTime(5 * 60_000),
+    staleTime: jitteredStaleTime(10 * 60_000), // 10 min — sellers don't change often
   });
 }
 
@@ -138,6 +138,6 @@ export function useNearbySocietySellers(radiusKm: number = 5, enabled: boolean =
       return bands;
     },
     enabled: !!isApproved && !!effectiveSocietyId && enabled,
-    staleTime: jitteredStaleTime(5 * 60_000),
+    staleTime: jitteredStaleTime(10 * 60_000), // 10 min — nearby sellers don't change often
   });
 }

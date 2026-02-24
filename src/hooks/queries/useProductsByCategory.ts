@@ -84,7 +84,7 @@ export function useProductsByCategory(limit = 50) {
       return { approved, configMap } as any;
     },
     enabled: !!effectiveSocietyId,
-    staleTime: jitteredStaleTime(5 * 60 * 1000),
+    staleTime: jitteredStaleTime(10 * 60 * 1000), // 10 min — product list is moderately dynamic
   });
 
   // Post-process: group by category (nearby products merged externally by caller)

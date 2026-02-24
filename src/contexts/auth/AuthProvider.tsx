@@ -37,11 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fix #15: Prefetch critical data once auth context is established
   useEffect(() => {
     if (!effectiveSocietyId || !profile) return;
+    const LONG_STALE = 30 * 60 * 1000; // 30 min for near-static config
     // Fire all prefetches in parallel — these populate cache for downstream consumers
     queryClient.prefetchQuery({
       queryKey: ['category-configs'],
       queryFn: fetchCategoryConfigs,
-      staleTime: 10 * 60 * 1000,
+      staleTime: LONG_STALE,
     });
     queryClient.prefetchQuery({
       queryKey: ['badge-config'],
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data } = await supabase.from('badge_config').select('*').eq('is_active', true).order('priority', { ascending: true });
         return data || [];
       },
-      staleTime: 10 * 60 * 1000,
+      staleTime: LONG_STALE,
     });
     queryClient.prefetchQuery({
       queryKey: ['parent-groups'],
@@ -57,7 +58,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data } = await supabase.from('parent_groups').select('*').order('sort_order');
         return data || [];
       },
-      staleTime: 10 * 60 * 1000,
+      staleTime: LONG_STALE,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ['effective-features', effectiveSocietyId],
+      queryFn: async () => {
+        const { data } = await supabase.rpc('get_effective_society_features', {
+          _society_id: effectiveSocietyId,
+        });
+        return data || [];
+      },
+      staleTime: 15 * 60 * 1000,
     });
   }, [effectiveSocietyId, !!profile]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -103,7 +103,7 @@ export function useCategoryConfigs() {
   const { data: configs = [], isLoading, refetch } = useQuery({
     queryKey: ['category-configs'],
     queryFn: fetchCategoryConfigs,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 min — category config is near-static
   });
 
   const groupedConfigs = useMemo(() => {
