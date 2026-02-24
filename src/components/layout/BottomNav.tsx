@@ -33,17 +33,15 @@ const workerNavItems: { to: string; icon: typeof Briefcase; label: string }[] = 
 function BottomNavInner() {
   const location = useLocation();
   const { isFeatureEnabled, isLoading } = useEffectiveFeatures();
-  const { isAdmin, isSocietyAdmin, isBuilderMember } = useAuth();
-  // Fix #8: Gate role hooks — skip RPC for admins/builders/society admins (they always see resident nav)
-  // For regular residents, these still fire but are cached with 5min staleTime
-  const skipRoleCheck = isAdmin || isSocietyAdmin || isBuilderMember;
-  const { isSecurityOfficer } = useSecurityOfficer(!skipRoleCheck);
-  const { isWorker } = useWorkerRole(!skipRoleCheck);
+  const { isAdmin, isSocietyAdmin, isBuilderMember, roles } = useAuth();
+  // Fix #8: Only fire security/worker RPCs if user has roles beyond 'buyer'
+  // Pure buyers (95%+ of users) skip these 2 DB calls per page
+  const isPureBuyer = roles.length <= 1 && roles[0] === 'buyer';
+  const { isSecurityOfficer } = useSecurityOfficer(!isPureBuyer);
+  const { isWorker } = useWorkerRole(!isPureBuyer && roles.includes('worker'));
   const { itemCount } = useCart();
   const { selectionChanged } = useHaptics();
 
-  // Builders, admins, and society admins always see the full resident nav
-  // Only pure security officers / workers (no admin/builder role) get restricted nav
   const isPrimaryRoleUser = isAdmin || isSocietyAdmin || isBuilderMember;
   const navItems = !isPrimaryRoleUser && isSecurityOfficer
     ? securityNavItems

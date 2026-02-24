@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -34,5 +35,6 @@ export function useBadgeConfig() {
     staleTime: 10 * 60 * 1000,
   });
 
-  return { badges, isLoading };
+  // Fix #6: Memoize return to stabilize object reference for memo comparators
+  return useMemo(() => ({ badges, isLoading }), [badges, isLoading]);
 }

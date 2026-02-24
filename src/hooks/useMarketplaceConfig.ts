@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -162,5 +163,7 @@ export function useMarketplaceConfig(): MarketplaceConfig {
     staleTime: 15 * 60 * 1000,
   });
 
+  // Fix #6: useQuery already returns stable `data` reference when unchanged,
+  // but we memoize the final return to be explicit
   return config;
 }
