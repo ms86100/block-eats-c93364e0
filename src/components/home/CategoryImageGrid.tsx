@@ -40,20 +40,19 @@ function CategoryImageGridInner({ parentGroup, title, activeCategories }: Catego
         <h3 className="font-bold text-sm text-foreground">{title}</h3>
       </div>
 
-      {/* 3-column grid — larger category images like category page */}
-      <div className="grid grid-cols-3 gap-2.5 px-4">
+      {/* 3-column grid — large rounded image cards */}
+      <div className="grid grid-cols-3 gap-3 px-4">
         {categories.slice(0, 6).map((cat) => (
-            <Link
+          <Link
             key={cat.category}
             to={`/category/${cat.parentGroup}?sub=${cat.category}`}
-            className="group flex flex-col items-center"
+            className="group flex flex-col items-center gap-1.5"
           >
             <div
               className={cn(
-                'w-full aspect-[4/3] rounded-xl overflow-hidden',
-                'bg-muted border border-border',
-                'transition-all duration-200 group-hover:scale-[1.03] group-active:scale-95',
-                'flex items-center justify-center'
+                'w-full aspect-[4/3] rounded-2xl overflow-hidden',
+                'bg-muted',
+                'transition-transform duration-200 group-hover:scale-[1.03] group-active:scale-95'
               )}
             >
               {cat.imageUrl ? (
@@ -64,10 +63,12 @@ function CategoryImageGridInner({ parentGroup, title, activeCategories }: Catego
                   loading="lazy"
                 />
               ) : (
-                <span className="text-3xl">{cat.icon}</span>
+                <div className="w-full h-full flex items-center justify-center bg-secondary">
+                  <span className="text-3xl">{cat.icon}</span>
+                </div>
               )}
             </div>
-            <span className="text-[11px] font-semibold text-center leading-tight text-foreground line-clamp-1 mt-1.5 px-0.5">
+            <span className="text-xs font-medium text-center leading-tight text-foreground line-clamp-1">
               {cat.displayName}
             </span>
           </Link>
