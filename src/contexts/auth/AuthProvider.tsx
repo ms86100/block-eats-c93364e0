@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { AuthContextType } from './types';
 import { useAuthState } from './useAuthState';
 import {
@@ -39,10 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Fire all prefetches in parallel — these populate cache for downstream consumers
     queryClient.prefetchQuery({
       queryKey: ['category-configs'],
-      queryFn: async () => {
-        const { data } = await supabase.from('category_config').select('*').eq('is_active', true).order('display_order');
-        return data || [];
-      },
+      queryFn: fetchCategoryConfigs,
       staleTime: 10 * 60 * 1000,
     });
     queryClient.prefetchQuery({

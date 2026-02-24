@@ -25,7 +25,7 @@ function TypewriterPlaceholderInner({ context = 'home' }: { context?: SearchCont
   // Fix #13: Reuse the shared category-configs cache instead of a separate query
   const { data: configs = [] } = useCategoryConfig();
   const categoryNames = useMemo(
-    () => configs.map((c: any) => c.display_name),
+    () => configs.map((c: any) => c.displayName || c.display_name),
     [configs],
   );
 

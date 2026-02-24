@@ -104,7 +104,7 @@ export function AdminCatalogManager() {
                               <span className="text-lg shrink-0">{cat.icon}</span>
                               <div className="min-w-0">
                                 <p className="font-medium text-sm truncate">
-                                  {cat.display_name}
+                                  {cat.displayName || cat.display_name}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">
                                   {linkedBlocks.length} attribute block{linkedBlocks.length !== 1 ? 's' : ''}
