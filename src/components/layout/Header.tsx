@@ -99,7 +99,7 @@ function HeaderInner({
         'sticky top-0 z-40 bg-background',
         className
       )}>
-        <div className="px-3 pb-1.5 safe-top">
+        <div className="px-3 pt-1 pb-1 safe-top">
           {/* Top row: delivery info + actions */}
           <div className="flex items-start justify-between">
             {title ? (

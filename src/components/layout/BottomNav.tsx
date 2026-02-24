@@ -54,8 +54,8 @@ function BottomNavInner() {
     : navItems.filter(item => !('featureKey' in item && item.featureKey) || isFeatureEnabled((item as any).featureKey));
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border pb-[env(safe-area-inset-bottom)]">
-      <div className="flex items-center justify-around px-1 py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+      <div className="flex items-center justify-around px-1 py-1.5 pb-[env(safe-area-inset-bottom)]">
         {visibleItems.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to || 
             (to !== '/' && location.pathname.startsWith(to));
