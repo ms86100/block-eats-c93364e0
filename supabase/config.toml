@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.save-test-results]
 verify_jwt = false
+
+[functions.reset-and-seed-scenario]
+verify_jwt = false
+
+[functions.seed-integration-test-users]
+verify_jwt = false
