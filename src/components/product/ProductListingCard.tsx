@@ -341,7 +341,7 @@ function ProductListingCardInner({
 
         {/* Price — prominent, 14-16px */}
         <div className="flex items-end gap-1.5 mt-auto">
-          <span className="font-bold text-[15px] text-foreground leading-none tracking-tight">
+          <span className="font-semibold text-[13px] text-foreground leading-none tracking-tight">
             {mc.currencySymbol}{product.price.toLocaleString()}
           </span>
           {hasDiscount && (
