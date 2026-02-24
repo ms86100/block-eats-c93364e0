@@ -331,12 +331,13 @@ export default function AdminPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-5">
+          <TabsList className="w-full grid grid-cols-6">
             <TabsTrigger value="sellers" className="text-[10px]">Sellers</TabsTrigger>
             <TabsTrigger value="products" className="text-[10px]">Products</TabsTrigger>
             <TabsTrigger value="users" className="text-[10px]">Users</TabsTrigger>
             <TabsTrigger value="societies" className="text-[10px]">Societies</TabsTrigger>
             <TabsTrigger value="disputes" className="text-[10px]">Disputes</TabsTrigger>
+            <TabsTrigger value="categories" className="text-[10px]">Categories</TabsTrigger>
           </TabsList>
           <TabsList className="w-full grid grid-cols-8 mt-1">
             <TabsTrigger value="reports" className="text-[10px]">Reports</TabsTrigger>
@@ -613,11 +614,14 @@ export default function AdminPage() {
             <AdminAttributeBlockManager />
           </TabsContent>
 
+          <TabsContent value="categories" className="space-y-4 mt-4">
+            <CategoryManager />
+            <SubcategoryManager />
+          </TabsContent>
+
           <TabsContent value="settings" className="space-y-4 mt-4">
             <PlatformSettingsManager />
             <ApiKeySettings />
-            <CategoryManager />
-            <SubcategoryManager />
           </TabsContent>
 
           <TabsContent value="navigator" className="mt-4">
