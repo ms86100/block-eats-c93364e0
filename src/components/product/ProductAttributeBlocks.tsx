@@ -1,8 +1,16 @@
 import { Badge } from '@/components/ui/badge';
+import { useBlockLibrary, type AttributeBlock } from '@/hooks/useAttributeBlocks';
 
 interface BlockData {
   type: string;
   data: Record<string, any>;
+}
+
+interface FieldDef {
+  key: string;
+  label: string;
+  type: string;
+  options?: string[];
 }
 
 interface ProductAttributeBlocksProps {
@@ -10,6 +18,8 @@ interface ProductAttributeBlocksProps {
 }
 
 export function ProductAttributeBlocks({ specifications }: ProductAttributeBlocksProps) {
+  const { data: library = [] } = useBlockLibrary();
+
   if (!specifications?.blocks || !Array.isArray(specifications.blocks)) return null;
 
   const blocks = specifications.blocks as BlockData[];
@@ -17,10 +27,13 @@ export function ProductAttributeBlocks({ specifications }: ProductAttributeBlock
   if (nonEmpty.length === 0) return null;
 
   return (
-    <div className="space-y-3">
-      {nonEmpty.map((block) => (
-        <BlockRenderer key={block.type} block={block} />
-      ))}
+    <div className="space-y-4">
+      {nonEmpty.map((block) => {
+        const libBlock = library.find(lb => lb.block_type === block.type);
+        return (
+          <BlockSection key={block.type} block={block} libBlock={libBlock} />
+        );
+      })}
     </div>
   );
 }
@@ -32,16 +45,33 @@ function hasContent(data: Record<string, any> | undefined): boolean {
   );
 }
 
-function BlockRenderer({ block }: { block: BlockData }) {
+function BlockSection({ block, libBlock }: { block: BlockData; libBlock?: AttributeBlock }) {
   const { type, data } = block;
+  const fields: FieldDef[] = libBlock?.schema?.fields || [];
+  const displayName = libBlock?.display_name || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const rendererType = libBlock?.renderer_type || 'key_value';
 
-  // Render variants as tags
-  if (type === 'variants' && data.options?.length) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{displayName}</p>
+      <BlockContent data={data} fields={fields} rendererType={rendererType} blockType={type} />
+    </div>
+  );
+}
+
+function BlockContent({ data, fields, rendererType, blockType }: {
+  data: Record<string, any>;
+  fields: FieldDef[];
+  rendererType: string;
+  blockType: string;
+}) {
+  // Special: variant_rows
+  if (blockType === 'variants' && data.options?.length) {
     return (
       <div className="space-y-1.5">
         {data.options.map((opt: any, i: number) => (
           <div key={i}>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">{opt.label}</p>
+            <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">{opt.label}</p>
             <div className="flex flex-wrap gap-1">
               {(opt.values || []).map((v: string, j: number) => (
                 <Badge key={j} variant="secondary" className="text-[10px]">{v}</Badge>
@@ -53,8 +83,8 @@ function BlockRenderer({ block }: { block: BlockData }) {
     );
   }
 
-  // Render size chart as table
-  if (type === 'size_chart' && data.rows?.length) {
+  // Special: size_table
+  if (blockType === 'size_chart' && data.rows?.length) {
     const keys = Object.keys(data.rows[0] || {});
     return (
       <div className="overflow-x-auto">
@@ -78,52 +108,82 @@ function BlockRenderer({ block }: { block: BlockData }) {
     );
   }
 
-  // Render string arrays as badges
-  if (data.methods?.length || data.certifications?.length) {
-    const items = data.methods || data.certifications || [];
-    return (
-      <div className="flex flex-wrap gap-1">
-        {items.map((item: string, i: number) => (
-          <Badge key={i} variant="outline" className="text-[10px]">{item}</Badge>
-        ))}
-      </div>
-    );
+  // Tag fields → render as badges
+  const tagFields = fields.filter(f => f.type === 'tag_input');
+  if (tagFields.length > 0 && rendererType === 'tags') {
+    const allTags = tagFields.flatMap(f => data[f.key] || []);
+    if (allTags.length > 0) {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {allTags.map((tag: string, i: number) => (
+            <Badge key={i} variant="secondary" className="text-[10px]">{tag}</Badge>
+          ))}
+        </div>
+      );
+    }
   }
 
-  // Render custom attributes (key-value entries)
-  if (type === 'custom_attributes' && data.entries?.length) {
-    return (
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-        {data.entries.map((entry: any, i: number) => (
-          <div key={i} className="flex justify-between text-xs">
-            <span className="text-muted-foreground">{entry.key}</span>
-            <span className="font-medium text-foreground">{entry.value}</span>
-          </div>
-        ))}
-      </div>
-    );
+  // Badge list (e.g. delivery methods, certifications)
+  if (rendererType === 'badge_list') {
+    const badgeFields = fields.filter(f => f.type === 'tag_input');
+    const allItems = badgeFields.flatMap(f => data[f.key] || []);
+    if (allItems.length > 0) {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {allItems.map((item: string, i: number) => (
+            <Badge key={i} variant="outline" className="text-[10px]">{item}</Badge>
+          ))}
+        </div>
+      );
+    }
   }
 
-  // Render text-type blocks (return_policy, location)
-  if (data.policy || data.details || data.description || data.seasonal_note) {
-    const text = data.policy || data.details || data.description || data.seasonal_note;
-    return <p className="text-xs text-muted-foreground leading-relaxed">{text}</p>;
+  // Text renderer
+  if (rendererType === 'text') {
+    const textFields = fields.filter(f => f.type === 'textarea' || f.type === 'text');
+    const textContent = textFields.map(f => data[f.key]).filter(Boolean).join(' — ');
+    if (textContent) {
+      return <p className="text-xs text-muted-foreground leading-relaxed">{textContent}</p>;
+    }
   }
 
-  // Generic key-value fallback
-  const entries = Object.entries(data).filter(([_, v]) =>
-    v !== null && v !== undefined && v !== '' && !Array.isArray(v) && typeof v !== 'object'
-  );
+  // Default: key_value grid using field labels
+  const fieldMap = new Map(fields.map(f => [f.key, f]));
+  const entries = Object.entries(data).filter(([_, v]) => {
+    if (v === null || v === undefined || v === '') return false;
+    if (Array.isArray(v)) return v.length > 0;
+    return true;
+  });
+
   if (entries.length === 0) return null;
 
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-      {entries.map(([key, val]) => (
-        <div key={key} className="flex justify-between text-xs">
-          <span className="text-muted-foreground">{key.replace(/_/g, ' ')}</span>
-          <span className="font-medium text-foreground">{String(val)}</span>
-        </div>
-      ))}
+      {entries.map(([key, val]) => {
+        const fieldDef = fieldMap.get(key);
+        const label = fieldDef?.label || key.replace(/_/g, ' ');
+
+        // Tag arrays inline
+        if (Array.isArray(val)) {
+          return (
+            <div key={key} className="col-span-2 space-y-0.5">
+              <span className="text-[10px] text-muted-foreground">{label}</span>
+              <div className="flex flex-wrap gap-1">
+                {val.map((item: string, i: number) => (
+                  <Badge key={i} variant="secondary" className="text-[10px]">{String(item)}</Badge>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div key={key} className="flex justify-between text-xs">
+            <span className="text-muted-foreground">{label}</span>
+            <span className="font-medium text-foreground">{typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val)}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

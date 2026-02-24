@@ -3,8 +3,17 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, X } from 'lucide-react';
 import { useState } from 'react';
+
+interface FieldDef {
+  key: string;
+  label: string;
+  type: string; // text, number, select, tag_input, boolean, textarea, date, variant_rows, size_table
+  options?: string[];
+  placeholder?: string;
+}
 
 interface AttributeBlockFormProps {
   blockType: string;
@@ -14,89 +23,131 @@ interface AttributeBlockFormProps {
 }
 
 export function AttributeBlockForm({ blockType, schema, value, onChange }: AttributeBlockFormProps) {
-  const properties = schema?.properties || {};
+  const fields: FieldDef[] = schema?.fields || [];
+
+  if (fields.length === 0) {
+    return <p className="text-xs text-muted-foreground italic">No fields configured for this block.</p>;
+  }
 
   return (
     <div className="space-y-3">
-      {Object.entries(properties).map(([key, propSchema]: [string, any]) => (
+      {fields.map((field) => (
         <FieldRenderer
-          key={key}
-          fieldKey={key}
-          schema={propSchema}
-          value={value[key]}
-          onChange={(v) => onChange({ ...value, [key]: v })}
+          key={field.key}
+          field={field}
+          value={value[field.key]}
+          onChange={(v) => onChange({ ...value, [field.key]: v })}
         />
       ))}
     </div>
   );
 }
 
-function FieldRenderer({ fieldKey, schema, value, onChange }: {
-  fieldKey: string;
-  schema: any;
+function FieldRenderer({ field, value, onChange }: {
+  field: FieldDef;
   value: any;
   onChange: (v: any) => void;
 }) {
-  const label = fieldKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  switch (field.type) {
+    case 'text':
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">{field.label}</Label>
+          <Input
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </div>
+      );
 
-  if (schema.type === 'string') {
-    return (
-      <div className="space-y-1">
-        <Label className="text-xs">{label}</Label>
-        {fieldKey.includes('details') || fieldKey.includes('description') || fieldKey.includes('policy') ? (
+    case 'textarea':
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">{field.label}</Label>
           <Textarea
-            placeholder={`Enter ${label.toLowerCase()}...`}
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             rows={2}
           />
-        ) : (
+        </div>
+      );
+
+    case 'number':
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">{field.label}</Label>
           <Input
-            placeholder={`Enter ${label.toLowerCase()}...`}
+            type="number"
+            placeholder={field.placeholder || '0'}
+            value={value ?? ''}
+            onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+          />
+        </div>
+      );
+
+    case 'boolean':
+      return (
+        <div className="flex items-center justify-between py-1">
+          <Label className="text-xs">{field.label}</Label>
+          <Switch checked={!!value} onCheckedChange={onChange} />
+        </div>
+      );
+
+    case 'select':
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">{field.label}</Label>
+          <Select value={value || ''} onValueChange={onChange}>
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder={`Select ${field.label.toLowerCase()}...`} />
+            </SelectTrigger>
+            <SelectContent>
+              {(field.options || []).map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+
+    case 'date':
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">{field.label}</Label>
+          <Input
+            type="date"
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
           />
-        )}
-      </div>
-    );
-  }
+        </div>
+      );
 
-  if (schema.type === 'number') {
-    return (
-      <div className="space-y-1">
-        <Label className="text-xs">{label}</Label>
-        <Input
-          type="number"
-          placeholder="0"
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-        />
-      </div>
-    );
-  }
+    case 'tag_input':
+      return <TagInputField label={field.label} value={value || []} onChange={onChange} />;
 
-  if (schema.type === 'boolean') {
-    return (
-      <div className="flex items-center justify-between py-1">
-        <Label className="text-xs">{label}</Label>
-        <Switch checked={!!value} onCheckedChange={onChange} />
-      </div>
-    );
-  }
+    case 'variant_rows':
+      return <VariantRowsField value={value || []} onChange={onChange} />;
 
-  if (schema.type === 'array') {
-    if (schema.items?.type === 'string') {
-      return <StringArrayField label={label} value={value || []} onChange={onChange} />;
-    }
-    if (schema.items?.type === 'object') {
-      return <ObjectArrayField label={label} itemSchema={schema.items} value={value || []} onChange={onChange} />;
-    }
-  }
+    case 'size_table':
+      return <SizeTableField value={value || []} onChange={onChange} />;
 
-  return null;
+    default:
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">{field.label}</Label>
+          <Input
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </div>
+      );
+  }
 }
 
-function StringArrayField({ label, value, onChange }: { label: string; value: string[]; onChange: (v: string[]) => void }) {
+function TagInputField({ label, value, onChange }: { label: string; value: string[]; onChange: (v: string[]) => void }) {
   const [input, setInput] = useState('');
 
   const add = () => {
@@ -136,63 +187,103 @@ function StringArrayField({ label, value, onChange }: { label: string; value: st
   );
 }
 
-function ObjectArrayField({ label, itemSchema, value, onChange }: {
-  label: string;
-  itemSchema: any;
-  value: Record<string, any>[];
-  onChange: (v: Record<string, any>[]) => void;
-}) {
-  const addRow = () => {
-    const empty: Record<string, any> = {};
-    Object.keys(itemSchema.properties || {}).forEach(k => { empty[k] = ''; });
-    onChange([...value, empty]);
-  };
-
+function VariantRowsField({ value, onChange }: { value: any[]; onChange: (v: any[]) => void }) {
+  const addRow = () => onChange([...value, { label: '', values: [] }]);
   const updateRow = (idx: number, key: string, val: any) => {
     const updated = [...value];
     updated[idx] = { ...updated[idx], [key]: val };
     onChange(updated);
   };
-
   const removeRow = (idx: number) => onChange(value.filter((_, i) => i !== idx));
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs">{label}</Label>
+      <Label className="text-xs">Variant Options</Label>
       {value.map((row, idx) => (
-        <div key={idx} className="flex gap-1.5 items-start">
-          <div className="flex-1 grid grid-cols-2 gap-1.5">
-            {Object.keys(itemSchema.properties || {}).map(k => {
-              const prop = itemSchema.properties[k];
-              if (prop.type === 'array') {
-                return (
-                  <div key={k} className="col-span-2">
-                    <StringArrayField
-                      label={k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                      value={row[k] || []}
-                      onChange={(v) => updateRow(idx, k, v)}
-                    />
-                  </div>
-                );
-              }
-              return (
-                <Input
-                  key={k}
-                  className="h-7 text-xs"
-                  placeholder={k.replace(/_/g, ' ')}
-                  value={row[k] || ''}
-                  onChange={(e) => updateRow(idx, k, e.target.value)}
-                />
-              );
-            })}
+        <div key={idx} className="space-y-1 border border-border rounded p-2">
+          <div className="flex gap-1.5 items-center">
+            <Input
+              className="h-7 text-xs flex-1"
+              placeholder="Label (e.g. Color, Size)"
+              value={row.label || ''}
+              onChange={(e) => updateRow(idx, 'label', e.target.value)}
+            />
+            <button onClick={() => removeRow(idx)} className="text-muted-foreground hover:text-destructive">
+              <X size={14} />
+            </button>
           </div>
-          <button onClick={() => removeRow(idx)} className="mt-1 text-muted-foreground hover:text-destructive">
-            <X size={14} />
-          </button>
+          <TagInputField
+            label="Values"
+            value={row.values || []}
+            onChange={(v) => updateRow(idx, 'values', v)}
+          />
         </div>
       ))}
       <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={addRow}>
-        <Plus size={12} className="mr-1" /> Add {label}
+        <Plus size={12} className="mr-1" /> Add Variant
+      </Button>
+    </div>
+  );
+}
+
+function SizeTableField({ value, onChange }: { value: any[]; onChange: (v: any[]) => void }) {
+  const defaultKeys = ['size', 'chest', 'waist', 'length'];
+
+  const addRow = () => {
+    const empty: Record<string, string> = {};
+    defaultKeys.forEach(k => { empty[k] = ''; });
+    onChange([...value, empty]);
+  };
+
+  const updateCell = (rowIdx: number, key: string, val: string) => {
+    const updated = [...value];
+    updated[rowIdx] = { ...updated[rowIdx], [key]: val };
+    onChange(updated);
+  };
+
+  const removeRow = (idx: number) => onChange(value.filter((_, i) => i !== idx));
+
+  const keys = value.length > 0 ? Object.keys(value[0]) : defaultKeys;
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs">Size Chart</Label>
+      {value.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border">
+                {keys.map(k => (
+                  <th key={k} className="py-1 px-1 text-left font-semibold text-muted-foreground uppercase text-[10px]">{k}</th>
+                ))}
+                <th className="w-6" />
+              </tr>
+            </thead>
+            <tbody>
+              {value.map((row, idx) => (
+                <tr key={idx} className="border-b border-border/50">
+                  {keys.map(k => (
+                    <td key={k} className="py-0.5 px-1">
+                      <Input
+                        className="h-6 text-[11px] px-1"
+                        value={row[k] || ''}
+                        onChange={(e) => updateCell(idx, k, e.target.value)}
+                      />
+                    </td>
+                  ))}
+                  <td>
+                    <button onClick={() => removeRow(idx)} className="text-muted-foreground hover:text-destructive">
+                      <X size={12} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={addRow}>
+        <Plus size={12} className="mr-1" /> Add Row
       </Button>
     </div>
   );

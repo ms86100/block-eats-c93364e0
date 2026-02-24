@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useBlockLibrary, suggestedBlocksFirst, type AttributeBlock, type BlockData } from '@/hooks/useAttributeBlocks';
+import { useBlockLibrary, filterByCategory, type AttributeBlock, type BlockData } from '@/hooks/useAttributeBlocks';
 import { AttributeBlockForm } from './AttributeBlockForm';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,10 +42,8 @@ export function AttributeBlockBuilder({ category, value, onChange }: AttributeBl
 
   const activeBlocks = value;
   const activeTypes = new Set(activeBlocks.map(b => b.type));
-  const availableBlocks = suggestedBlocksFirst(
-    library.filter(b => !activeTypes.has(b.block_type)),
-    category
-  );
+  const availableBlocks = filterByCategory(library, category)
+    .filter(b => !activeTypes.has(b.block_type));
 
   const addBlock = (block: AttributeBlock) => {
     onChange([...activeBlocks, { type: block.block_type, data: {} }]);
@@ -145,15 +143,14 @@ export function AttributeBlockBuilder({ category, value, onChange }: AttributeBl
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">{block.display_name}</p>
                     <p className="text-xs text-muted-foreground line-clamp-1">{block.description}</p>
-                    {category && block.category_hints.includes(category) && (
-                      <Badge variant="secondary" className="text-[9px] mt-1 h-3.5 px-1">Suggested</Badge>
-                    )}
                   </div>
                   <Plus size={16} className="text-muted-foreground shrink-0 mt-0.5" />
                 </button>
               ))}
               {availableBlocks.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">All blocks have been added</p>
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {category ? 'All available blocks have been added' : 'Select a category first to see available attribute blocks'}
+                </p>
               )}
             </div>
           </SheetContent>

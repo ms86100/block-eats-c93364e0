@@ -38,7 +38,7 @@ export function useBlockLibrary() {
       if (error) throw error;
       return (data || []) as AttributeBlock[];
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
   });
 }
 
@@ -47,7 +47,6 @@ export function useSellerFormConfig(sellerId: string | null, category: string | 
     queryKey: ['seller-form-config', sellerId, category],
     queryFn: async () => {
       if (!sellerId) return null;
-      // Try category-specific first, then default
       const { data } = await supabase
         .from('seller_form_configs')
         .select('*')
@@ -69,7 +68,6 @@ export function useSaveFormConfig(sellerId: string | null) {
     mutationFn: async ({ category, blocks }: { category: string | null; blocks: { block_type: string; display_order: number }[] }) => {
       if (!sellerId) throw new Error('No seller');
 
-      // Upsert based on seller_id + category
       const query = supabase
         .from('seller_form_configs')
         .select('id')
@@ -102,11 +100,8 @@ export function useSaveFormConfig(sellerId: string | null) {
   });
 }
 
-export function suggestedBlocksFirst(blocks: AttributeBlock[], category: string | null): AttributeBlock[] {
-  if (!category) return blocks;
-  return [...blocks].sort((a, b) => {
-    const aMatch = a.category_hints.includes(category) ? 0 : 1;
-    const bMatch = b.category_hints.includes(category) ? 0 : 1;
-    return aMatch - bMatch || a.display_order - b.display_order;
-  });
+/** Filter blocks strictly by category. Returns empty if no category. */
+export function filterByCategory(blocks: AttributeBlock[], category: string | null): AttributeBlock[] {
+  if (!category) return [];
+  return blocks.filter(b => b.category_hints.includes(category));
 }
