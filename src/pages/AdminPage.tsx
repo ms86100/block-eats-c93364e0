@@ -39,6 +39,7 @@ import { FeatureManagement } from '@/components/admin/FeatureManagement';
 import { AdminProductApprovals } from '@/components/admin/AdminProductApprovals';
 import { PlatformSettingsManager } from '@/components/admin/PlatformSettingsManager';
 import { AdminCatalogManager } from '@/components/admin/AdminCatalogManager';
+import { ResetAndSeedButton } from '@/components/admin/ResetAndSeedButton';
 import { useCurrency } from '@/hooks/useCurrency';
 interface Report {
   id: string;
@@ -616,6 +617,7 @@ export default function AdminPage() {
           <TabsContent value="settings" className="space-y-4 mt-4">
             <PlatformSettingsManager />
             <ApiKeySettings />
+            <ResetAndSeedButton />
           </TabsContent>
 
           <TabsContent value="navigator" className="mt-4">
