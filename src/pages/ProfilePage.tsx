@@ -8,6 +8,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { DeleteAccountDialog } from '@/components/profile/DeleteAccountDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveFeatures } from '@/hooks/useEffectiveFeatures';
+import { useQuery } from '@tanstack/react-query';
 import {
   User,
   MapPin,
@@ -41,7 +42,6 @@ export default function ProfilePage() {
     return localStorage.getItem('app_large_font') === 'true';
   });
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
-  const [skillBadges, setSkillBadges] = useState<{ skill_name: string; trust_score: number; endorsement_count: number }[]>([]);
   const [showOnboardingFeedback, setShowOnboardingFeedback] = useState(false);
 
   // Check for post-seller-onboarding feedback prompt
@@ -52,19 +52,21 @@ export default function ProfilePage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchBadges = async () => {
+  // Cached skill badges query — no re-fetch on revisit within staleTime
+  const { data: skillBadges = [] } = useQuery({
+    queryKey: ['skill-badges', user?.id],
+    queryFn: async () => {
       const { data } = await supabase
         .from('skill_listings')
         .select('skill_name, trust_score, endorsement_count')
-        .eq('user_id', user.id)
+        .eq('user_id', user!.id)
         .order('trust_score', { ascending: false })
         .limit(5);
-      setSkillBadges(data || []);
-    };
-    fetchBadges();
-  }, [user]);
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 15 * 60 * 1000, // 15 min — badges rarely change
+  });
 
   useEffect(() => {
     if (largeFont) document.documentElement.classList.add('large-font');

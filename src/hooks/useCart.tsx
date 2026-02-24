@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useCallback, useMemo, ReactNode } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CartItem, Product } from '@/types/database';
@@ -27,41 +28,37 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const CART_QUERY_KEY = ['cart-items'] as const;
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [items, setItems] = useState<(CartItem & { product: Product })[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchCart = useCallback(async () => {
-    if (!user) {
-      setItems([]);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
+  // React Query — cached, deduplicated, background-refreshed
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: [...CART_QUERY_KEY, user?.id],
+    queryFn: async () => {
+      if (!user) return [];
       const { data, error } = await supabase
         .from('cart_items')
-        .select(`
-          *,
-          product:products(*, seller:seller_profiles(*))
-        `)
+        .select(`*, product:products(*, seller:seller_profiles(*))`)
         .eq('user_id', user.id);
-
       if (error) throw error;
-      setItems((data as any) || []);
-    } catch (error) {
-      console.error('Error fetching cart:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
+      return (data as any as (CartItem & { product: Product })[]) || [];
+    },
+    enabled: !!user,
+    staleTime: 10 * 60 * 1000, // 10 min — cart rarely changes from other devices
+    gcTime: 60 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+  const setOptimistic = useCallback((updater: (prev: (CartItem & { product: Product })[]) => (CartItem & { product: Product })[]) => {
+    queryClient.setQueryData([...CART_QUERY_KEY, user?.id], (old: any) => updater(old || []));
+  }, [queryClient, user?.id]);
 
-  // Memoize derived values to prevent re-renders in consumers
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: [...CART_QUERY_KEY, user?.id] });
+  }, [queryClient, user?.id]);
+
   const itemCount = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity, 0),
     [items]
@@ -72,7 +69,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [items]
   );
 
-  // Memoize seller groups to prevent re-computation on every render
   const sellerGroups: SellerGroup[] = useMemo(() =>
     Object.values(
       items.reduce<Record<string, SellerGroup>>((groups, item) => {
@@ -99,24 +95,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setItems(prev => {
-      const existingItem = prev.find(item => item.product_id === product.id);
-      if (existingItem) {
+    // Optimistic update
+    setOptimistic(prev => {
+      const existing = prev.find(item => item.product_id === product.id);
+      if (existing) {
         return prev.map(item =>
-          item.product_id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
+          item.product_id === product.id ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
-      const optimisticItem = {
+      return [...prev, {
         id: `temp-${Date.now()}`,
         user_id: user.id,
         product_id: product.id,
         quantity,
         created_at: new Date().toISOString(),
         product,
-      } as CartItem & { product: Product };
-      return [...prev, optimisticItem];
+        society_id: null,
+      } as CartItem & { product: Product }];
     });
 
     try {
@@ -137,39 +132,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } else {
         const { error } = await supabase
           .from('cart_items')
-          .insert({
-            user_id: user.id,
-            product_id: product.id,
-            quantity,
-          });
+          .insert({ user_id: user.id, product_id: product.id, quantity });
         if (error) throw error;
       }
       toast.success('Added to cart');
-      // Sync with server to get real IDs
-      await fetchCart();
+      invalidate(); // Sync with server for real IDs
     } catch (error) {
-      // Rollback on failure by refetching
-      await fetchCart();
+      invalidate(); // Rollback
       handleApiError(error, 'Failed to add item');
     }
-  }, [user, fetchCart]);
+  }, [user, setOptimistic, invalidate]);
+
+  const removeItem = useCallback(async (productId: string) => {
+    if (!user) return;
+    const prev = items;
+    setOptimistic(old => old.filter(item => item.product_id !== productId));
+
+    try {
+      const { error } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('product_id', productId);
+      if (error) throw error;
+      toast.success('Removed from cart');
+    } catch (error) {
+      queryClient.setQueryData([...CART_QUERY_KEY, user?.id], prev);
+      handleApiError(error, 'Failed to remove item');
+    }
+  }, [user, items, setOptimistic, queryClient]);
 
   const updateQuantity = useCallback(async (productId: string, quantity: number) => {
     if (!user) return;
+    if (quantity <= 0) { await removeItem(productId); return; }
 
-    if (quantity <= 0) {
-      await removeItem(productId);
-      return;
-    }
-
-    const prevItems = items;
-
-    // Optimistic update
-    setItems(prev =>
-      prev.map(item =>
-        item.product_id === productId ? { ...item, quantity } : item
-      )
-    );
+    const prev = items;
+    setOptimistic(old => old.map(item =>
+      item.product_id === productId ? { ...item, quantity } : item
+    ));
 
     try {
       const { error } = await supabase
@@ -177,57 +177,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .update({ quantity })
         .eq('user_id', user.id)
         .eq('product_id', productId);
-
       if (error) throw error;
     } catch (error) {
-      setItems(prevItems);
+      queryClient.setQueryData([...CART_QUERY_KEY, user?.id], prev);
       handleApiError(error, 'Failed to update quantity');
     }
-  }, [user, items]);
-
-  const removeItem = useCallback(async (productId: string) => {
-    if (!user) return;
-
-    const prevItems = items;
-
-    // Optimistic removal
-    setItems(prev => prev.filter(item => item.product_id !== productId));
-
-    try {
-      const { error } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('product_id', productId);
-
-      if (error) throw error;
-      toast.success('Removed from cart');
-    } catch (error) {
-      setItems(prevItems);
-      handleApiError(error, 'Failed to remove item');
-    }
-  }, [user, items]);
+  }, [user, items, setOptimistic, removeItem, queryClient]);
 
   const clearCart = useCallback(async () => {
     if (!user) return;
-
-    const prevItems = items;
-    setItems([]);
+    const prev = items;
+    setOptimistic(() => []);
 
     try {
       const { error } = await supabase
         .from('cart_items')
         .delete()
         .eq('user_id', user.id);
-
       if (error) throw error;
     } catch (error) {
-      setItems(prevItems);
+      queryClient.setQueryData([...CART_QUERY_KEY, user?.id], prev);
       console.error('Error clearing cart:', error);
     }
-  }, [user, items]);
+  }, [user, items, setOptimistic, queryClient]);
 
-  // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo<CartContextType>(() => ({
     items,
     itemCount,
@@ -238,8 +211,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     updateQuantity,
     removeItem,
     clearCart,
-    refresh: fetchCart,
-  }), [items, itemCount, totalAmount, sellerGroups, isLoading, addItem, updateQuantity, removeItem, clearCart, fetchCart]);
+    refresh: async () => { invalidate(); },
+  }), [items, itemCount, totalAmount, sellerGroups, isLoading, addItem, updateQuantity, removeItem, clearCart, invalidate]);
 
   return (
     <CartContext.Provider value={contextValue}>
