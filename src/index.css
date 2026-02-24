@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Blinkit-inspired clean light theme */
+    /* Clean light theme */
     --background: 0 0% 96%;
     --foreground: 0 0% 8%;
 
@@ -16,19 +16,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 8%;
 
-    /* Primary: Blinkit deep forest green #0C831F */
-    --primary: 130 82% 28%;
+    --primary: 145 83% 36%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Soft neutral */
     --secondary: 0 0% 94%;
     --secondary-foreground: 0 0% 18%;
 
     --muted: 0 0% 93%;
     --muted-foreground: 0 0% 42%;
 
-    /* Accent: Blinkit green for ADD buttons */
-    --accent: 130 82% 28%;
+    --accent: 145 83% 36%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -36,17 +33,30 @@
 
     --border: 0 0% 89%;
     --input: 0 0% 89%;
-    --ring: 130 82% 28%;
+    --ring: 145 83% 36%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* Custom colors */
+    /* Semantic */
     --veg: 130 82% 28%;
     --non-veg: 0 80% 50%;
-    --success: 130 82% 28%;
+    --success: 145 83% 36%;
     --warning: 38 95% 52%;
-    --info: 200 90% 50%;
-    --favorite: 250 55% 55%;
+    --info: 210 100% 65%;
+    --favorite: 0 84% 60%;
+
+    /* Badge colors */
+    --badge-new: 0 84% 59%;
+    --badge-bought: 195 100% 45%;
+    --badge-discount: 25 100% 70%;
+    --rating-star: 45 100% 49%;
+
+    /* Nav accent — orange/peach for active bottom nav */
+    --nav-active: 25 95% 60%;
+    --nav-active-foreground: 0 0% 100%;
+
+    /* Product image warm bg */
+    --product-image-bg: 38 50% 95%;
 
     /* Category tint colors */
     --tint-food: 0 0% 95%;
@@ -57,10 +67,10 @@
     --tint-default: 0 0% 95%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(130 82% 28%) 0%, hsl(140 70% 32%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(130 82% 28%) 0%, hsl(145 60% 30%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(145 83% 36%) 0%, hsl(150 70% 30%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(145 83% 36%) 0%, hsl(150 60% 32%) 100%);
     --gradient-warm: linear-gradient(135deg, hsl(38 95% 52%) 0%, hsl(20 90% 55%) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(130 82% 28% / 0.05) 0%, hsl(0 0% 96%) 60%);
+    --gradient-hero: linear-gradient(180deg, hsl(145 83% 36% / 0.05) 0%, hsl(0 0% 96%) 60%);
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.95) 0%, hsl(0 0% 100% / 0.8) 100%);
 
     /* Shadows */
@@ -69,59 +79,76 @@
     --shadow-lg: 0 12px 32px hsl(0 0% 0% / 0.1);
     --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.04);
     --shadow-elevated: 0 8px 24px hsl(0 0% 0% / 0.08);
-    --shadow-glow: 0 0 20px hsl(130 82% 28% / 0.12);
+    --shadow-glow: 0 0 20px hsl(145 83% 36% / 0.12);
+    --shadow-cta: 0 2px 8px hsl(145 83% 36% / 0.25);
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 8%;
-    --sidebar-primary: 130 82% 28%;
+    --sidebar-primary: 145 83% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 94%;
     --sidebar-accent-foreground: 0 0% 18%;
     --sidebar-border: 0 0% 89%;
-    --sidebar-ring: 130 82% 28%;
+    --sidebar-ring: 145 83% 36%;
   }
 
   .dark {
-    /* Blinkit dark — near-black (#0F0F0F base) */
-    --background: 0 0% 6%;
+    /* Pure dark — #0F0F0F base */
+    --background: 0 0% 4%;
     --foreground: 0 0% 100%;
 
-    --card: 0 0% 12%;
+    /* Card: dark charcoal #242424 */
+    --card: 0 0% 14%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 15%;
+    --popover: 0 0% 12%;
     --popover-foreground: 0 0% 100%;
 
     /* Primary: Vibrant green #0FA84F */
     --primary: 145 83% 36%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Dark gray surface */
+    /* Secondary: Dark gray surface #2A2A2A */
     --secondary: 0 0% 17%;
     --secondary-foreground: 0 0% 82%;
 
     --muted: 0 0% 17%;
-    --muted-foreground: 0 0% 55%;
+    --muted-foreground: 0 0% 60%;
 
-    /* Accent: Same vibrant green */
+    /* Accent: Same vibrant green — only for CTAs */
     --accent: 145 83% 36%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 18%;
+    --border: 0 0% 100% / 0.05;
     --input: 0 0% 17%;
     --ring: 145 83% 36%;
+
+    --radius: 0.75rem;
 
     /* Semantic */
     --veg: 145 83% 36%;
     --non-veg: 0 75% 50%;
     --success: 145 83% 36%;
     --warning: 38 95% 52%;
-    --info: 195 100% 45%;
+    --info: 210 100% 65%;
     --favorite: 0 84% 60%;
+
+    /* Badge colors */
+    --badge-new: 0 84% 59%;
+    --badge-bought: 195 100% 45%;
+    --badge-discount: 25 100% 70%;
+    --rating-star: 45 100% 49%;
+
+    /* Nav accent — orange/peach */
+    --nav-active: 25 95% 60%;
+    --nav-active-foreground: 0 0% 100%;
+
+    /* Product image warm beige bg #FFF8E7 */
+    --product-image-bg: 42 100% 95%;
 
     /* Dark mode tints — subtle */
     --tint-food: 0 0% 12%;
@@ -132,11 +159,11 @@
     --tint-default: 0 0% 11%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(145 83% 36%) 0%, hsl(150 70% 30%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(145 83% 36%) 0%, hsl(155 70% 30%) 100%);
     --gradient-success: linear-gradient(135deg, hsl(145 83% 36%) 0%, hsl(150 60% 32%) 100%);
     --gradient-warm: linear-gradient(135deg, hsl(38 95% 52%) 0%, hsl(20 90% 55%) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(145 83% 36% / 0.06) 0%, hsl(0 0% 6%) 60%);
-    --gradient-glass: linear-gradient(135deg, hsl(0 0% 15% / 0.95) 0%, hsl(0 0% 10% / 0.8) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(145 83% 36% / 0.06) 0%, hsl(0 0% 4%) 60%);
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 14% / 0.95) 0%, hsl(0 0% 10% / 0.8) 100%);
 
     /* Shadows */
     --shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.5);
@@ -145,16 +172,17 @@
     --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.4);
     --shadow-elevated: 0 8px 24px hsl(0 0% 0% / 0.6);
     --shadow-glow: 0 0 24px hsl(145 83% 36% / 0.2);
+    --shadow-cta: 0 2px 8px hsl(145 83% 36% / 0.3);
     --shadow-glow-green: 0 0 16px hsl(145 83% 36% / 0.3);
     --shadow-glow-accent: 0 0 16px hsl(38 95% 52% / 0.3);
 
-    --sidebar-background: 0 0% 8%;
+    --sidebar-background: 0 0% 6%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 145 83% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 17%;
     --sidebar-accent-foreground: 0 0% 82%;
-    --sidebar-border: 0 0% 18%;
+    --sidebar-border: 0 0% 100% / 0.05;
     --sidebar-ring: 145 83% 36%;
   }
 }
@@ -168,6 +196,9 @@
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
@@ -181,7 +212,7 @@
     scroll-behavior: smooth;
   }
 
-  /* Full-screen viewport handling for iPhone Safari/PWA and native WebView */
+  /* Full-screen viewport handling */
   html,
   body {
     height: 100%;
@@ -208,25 +239,31 @@
     }
   }
 
-  /* Keyboard-aware: scroll inputs into view when focused */
+  /* Keyboard-aware */
   input:focus, textarea:focus, select:focus {
     scroll-margin-bottom: 120px;
   }
 
-  /* Better touch targets for mobile */
+  /* Touch targets */
   button, a, input, select, textarea {
     @apply touch-manipulation;
   }
 
-  /* Visual tap feedback for interactive elements */
+  /* Tap feedback — snappy 0.98 scale */
   button:active, a:active, [role="button"]:active {
-    transform: scale(0.97);
-    transition: transform 0.1s ease;
+    transform: scale(0.98);
+    transition: transform 0.1s ease-out;
+  }
+
+  /* Typography: tighter letter spacing on headings */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+    font-weight: 700;
   }
 }
 
 @layer utilities {
-  /* Custom animations */
+  /* Animations */
   .animate-slide-up {
     animation: slideUp 0.3s ease-out;
   }
@@ -273,7 +310,7 @@
     to { transform: scale(1); opacity: 1; }
   }
 
-  /* Low stock pulse animation */
+  /* Low stock pulse */
   @keyframes lowStockPulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
@@ -300,33 +337,24 @@
     background-image: var(--gradient-primary);
   }
 
-  /* Glass effects — adapts to dark mode */
+  /* Glass effects */
   .glass {
     @apply backdrop-blur-xl;
     background: var(--gradient-glass);
-    border-bottom: 1px solid hsl(var(--border) / 0.5);
+    border-bottom: 1px solid hsl(var(--border));
   }
 
   .glass-card {
-    @apply backdrop-blur-md rounded-2xl border;
-    border-color: hsl(var(--border) / 0.3);
+    @apply backdrop-blur-md rounded-2xl;
+    border: 1px solid hsl(var(--border));
     background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.8) 100%);
     box-shadow: var(--shadow-card);
-  }
-
-  .dark .glass-card {
-    border-color: hsl(0 0% 100% / 0.06);
-    box-shadow: var(--shadow-card), inset 0 1px 0 hsl(0 0% 100% / 0.04);
   }
 
   .glass-tinted {
     @apply backdrop-blur-md rounded-2xl;
     background: linear-gradient(135deg, hsl(var(--card) / 0.85) 0%, hsl(var(--card) / 0.65) 100%);
     box-shadow: var(--shadow-sm);
-  }
-
-  .dark .glass-tinted {
-    box-shadow: var(--shadow-sm), inset 0 1px 0 hsl(0 0% 100% / 0.03);
   }
 
   /* Neon glow utilities for dark mode */
@@ -342,7 +370,7 @@
     box-shadow: var(--shadow-glow-accent);
   }
 
-  /* Hide scrollbar but keep functionality */
+  /* Hide scrollbar */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -351,7 +379,7 @@
     display: none;
   }
 
-  /* Safe area padding for mobile */
+  /* Safe area padding */
   .safe-bottom {
     padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -362,13 +390,9 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  /* Product image background — visible gray in light, muted dark in dark mode */
+  /* Product image background — warm beige */
   .product-image-bg {
-    background-color: hsl(0 0% 88%);
-  }
-
-  .dark .product-image-bg {
-    background-color: hsl(0 0% 16%);
+    background-color: hsl(var(--product-image-bg));
   }
 }
 

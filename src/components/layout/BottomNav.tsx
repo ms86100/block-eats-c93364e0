@@ -34,8 +34,6 @@ function BottomNavInner() {
   const location = useLocation();
   const { isFeatureEnabled, isLoading } = useEffectiveFeatures();
   const { isAdmin, isSocietyAdmin, isBuilderMember, roles } = useAuth();
-  // Fix #8: Only fire security/worker RPCs if user has roles beyond 'buyer'
-  // Pure buyers (95%+ of users) skip these 2 DB calls per page
   const isPureBuyer = roles.length <= 1 && roles[0] === 'buyer';
   const { isSecurityOfficer } = useSecurityOfficer(!isPureBuyer);
   const { isWorker } = useWorkerRole(!isPureBuyer && roles.includes('worker'));
@@ -54,7 +52,7 @@ function BottomNavInner() {
     : navItems.filter(item => !('featureKey' in item && item.featureKey) || isFeatureEnabled((item as any).featureKey));
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card safe-bottom">
+    <nav className="fixed inset-x-0 bottom-0 z-50 bg-card border-t border-border safe-bottom">
       <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
         {visibleItems.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to || 
@@ -67,21 +65,28 @@ function BottomNavInner() {
               to={to}
               onClick={() => selectionChanged()}
               className={cn(
-                'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors min-w-[48px] relative',
+                'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all duration-200 min-w-[48px] relative',
                 isActive
-                  ? 'text-primary'
+                  ? 'text-nav-active'
                   : 'text-muted-foreground'
               )}
             >
               <div className="relative">
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+                {/* Active state: orange/peach glow circle behind icon */}
+                {isActive && (
+                  <div className="absolute -inset-1.5 rounded-full bg-nav-active/15" />
+                )}
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} className="relative z-10" />
                 {showCartBadge && (
-                  <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-0.5 rounded-full bg-primary text-primary-foreground text-[8px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-0.5 rounded-full bg-badge-new text-primary-foreground text-[8px] font-bold flex items-center justify-center z-20">
                     {itemCount > 9 ? '9+' : itemCount}
                   </span>
                 )}
               </div>
-              <span className={cn('text-[10px] leading-tight', isActive ? 'font-bold' : 'font-medium')}>
+              <span className={cn(
+                'text-[10px] leading-tight',
+                isActive ? 'font-bold text-nav-active' : 'font-medium'
+              )}>
                 {label}
               </span>
             </NavLink>
@@ -92,5 +97,4 @@ function BottomNavInner() {
   );
 }
 
-// Fix #1: React.memo prevents re-renders from parent (AppLayout) state changes
 export const BottomNav = memo(BottomNavInner);

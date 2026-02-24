@@ -60,13 +60,20 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Custom food app colors
+        // Semantic colors
         veg: "hsl(var(--veg))",
         "non-veg": "hsl(var(--non-veg))",
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
         info: "hsl(var(--info))",
         favorite: "hsl(var(--favorite))",
+        // Badge & accent colors
+        "badge-new": "hsl(var(--badge-new))",
+        "badge-bought": "hsl(var(--badge-bought))",
+        "badge-discount": "hsl(var(--badge-discount))",
+        "rating-star": "hsl(var(--rating-star))",
+        "nav-active": "hsl(var(--nav-active))",
+        "nav-active-foreground": "hsl(var(--nav-active-foreground))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -81,6 +88,7 @@ export default {
         lg: "var(--shadow-lg)",
         card: "var(--shadow-card)",
         elevated: "var(--shadow-elevated)",
+        cta: "var(--shadow-cta)",
       },
       keyframes: {
         "accordion-down": {

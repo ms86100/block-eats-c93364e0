@@ -14,10 +14,8 @@ export function FloatingCartBar({ className }: FloatingCartBarProps) {
   const { formatPrice } = useCurrency();
   const location = useLocation();
 
-  // Hide on cart page — user is already there
   if (itemCount === 0 || location.pathname === '/cart') return null;
 
-  // Get first 3 unique product thumbnails
   const thumbnails = items
     .filter(i => i.product?.image_url)
     .slice(0, 3)
@@ -34,15 +32,15 @@ export function FloatingCartBar({ className }: FloatingCartBarProps) {
       >
         <Link to="/cart">
           <motion.div
-            className="rounded-2xl bg-gradient-to-r from-primary to-accent px-3 py-3.5 flex items-center justify-between shadow-elevated"
+            className="rounded-2xl bg-primary px-4 py-3.5 flex items-center justify-between shadow-cta"
             whileTap={{ scale: 0.97 }}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {/* Product thumbnails */}
               {thumbnails.length > 0 && (
                 <div className="flex -space-x-2">
                   {thumbnails.map((url, i) => (
-                    <div key={i} className="w-7 h-7 rounded-full border-2 border-primary-foreground/20 overflow-hidden bg-card">
+                    <div key={i} className="w-7 h-7 rounded-full border-2 border-primary-foreground/20 overflow-hidden product-image-bg">
                       <img src={url} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
@@ -54,7 +52,7 @@ export function FloatingCartBar({ className }: FloatingCartBarProps) {
                 </p>
               </div>
             </div>
-              <div className="flex items-center gap-0.5 text-primary-foreground font-bold text-sm">
+            <div className="flex items-center gap-0.5 text-primary-foreground font-bold text-sm">
               View Cart
               <ChevronRight size={14} />
             </div>

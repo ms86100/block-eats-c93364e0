@@ -62,21 +62,19 @@ export interface ProductWithSeller {
 
 type CardLayout = 'auto' | 'ecommerce' | 'food' | 'service';
 
-// Fix #1: Config props passed from parent — NO fallback hooks
 interface ProductListingCardProps {
   product: ProductWithSeller;
   layout?: CardLayout;
   onTap?: (product: ProductWithSeller) => void;
-  onNavigate?: (path: string) => void; // Fix #9: Parent provides navigate callback
+  onNavigate?: (path: string) => void;
   className?: string;
   viewOnly?: boolean;
-  // Parent provides these (required for perf, defaults used if missing)
   categoryConfigs?: CategoryConfig[];
   marketplaceConfig?: MarketplaceConfig;
   badgeConfigs?: BadgeConfigRow[];
 }
 
-/* ━━━ Main Component — Blinkit-style compact card ━━━ */
+/* ━━━ Main Component — Premium dark card ━━━ */
 
 function ProductListingCardInner({
   product,
@@ -89,14 +87,11 @@ function ProductListingCardInner({
   marketplaceConfig,
   badgeConfigs = [],
 }: ProductListingCardProps) {
-  // Fix #9: Use parent-provided navigate callback instead of useNavigate per card
   const { items, addItem, updateQuantity } = useCart();
   const { impact, selectionChanged } = useHaptics();
 
-  // Fix #1/#12: No fallback hooks — use provided props or static defaults
   const mc = marketplaceConfig || MARKETPLACE_FALLBACKS;
 
-  // Resolve action type from product (set by DB trigger)
   const actionType: ProductActionType = (product.action_type as ProductActionType) || 'add_to_cart';
   const actionConfig = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
   const isCartAction = actionConfig.isCart;
@@ -133,7 +128,6 @@ function ProductListingCardInner({
     impact('medium');
     trackAdd();
     if (!isCartAction) {
-      // Non-cart products: open detail sheet via onTap
       if (onTap) onTap(product);
       return;
     }
@@ -203,8 +197,8 @@ function ProductListingCardInner({
       onClick={handleCardClick}
       className={cn(
         'bg-card rounded-xl cursor-pointer flex flex-col h-full relative',
-        'shadow-card dark:border dark:border-[hsl(0_0%_100%/0.05)]',
-        'transition-all duration-200',
+        'border border-border',
+        'transition-all duration-200 ease-out',
         'active:scale-[0.98] hover:scale-[1.02]',
         isOutOfStock && 'opacity-50 grayscale-[40%]',
         className
@@ -236,7 +230,7 @@ function ProductListingCardInner({
 
           {/* Badges top-left */}
           {badges.length > 0 && (
-            <div className="absolute top-1 left-1 flex flex-col gap-0.5">
+            <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5">
               {badges.map((b, i) => (
                 <Badge
                   key={i}
@@ -251,17 +245,26 @@ function ProductListingCardInner({
             </div>
           )}
 
-          {/* Veg badge top-right */}
+          {/* Discount badge top-right */}
+          {hasDiscount && discountPct > 0 && (
+            <div className="absolute top-1.5 right-1.5">
+              <span className="bg-badge-discount text-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                {discountPct}% OFF
+              </span>
+            </div>
+          )}
+
+          {/* Veg badge */}
           {showVegBadge && (
-            <div className="absolute top-1 right-1">
+            <div className="absolute bottom-1.5 right-1.5">
               <VegBadge isVeg={product.is_veg} size="sm" />
             </div>
           )}
 
-          {/* Distance badge bottom-left */}
+          {/* Distance badge */}
           {(product as any).distance_km != null && !(product as any).is_same_society && (
             <div className="absolute bottom-1 left-1">
-              <span className="inline-flex items-center gap-0.5 bg-background/90 backdrop-blur-sm text-[7px] font-bold text-primary px-1 py-0.5 rounded-full shadow-sm border border-border/50">
+              <span className="inline-flex items-center gap-0.5 bg-background/90 backdrop-blur-sm text-[7px] font-bold text-primary px-1 py-0.5 rounded-full shadow-sm border border-border">
                 <MapPin size={7} className="shrink-0" />
                 {(product as any).distance_km} km
               </span>
@@ -271,21 +274,21 @@ function ProductListingCardInner({
 
         {/* ━━━ ADD button overlapping image bottom edge ━━━ */}
         {!viewOnly && !isOutOfStock && (
-          <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-10">
+          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10">
             {isCartAction && quantity > 0 ? (
-              <div className="flex items-center bg-primary rounded overflow-hidden shadow-sm animate-stepper-pop">
-                <button onClick={handleDecrement} className="px-2 py-0.5 text-primary-foreground hover:bg-primary/80 transition-colors">
-                  <Minus size={10} strokeWidth={3} />
+              <div className="flex items-center bg-primary rounded-lg overflow-hidden shadow-cta animate-stepper-pop">
+                <button onClick={handleDecrement} className="px-2.5 py-1 text-primary-foreground hover:bg-primary/80 transition-colors">
+                  <Minus size={12} strokeWidth={3} />
                 </button>
-                <span className="font-bold text-[10px] text-primary-foreground px-0.5">{quantity}</span>
-                <button onClick={handleIncrement} className="px-2 py-0.5 text-primary-foreground hover:bg-primary/80 transition-colors">
-                  <Plus size={10} strokeWidth={3} />
+                <span className="font-bold text-[11px] text-primary-foreground px-1">{quantity}</span>
+                <button onClick={handleIncrement} className="px-2.5 py-1 text-primary-foreground hover:bg-primary/80 transition-colors">
+                  <Plus size={12} strokeWidth={3} />
                 </button>
               </div>
             ) : (
               <button
                 onClick={handleAdd}
-                className="bg-primary text-primary-foreground font-bold text-[10px] px-3.5 py-1 rounded border border-card shadow-sm hover:opacity-90 transition-all duration-100 uppercase tracking-wide active:scale-95"
+                className="bg-primary text-primary-foreground font-bold text-[11px] px-5 py-1.5 rounded-lg shadow-cta hover:opacity-90 transition-all duration-150 uppercase tracking-wide active:scale-95"
               >
                 {actionConfig.shortLabel}
               </button>
@@ -295,27 +298,27 @@ function ProductListingCardInner({
       </div>
 
       {/* ━━━ CONTENT ━━━ */}
-      <div className="px-2 pb-2 pt-3.5 flex flex-col flex-1">
+      <div className="px-2.5 pb-2.5 pt-4 flex flex-col flex-1">
         {variantText && (
-          <span className="inline-flex items-center justify-center border border-border rounded-full text-[8px] font-medium px-1 py-px mb-0.5 w-fit text-muted-foreground">
+          <span className="inline-flex items-center justify-center border border-border rounded-full text-[8px] font-medium px-1.5 py-px mb-1 w-fit text-muted-foreground">
             {variantText}
           </span>
         )}
 
-        <h4 className="font-semibold text-[11px] leading-snug line-clamp-2 text-foreground mb-0.5">
+        <h4 className="font-semibold text-[12px] leading-snug line-clamp-2 text-foreground mb-0.5">
           {product.name}
         </h4>
 
         {product.seller_name && (
-          <p className="text-[9px] text-muted-foreground leading-tight line-clamp-1 mb-0.5">
+          <p className="text-[10px] text-muted-foreground leading-tight line-clamp-1 mb-0.5">
             by {product.seller_name}
           </p>
         )}
 
         {deliveryText && (
           <div className="flex items-center gap-0.5 mb-0.5">
-            <Clock size={8} className="text-warning" />
-            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wide leading-none">
+            <Clock size={9} className="text-rating-star" />
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wide leading-none">
               {deliveryText}
             </span>
           </div>
@@ -336,35 +339,30 @@ function ProductListingCardInner({
         )}
         <div className="flex-1 min-h-0" />
 
-        {hasDiscount && discountPct > 0 && (
-          <span className="text-[9px] font-bold text-info leading-none mb-0.5">
-            {discountPct}{mc.labels.discountSuffix}
-          </span>
-        )}
-
-        <div className="flex items-end gap-1 mt-auto">
-          <span className="font-bold text-[13px] text-foreground leading-none">
+        {/* Price — prominent, 14-16px */}
+        <div className="flex items-end gap-1.5 mt-auto">
+          <span className="font-bold text-[15px] text-foreground leading-none tracking-tight">
             {mc.currencySymbol}{product.price.toLocaleString()}
           </span>
           {hasDiscount && (
-            <span className="text-[9px] text-muted-foreground line-through leading-none">
+            <span className="text-[10px] text-muted-foreground line-through leading-none">
               MRP {mc.currencySymbol}{product.mrp?.toLocaleString()}
             </span>
           )}
         </div>
 
         {product.price_per_unit && (
-          <span className="text-[8px] text-muted-foreground leading-none mt-0.5">
+          <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
             {product.price_per_unit}
           </span>
         )}
       </div>
 
       {viewOnly && (
-        <div className="px-2 pb-2">
+        <div className="px-2.5 pb-2.5">
           <button
             onClick={(e) => { e.stopPropagation(); onNavigate?.(`/seller/${product.seller_id}`); }}
-            className="w-full border border-primary text-primary font-bold text-[10px] py-1.5 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="w-full border border-primary text-primary font-bold text-[11px] py-1.5 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors"
           >
             {mc.labels.viewButton}
           </button>
@@ -372,7 +370,7 @@ function ProductListingCardInner({
       )}
 
       {!viewOnly && isOutOfStock && (
-        <div className="px-2 pb-2 text-center">
+        <div className="px-2.5 pb-2.5 text-center">
           <span className="text-[9px] font-medium text-muted-foreground">
             {mc.labels.soldOut}
           </span>
@@ -382,7 +380,6 @@ function ProductListingCardInner({
   );
 }
 
-// Fix #5: React.memo with complete comparator including config refs
 export const ProductListingCard = memo(ProductListingCardInner, (prev, next) => {
   return (
     prev.product.id === next.product.id &&
@@ -392,7 +389,6 @@ export const ProductListingCard = memo(ProductListingCardInner, (prev, next) => 
     prev.layout === next.layout &&
     prev.viewOnly === next.viewOnly &&
     prev.className === next.className &&
-    // Fix #5: Include config refs to prevent memo bypass
     prev.categoryConfigs === next.categoryConfigs &&
     prev.marketplaceConfig === next.marketplaceConfig &&
     prev.badgeConfigs === next.badgeConfigs

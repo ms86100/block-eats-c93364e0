@@ -96,10 +96,10 @@ function HeaderInner({
   return (
     <>
       <header className={cn(
-        'sticky top-0 z-40 bg-background',
+        'sticky top-0 z-40 bg-background border-b border-border',
         className
       )}>
-        <div className="px-3 pt-0 pb-1 safe-top">
+        <div className="px-4 pt-0 pb-2 safe-top">
           {/* Top row: delivery info + actions */}
           <div className="flex items-start justify-between">
             {title ? (
@@ -114,14 +114,14 @@ function HeaderInner({
                     <ArrowLeft size={18} />
                   </Button>
                 )}
-                <h1 className="text-lg font-bold text-foreground">{title}</h1>
+                <h1 className="text-lg font-bold text-foreground tracking-tight">{title}</h1>
               </div>
             ) : (
               <div className="min-w-0 flex-1">
                 <h1 className="text-[22px] font-extrabold tracking-tight leading-tight">
                   <span className="text-primary">S</span>
                   <span className="text-foreground">oci</span>
-                  <span style={{ color: 'hsl(var(--warning))' }}>v</span>
+                  <span className="text-warning">v</span>
                   <span className="text-foreground">a</span>
                 </h1>
                 <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
@@ -165,7 +165,7 @@ function HeaderInner({
                     >
                       <Bell size={16} />
                       {unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-badge-new px-1 text-[9px] font-bold text-primary-foreground">
                           {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
                       )}
@@ -181,10 +181,10 @@ function HeaderInner({
             </div>
           </div>
 
-          {/* Search bar — only on home/marketplace, not on titled society pages */}
+          {/* Search bar */}
           {!title && (
             <Link to="/search" className="block mt-2">
-              <div className="flex items-center gap-2.5 bg-secondary rounded-2xl px-4 py-3">
+              <div className="flex items-center gap-2.5 bg-secondary rounded-xl px-4 py-2.5 border border-border">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground shrink-0">
                   <circle cx="11" cy="11" r="8"/>
                   <path d="m21 21-4.3-4.3"/>
