@@ -71,6 +71,7 @@ const MODULE_ROUTE_MAP: Record<string, string> = {
   "Notifications": "/notifications",
   "Notification Inbox": "/notifications/inbox",
   "Admin Panel": "/admin",
+  "Buyer Discovery E2E": "/search",
 };
 
 function getModuleName(task: Task): string {
