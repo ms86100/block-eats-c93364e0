@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { useCart } from '@/hooks/useCart';
 import { ProductActionType } from '@/types/database';
+import { ACTION_CONFIG } from '@/lib/marketplace-constants';
 import { useCardAnalytics } from '@/hooks/useCardAnalytics';
 import { MARKETPLACE_FALLBACKS, type MarketplaceConfig } from '@/hooks/useMarketplaceConfig';
 import type { BadgeConfigRow } from '@/hooks/useBadgeConfig';
@@ -95,7 +96,12 @@ function ProductListingCardInner({
   // Fix #1/#12: No fallback hooks — use provided props or static defaults
   const mc = marketplaceConfig || MARKETPLACE_FALLBACKS;
 
-  const cartItem = items.find((item) => item.product_id === product.id);
+  // Resolve action type from product (set by DB trigger)
+  const actionType: ProductActionType = (product.action_type as ProductActionType) || 'add_to_cart';
+  const actionConfig = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
+  const isCartAction = actionConfig.isCart;
+
+  const cartItem = isCartAction ? items.find((item) => item.product_id === product.id) : null;
   const quantity = cartItem?.quantity || 0;
 
   /* ── Category config lookup ── */
@@ -126,6 +132,11 @@ function ProductListingCardInner({
     e.preventDefault();
     impact('medium');
     trackAdd();
+    if (!isCartAction) {
+      // Non-cart products: open detail sheet via onTap
+      if (onTap) onTap(product);
+      return;
+    }
     addItem(product as any);
   };
 
@@ -257,17 +268,10 @@ function ProductListingCardInner({
           )}
         </div>
 
-        {/* ADD button overlapping bottom of image */}
+        {/* Action button overlapping bottom of image */}
         {!viewOnly && !isOutOfStock && (
           <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-10">
-            {quantity === 0 ? (
-              <button
-                onClick={handleAdd}
-                className="border border-accent text-accent bg-card font-bold text-[10px] px-4 py-0.5 rounded-md shadow-sm hover:bg-accent hover:text-accent-foreground transition-all duration-100 uppercase tracking-wide active:scale-90"
-              >
-                ADD
-              </button>
-            ) : (
+            {isCartAction && quantity > 0 ? (
               <div className="flex items-center bg-accent rounded-md overflow-hidden shadow-sm animate-stepper-pop">
                 <button onClick={handleDecrement} className="px-2 py-0.5 text-accent-foreground hover:bg-accent/80 transition-colors">
                   <Minus size={11} strokeWidth={3} />
@@ -277,6 +281,13 @@ function ProductListingCardInner({
                   <Plus size={11} strokeWidth={3} />
                 </button>
               </div>
+            ) : (
+              <button
+                onClick={handleAdd}
+                className="border border-accent text-accent bg-card font-bold text-[10px] px-4 py-0.5 rounded-md shadow-sm hover:bg-accent hover:text-accent-foreground transition-all duration-100 uppercase tracking-wide active:scale-90"
+              >
+                {actionConfig.shortLabel}
+              </button>
             )}
           </div>
         )}

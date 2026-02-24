@@ -72,6 +72,24 @@ export function ListingCard({
   const ActionIcon = actionConfig.icon;
 
   const renderActionButton = () => {
+    if (!actionConfig.isCart) {
+      // Non-cart: show action label, trigger appropriate callback
+      const handler = actionType === 'book' ? onBook : actionType === 'request_service' || actionType === 'request_quote' ? onEnquire : onEnquire;
+      return (
+        <Button
+          size="sm"
+          className="rounded-full"
+          onClick={(e) => {
+            e.preventDefault();
+            handler?.();
+          }}
+        >
+          <ActionIcon size={14} className="mr-1" />
+          {actionConfig.shortLabel}
+        </Button>
+      );
+    }
+
     if (quantity > 0) {
       return (
         <div className="flex items-center gap-2">

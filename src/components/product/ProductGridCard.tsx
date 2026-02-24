@@ -4,7 +4,8 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { Badge } from '@/components/ui/badge';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { useCart } from '@/hooks/useCart';
-import { Product } from '@/types/database';
+import { Product, ProductActionType } from '@/types/database';
+import { ACTION_CONFIG } from '@/lib/marketplace-constants';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/useCurrency';
 
@@ -29,13 +30,22 @@ export function ProductGridCard({ product, behavior, onTap, className, viewOnly 
   const { items, addItem, updateQuantity } = useCart();
   const { impact, selectionChanged } = useHaptics();
   const { formatPrice } = useCurrency();
-  const cartItem = items.find((item) => item.product_id === product.id);
+
+  const actionType: ProductActionType = (product.action_type as ProductActionType) || 'add_to_cart';
+  const actionConfig = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
+  const isCartAction = actionConfig.isCart;
+
+  const cartItem = isCartAction ? items.find((item) => item.product_id === product.id) : null;
   const quantity = cartItem?.quantity || 0;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     impact('medium');
+    if (!isCartAction) {
+      if (onTap) onTap(product);
+      return;
+    }
     addItem(product);
   };
 
@@ -104,17 +114,10 @@ export function ProductGridCard({ product, behavior, onTap, className, viewOnly 
           </div>
         </div>
 
-        {/* ADD button overlapping image bottom */}
+        {/* Action button overlapping image bottom */}
         {!viewOnly && product.is_available && (
           <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10">
-            {quantity === 0 ? (
-              <button
-                onClick={handleAdd}
-                className="border-2 border-accent text-accent bg-card font-bold text-[11px] px-5 py-1.5 rounded-lg shadow-sm hover:bg-accent hover:text-accent-foreground transition-all uppercase tracking-wide active:scale-90"
-              >
-                ADD
-              </button>
-            ) : (
+            {isCartAction && quantity > 0 ? (
               <div className="flex items-center bg-accent rounded-lg overflow-hidden shadow-sm animate-stepper-pop">
                 <button onClick={handleDecrement} className="px-2.5 py-1.5 text-accent-foreground">
                   <Minus size={13} strokeWidth={3} />
@@ -124,6 +127,13 @@ export function ProductGridCard({ product, behavior, onTap, className, viewOnly 
                   <Plus size={13} strokeWidth={3} />
                 </button>
               </div>
+            ) : (
+              <button
+                onClick={handleAdd}
+                className="border-2 border-accent text-accent bg-card font-bold text-[11px] px-5 py-1.5 rounded-lg shadow-sm hover:bg-accent hover:text-accent-foreground transition-all uppercase tracking-wide active:scale-90"
+              >
+                {actionConfig.shortLabel}
+              </button>
             )}
           </div>
         )}

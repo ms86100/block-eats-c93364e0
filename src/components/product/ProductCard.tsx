@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { Badge } from '@/components/ui/badge';
-import { Product } from '@/types/database';
+import { Product, ProductActionType } from '@/types/database';
+import { ACTION_CONFIG } from '@/lib/marketplace-constants';
 import { useCart } from '@/hooks/useCart';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -17,10 +18,19 @@ interface ProductCardProps {
 export function ProductCard({ product, variant = 'horizontal', onTap }: ProductCardProps) {
   const { items, addItem, updateQuantity } = useCart();
   const { formatPrice } = useCurrency();
-  const cartItem = items.find((item) => item.product_id === product.id);
+
+  const actionType: ProductActionType = (product.action_type as ProductActionType) || 'add_to_cart';
+  const actionConfig = ACTION_CONFIG[actionType] || ACTION_CONFIG.add_to_cart;
+  const isCartAction = actionConfig.isCart;
+
+  const cartItem = isCartAction ? items.find((item) => item.product_id === product.id) : null;
   const quantity = cartItem?.quantity || 0;
 
   const handleAdd = () => {
+    if (!isCartAction) {
+      if (onTap) onTap(product);
+      return;
+    }
     addItem(product);
   };
 
@@ -80,17 +90,7 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
             </div>
           </div>
           <div className="mt-3">
-            {quantity === 0 ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                onClick={handleAdd}
-                disabled={!product.is_available}
-              >
-                <Plus size={14} className="mr-1" /> ADD
-              </Button>
-            ) : (
+            {isCartAction && quantity > 0 ? (
               <div className="flex items-center justify-center gap-3 border border-primary rounded-md">
                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={handleDecrement}>
                   <Minus size={16} />
@@ -100,6 +100,17 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
                   <Plus size={16} />
                 </Button>
               </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                onClick={handleAdd}
+                disabled={!product.is_available}
+              >
+                {isCartAction && <Plus size={14} className="mr-1" />}
+                {actionConfig.shortLabel}
+              </Button>
             )}
           </div>
         </CardContent>
@@ -151,17 +162,7 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
             </div>
           )}
         </div>
-        {quantity === 0 ? (
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground -mt-4 relative z-10 bg-background shadow-sm"
-            onClick={handleAdd}
-            disabled={!product.is_available}
-          >
-            ADD +
-          </Button>
-        ) : (
+        {isCartAction && quantity > 0 ? (
           <div className="flex items-center gap-2 -mt-4 relative z-10 bg-primary rounded-md px-2 shadow-sm">
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary-foreground hover:bg-primary-foreground/20" onClick={handleDecrement}>
               <Minus size={14} />
@@ -171,6 +172,16 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
               <Plus size={14} />
             </Button>
           </div>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground -mt-4 relative z-10 bg-background shadow-sm"
+            onClick={handleAdd}
+            disabled={!product.is_available}
+          >
+            {actionConfig.shortLabel} {isCartAction && '+'}
+          </Button>
         )}
       </div>
     </div>
