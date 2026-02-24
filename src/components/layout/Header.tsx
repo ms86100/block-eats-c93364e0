@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, Bell, Building, Building2, ChevronDown } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -43,11 +43,13 @@ export function Header({
   const { selectionChanged } = useHaptics();
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Fix #18: Clean channel ref without polluting window
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   useEffect(() => {
     if (!user) return;
     fetchUnread();
 
-    // Debounce realtime subscription to avoid re-subscribing on rapid remounts
     const timer = setTimeout(() => {
       const channel = supabase
         .channel(`notification-badge-${user.id}`)
@@ -61,14 +63,15 @@ export function Header({
         })
         .subscribe();
 
-      // Store cleanup ref
-      (window as any).__notifChannel = channel;
+      channelRef.current = channel;
     }, 1000);
 
     return () => {
       clearTimeout(timer);
-      const ch = (window as any).__notifChannel;
-      if (ch) supabase.removeChannel(ch);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [user?.id]);
 

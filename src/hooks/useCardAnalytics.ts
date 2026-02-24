@@ -5,8 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
  * DB-backed analytics tracking for ProductListingCard.
  * Writes to marketplace_events table.
  * 
- * OPTIMIZED: Impressions are batched and debounced to avoid
- * dozens of individual DB inserts on page load.
+ * Fix #3: Uses a SHARED IntersectionObserver singleton instead of
+ * creating one per card. With 30+ cards, this avoids 30 observers.
  */
 
 interface CardEvent {
@@ -27,7 +27,6 @@ async function getUserId(): Promise<string | null> {
   try {
     const { data } = await supabase.auth.getSession();
     cachedUserId = data?.session?.user?.id || null;
-    // Reset cache after 5 minutes
     setTimeout(() => { cachedUserId = undefined; }, 5 * 60 * 1000);
   } catch {
     cachedUserId = null;
@@ -60,7 +59,6 @@ async function flushImpressions() {
 function queueImpression(data: CardEvent) {
   impressionQueue.push(data);
   if (flushTimer) clearTimeout(flushTimer);
-  // Flush after 2 seconds of inactivity or when batch hits 20
   if (impressionQueue.length >= 20) {
     flushImpressions();
   } else {
@@ -85,6 +83,43 @@ async function emitSingle(eventType: string, data: CardEvent) {
   }
 }
 
+// ── Fix #3: Shared IntersectionObserver singleton ──
+type ObserverEntry = { element: Element; callback: () => void };
+let sharedObserver: IntersectionObserver | null = null;
+const observedElements = new Map<Element, () => void>();
+
+function getSharedObserver(): IntersectionObserver {
+  if (!sharedObserver) {
+    sharedObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const cb = observedElements.get(entry.target);
+            if (cb) {
+              cb();
+              // Unobserve after first impression
+              sharedObserver?.unobserve(entry.target);
+              observedElements.delete(entry.target);
+            }
+          }
+        }
+      },
+      { threshold: 0.5 }
+    );
+  }
+  return sharedObserver;
+}
+
+function observeElement(element: Element, callback: () => void) {
+  observedElements.set(element, callback);
+  getSharedObserver().observe(element);
+}
+
+function unobserveElement(element: Element) {
+  observedElements.delete(element);
+  sharedObserver?.unobserve(element);
+}
+
 export function useCardAnalytics(product: CardEvent) {
   const impressionFired = useRef(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -97,20 +132,19 @@ export function useCardAnalytics(product: CardEvent) {
     layout: product.layout,
   };
 
-  // Intersection observer for impression tracking
+  // Fix #3: Register with shared observer instead of creating individual one
   useEffect(() => {
-    if (!ref.current || impressionFired.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !impressionFired.current) {
-          impressionFired.current = true;
-          queueImpression(payload);
-        }
-      },
-      { threshold: 0.5 }
-    );
-    observer.observe(ref.current);
-    return () => observer.disconnect();
+    const el = ref.current;
+    if (!el || impressionFired.current) return;
+
+    observeElement(el, () => {
+      if (!impressionFired.current) {
+        impressionFired.current = true;
+        queueImpression(payload);
+      }
+    });
+
+    return () => { unobserveElement(el); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.productId]);
 

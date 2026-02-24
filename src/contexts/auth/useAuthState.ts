@@ -162,40 +162,27 @@ export function useAuthState() {
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Phase 4: Realtime role change subscriptions
+  // Fix #18: Consolidated realtime — single channel with debounced refetch
   useEffect(() => {
     const userId = state.user?.id;
     if (!userId) return;
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchProfile(userId), 500);
+    };
+
     const roleChannel = supabase
       .channel(`role-changes-${userId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'user_roles',
-        filter: `user_id=eq.${userId}`,
-      }, () => fetchProfile(userId))
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'security_staff',
-        filter: `user_id=eq.${userId}`,
-      }, () => fetchProfile(userId))
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'society_admins',
-        filter: `user_id=eq.${userId}`,
-      }, () => fetchProfile(userId))
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'builder_members',
-        filter: `user_id=eq.${userId}`,
-      }, () => fetchProfile(userId))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_roles', filter: `user_id=eq.${userId}` }, debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'security_staff', filter: `user_id=eq.${userId}` }, debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'society_admins', filter: `user_id=eq.${userId}` }, debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'builder_members', filter: `user_id=eq.${userId}` }, debouncedFetch)
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(roleChannel);
     };
   }, [state.user?.id, fetchProfile]);
