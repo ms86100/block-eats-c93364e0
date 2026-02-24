@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { jitteredStaleTime } from '@/lib/query-utils';
+import { fetchCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { useTypewriterPlaceholder } from '@/hooks/useTypewriterPlaceholder';
 
 /**
@@ -42,19 +42,12 @@ export function useSearchPlaceholder(context: SearchContext = 'home') {
   // Fix #13: Reuse the shared 'category-configs' query key to avoid duplicate fetch
   const { data: categoryConfigs = [] } = useQuery({
     queryKey: ['category-configs'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('category_config')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order');
-      return data || [];
-    },
+    queryFn: fetchCategoryConfigs,
     staleTime: jitteredStaleTime(10 * 60 * 1000),
   });
 
   const categoryNames = useMemo(
-    () => categoryConfigs.map((c: any) => c.display_name),
+    () => categoryConfigs.map((c: any) => c.displayName || c.display_name),
     [categoryConfigs]
   );
 

@@ -47,7 +47,7 @@ interface CategoryConfigRow {
   image_url: string | null;
 }
 
-const fetchCategoryConfigs = async (): Promise<CategoryConfig[]> => {
+export const fetchCategoryConfigs = async (): Promise<CategoryConfig[]> => {
   const { data, error } = await supabase
     .from('category_config')
     .select('*')

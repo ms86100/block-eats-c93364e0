@@ -81,7 +81,7 @@ export default function CategoriesPage() {
     : grouped.filter(g => g.slug === activeGroup);
 
   const isEmpty = !isLoading && grouped.length === 0;
-  console.log('[CategoriesPage] grouped', { groupedLen: grouped.length, isEmpty, isLoading, configSample: configs.slice(0,3).map(c => ({ cat: c.category, pg: c.parentGroup, active: c.isActive })), groupSlugs: groups.filter(g => g.is_active).map(g => g.slug) });
+  
 
   const handlePillClick = (slug: string) => {
     setActiveGroup(slug);
