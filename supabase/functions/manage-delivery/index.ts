@@ -134,6 +134,7 @@ async function handleAssign(req: Request, db: any, userId: string) {
       rider_name: rider_name || null,
       rider_phone: rider_phone || null,
       status: 'assigned',
+      assigned_at: new Date().toISOString(),
     })
     .eq('id', assignment_id);
 
@@ -232,10 +233,12 @@ async function handleUpdateStatus(req: Request, db: any, userId: string) {
   if (status === 'failed') {
     updateData.failed_reason = note || 'Delivery failed';
     updateData.attempt_count = (assignment as any).attempt_count + 1;
+    updateData.failure_owner = body.failure_owner || null;
     await db.from('orders').update({ status: 'returned' }).eq('id', assignment.order_id);
   }
 
   if (status === 'at_gate') {
+    updateData.at_gate_at = new Date().toISOString();
     const { data: asgn } = await db
       .from('delivery_assignments')
       .select('rider_name, order_id, society_id')
@@ -285,7 +288,7 @@ async function handleComplete(req: Request, db: any, userId: string) {
 
   const { data: assignment } = await db
     .from('delivery_assignments')
-    .select('id, order_id, otp_hash, otp_expires_at, status')
+    .select('id, order_id, otp_hash, otp_expires_at, status, otp_attempt_count, max_otp_attempts')
     .eq('id', assignment_id)
     .single();
 
@@ -294,11 +297,22 @@ async function handleComplete(req: Request, db: any, userId: string) {
     return jsonResponse({ error: 'Assignment not in deliverable status' }, 400);
   }
 
+  // OTP lockout check
+  if (assignment.otp_attempt_count >= assignment.max_otp_attempts) {
+    return jsonResponse({ error: 'OTP attempts exhausted. Delivery locked.' }, 423);
+  }
+
   if (!assignment.otp_hash) return jsonResponse({ error: 'No OTP set for this delivery' }, 400);
 
   if (assignment.otp_expires_at && new Date(assignment.otp_expires_at) < new Date()) {
     return jsonResponse({ error: 'OTP has expired' }, 400);
   }
+
+  // Increment attempt count before verification
+  await db
+    .from('delivery_assignments')
+    .update({ otp_attempt_count: assignment.otp_attempt_count + 1 })
+    .eq('id', assignment_id);
 
   const isValid = await verifyOTP(otp, assignment.otp_hash);
   if (!isValid) return jsonResponse({ error: 'Invalid OTP' }, 400);

@@ -1089,6 +1089,8 @@ export type Database = {
       }
       delivery_assignments: {
         Row: {
+          assigned_at: string | null
+          at_gate_at: string | null
           attempt_count: number
           created_at: string
           delivered_at: string | null
@@ -1096,10 +1098,13 @@ export type Database = {
           delivery_fee: number
           external_tracking_id: string | null
           failed_reason: string | null
+          failure_owner: string | null
           gate_entry_id: string | null
           id: string
           idempotency_key: string
+          max_otp_attempts: number
           order_id: string
+          otp_attempt_count: number
           otp_expires_at: string | null
           otp_hash: string | null
           partner_id: string | null
@@ -1114,6 +1119,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_at?: string | null
+          at_gate_at?: string | null
           attempt_count?: number
           created_at?: string
           delivered_at?: string | null
@@ -1121,10 +1128,13 @@ export type Database = {
           delivery_fee?: number
           external_tracking_id?: string | null
           failed_reason?: string | null
+          failure_owner?: string | null
           gate_entry_id?: string | null
           id?: string
           idempotency_key: string
+          max_otp_attempts?: number
           order_id: string
+          otp_attempt_count?: number
           otp_expires_at?: string | null
           otp_hash?: string | null
           partner_id?: string | null
@@ -1139,6 +1149,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_at?: string | null
+          at_gate_at?: string | null
           attempt_count?: number
           created_at?: string
           delivered_at?: string | null
@@ -1146,10 +1158,13 @@ export type Database = {
           delivery_fee?: number
           external_tracking_id?: string | null
           failed_reason?: string | null
+          failure_owner?: string | null
           gate_entry_id?: string | null
           id?: string
           idempotency_key?: string
+          max_otp_attempts?: number
           order_id?: string
+          otp_attempt_count?: number
           otp_expires_at?: string | null
           otp_hash?: string | null
           partner_id?: string | null
@@ -3153,9 +3168,12 @@ export type Database = {
           idempotency_key: string | null
           net_amount: number | null
           order_id: string
+          payment_collection: string
           payment_method: string
+          payment_mode: string
           payment_status: string
           platform_fee: number | null
+          razorpay_payment_id: string | null
           seller_id: string | null
           society_id: string | null
           transaction_reference: string | null
@@ -3169,9 +3187,12 @@ export type Database = {
           idempotency_key?: string | null
           net_amount?: number | null
           order_id: string
+          payment_collection?: string
           payment_method?: string
+          payment_mode?: string
           payment_status?: string
           platform_fee?: number | null
+          razorpay_payment_id?: string | null
           seller_id?: string | null
           society_id?: string | null
           transaction_reference?: string | null
@@ -3185,9 +3206,12 @@ export type Database = {
           idempotency_key?: string | null
           net_amount?: number | null
           order_id?: string
+          payment_collection?: string
           payment_method?: string
+          payment_mode?: string
           payment_status?: string
           platform_fee?: number | null
+          razorpay_payment_id?: string | null
           seller_id?: string | null
           society_id?: string | null
           transaction_reference?: string | null

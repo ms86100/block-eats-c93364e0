@@ -97,6 +97,7 @@ serve(async (req) => {
     if (event === 'payment.captured') {
       const razorpayOrderId = paymentEntity.order_id;
       const razorpayPaymentId = paymentEntity.id;
+      const razorpayEventId = payload.event_id || null;
       const orderId = paymentEntity.notes?.order_id;
 
       if (!orderId) {
@@ -104,6 +105,21 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: 'Order ID not found' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Duplicate webhook guard: check if this razorpay_payment_id was already processed
+      const { data: existingPayment } = await supabase
+        .from('payment_records')
+        .select('id')
+        .eq('razorpay_payment_id', razorpayPaymentId)
+        .maybeSingle();
+
+      if (existingPayment) {
+        console.log(`Duplicate webhook for payment ${razorpayPaymentId}, skipping`);
+        return new Response(
+          JSON.stringify({ already_processed: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -126,12 +142,13 @@ serve(async (req) => {
         );
       }
 
-      // Update payment record
+      // Update payment record with razorpay_payment_id for dedup + event_id for replay protection
       const { error: paymentError } = await supabase
         .from('payment_records')
         .update({
           payment_status: 'paid',
           transaction_reference: razorpayPaymentId,
+          razorpay_payment_id: razorpayPaymentId,
         })
         .eq('order_id', orderId);
 
