@@ -1,49 +1,60 @@
 
 
-## Category Page Cosmetic Transformation Plan
+## Categories Page Redesign
 
-This is a purely visual overhaul of the Category page to match the Blinkit dark retail aesthetic described in your prompt. No functionality, data flow, or logic changes.
+### Problem
+The current category cards use oversized single images with a redundant emoji badge overlay. They lack meaningful data enrichment. The visual hierarchy is flat and uninformative for buyers.
 
-### Files to modify
+### New Design: Rich Info Cards (inspired by reference image)
 
-**1. `src/pages/CategoryPage.tsx`** — Page layout and structure
-- Widen left sidebar from 72px to ~100px
-- Enlarge sidebar thumbnails from 44px (w-11) to 60px
-- Update header: larger title (18px, font-semibold), dark circular back button (#333), remove search from header row (move to separate row or keep as-is but restyle)
-- Filter bar pills: full pill shape (rounded-full), darker backgrounds (#333), white text, larger padding
-- Subcategory chips: same pill treatment
-- Product grid gap: increase to 10-12px
-- Sidebar: darker background (`bg-[#0A0A0A]` in dark mode via class), green left border for active item, gray text for inactive
+Each category card will be a **landscape-oriented rich card** showing:
+- A **collage of up to 4 product thumbnails** from that category (fetched from existing `useProductsByCategory` data), falling back to the category `imageUrl` or emoji
+- Category **icon badge** (small, top-left corner)
+- **Product count badge** (top-right, green pill)
+- Category **name** (bold, bottom-left overlay)
+- **Seller count** (e.g. "3 sellers") and **price range** (e.g. "From ₹49") as small metadata chips below the name
+- Subtle **scale-on-tap** animation (already exists, will refine)
 
-**2. `src/components/product/ProductListingCard.tsx`** — Product card redesign
-- Card background: dark (#1C1C1C) via existing `bg-card`
-- Card border-radius: 12px
-- Image area: warm beige/cream background (`bg-[#FFF8E7]` or contextual class), rounded top only, aspect-ratio square, `object-contain` with padding
-- Badges: teal "Bought Earlier" style, positioned top-left
-- Veg badge: keep top-right
-- Product name: white, 14px, font-medium, line-clamp-2
-- Delivery time: orange clock icon + bold uppercase text
-- Discount: colored text above price
-- Price: bold 16px white, MRP strikethrough in gray
-- Price per unit: small gray text below
-- ADD button: vibrant green (#0FA84F), full-width or centered, 38-42px height, white bold text, rounded-lg
-- Quantity stepper: same green, `[-] [1] [+]` layout
+### Layout Changes
+- Switch from 3-column tall cards (`aspect-[4/5]`) to **2-column wider cards** (`aspect-[3/2]`) for a more spacious, magazine-style feel
+- On `md+` screens: 3 columns
+- Cards get `rounded-2xl`, subtle shadow, and a refined gradient overlay
 
-**3. `src/index.css`** — CSS variable tweaks (dark mode only)
-- `--card`: adjust to `0 0% 12%` (~#1E1E1E) for slightly darker cards
-- Add a utility class `.product-image-bg` for the warm beige image container
-- No changes to light mode
+### Data Enrichment (all from existing hooks, no new queries)
+The `useProductsByCategory` hook already returns products per category. We will compute per-card:
+1. **Product count** — already available in `productCountMap`
+2. **Seller count** — count distinct `seller_id` from products in each category
+3. **Price range** — min price from products (display as "From ₹49")
+4. **Collage images** — take up to 4 unique product `image_url` values for a 2x2 grid thumbnail
+5. **Has bestseller** — if any product has `is_bestseller: true`, show a small star badge
 
-### What stays the same
-- All data fetching, filtering, sorting, cart logic
-- All hooks, queries, and state management
-- Navigation and routing behavior
-- ProductListingCard memo comparator and analytics
-- FloatingCartBar component (already styled correctly)
+### Files to Modify
 
-### Technical details
+**1. `src/pages/CategoriesPage.tsx`**
+- Change grid from `grid-cols-3` to `grid-cols-2 md:grid-cols-3`
+- Change card aspect from `aspect-[4/5]` to `aspect-[3/2]`
+- Replace the single image/emoji with a collage component (inline, not a separate file)
+- Compute `sellerCount`, `minPrice`, `collageImages`, `hasBestseller` from `productCategories` data per category
+- Remove the emoji badge overlay (top-left circle)
+- Add metadata row: seller count + price range as small text chips at the bottom
+- Keep all existing: group headers, filter pills, search bar, empty state, scroll-to-section, motion animations
 
-The changes are scoped to Tailwind classes and a few inline style overrides. The warm beige image background will use a utility class that only applies in dark mode, falling back to `bg-muted` in light mode. Sidebar width increase uses `w-[100px]`. Active sidebar indicator uses existing `bg-primary` (green) left border, widened to 4px. Filter pills switch from `rounded-md` to `rounded-full` with increased padding.
+**2. `src/index.css`** (minor)
+- Add a `.category-collage` grid utility for the 2x2 image layout
 
-No new dependencies. No database changes. No new components.
+### What stays unchanged
+- All hooks, queries, data fetching logic
+- Parent group pills and section headers
+- Search bar and placeholder
+- Empty state
+- Navigation and routing (`/category/${cat.parentGroup}?sub=${cat.category}`)
+- All other pages and components
+
+### Technical Details
+
+The collage grid uses CSS Grid `grid-cols-2 grid-rows-2` inside the card image area. Each cell shows a product thumbnail with `object-cover`. If fewer than 4 images are available, the layout gracefully degrades: 1 image = full bleed, 2 images = side-by-side, 3 images = 2+1, 4 images = 2x2 grid.
+
+Price range uses the existing `formatPrice` utility from `src/lib/format-price.ts`. Seller count is computed with `new Set(products.map(p => p.seller_id)).size`.
+
+No new dependencies. No database changes. No new components or files beyond the CSS utility class.
 
