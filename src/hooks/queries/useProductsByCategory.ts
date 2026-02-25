@@ -42,7 +42,7 @@ export function useProductsByCategory(limit = 50) {
           prep_time_minutes, lead_time_hours, accepts_preorders,
           seller_id, created_at, updated_at,
           seller:seller_profiles!products_seller_id_fkey(
-            id, business_name, rating, society_id, verification_status, fulfillment_mode, delivery_note, last_active_at
+            id, business_name, rating, society_id, verification_status, fulfillment_mode, delivery_note, last_active_at, on_time_delivery_pct, completed_order_count
           )
         `)
         .eq('is_available', true)
@@ -72,6 +72,8 @@ export function useProductsByCategory(limit = 50) {
           fulfillment_mode: p.seller?.fulfillment_mode || null,
           delivery_note: p.seller?.delivery_note || null,
           last_active_at: p.seller?.last_active_at || null,
+          on_time_delivery_pct: p.seller?.on_time_delivery_pct ?? null,
+          completed_order_count: p.seller?.completed_order_count ?? 0,
         }));
 
       // Build config map for grouping

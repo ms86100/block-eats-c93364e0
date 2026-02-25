@@ -4357,6 +4357,7 @@ export type Database = {
           is_featured: boolean | null
           last_active_at: string | null
           minimum_order_amount: number | null
+          on_time_delivery_pct: number | null
           operating_days: string[] | null
           primary_group: string | null
           profile_image_url: string | null
@@ -4402,6 +4403,7 @@ export type Database = {
           is_featured?: boolean | null
           last_active_at?: string | null
           minimum_order_amount?: number | null
+          on_time_delivery_pct?: number | null
           operating_days?: string[] | null
           primary_group?: string | null
           profile_image_url?: string | null
@@ -4447,6 +4449,7 @@ export type Database = {
           is_featured?: boolean | null
           last_active_at?: string | null
           minimum_order_amount?: number | null
+          on_time_delivery_pct?: number | null
           operating_days?: string[] | null
           primary_group?: string | null
           profile_image_url?: string | null

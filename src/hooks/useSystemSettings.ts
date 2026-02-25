@@ -30,6 +30,8 @@ export interface SystemSettings {
   upiProviderLabel: string;
   defaultCountryCode: string;
   supportedCountryCodes: string[];
+  refundPromiseText: string;
+  refundSlaHours: number;
 }
 
 const DEFAULTS: SystemSettings = {
@@ -60,6 +62,8 @@ const DEFAULTS: SystemSettings = {
   upiProviderLabel: 'GPay, PhonePe, Paytm',
   defaultCountryCode: '+91',
   supportedCountryCodes: ['+91', '+1', '+44', '+971', '+65', '+61'],
+  refundPromiseText: 'If anything goes wrong, refund within 24 hours',
+  refundSlaHours: 24,
 };
 
 export function useSystemSettings(): SystemSettings {
@@ -80,6 +84,7 @@ export function useSystemSettings(): SystemSettings {
           'violation_policy_json', 'seller_empty_state_copy', 'landing_slides_json',
           'max_price_filter', 'locale', 'upi_provider_label',
           'default_country_code', 'supported_country_codes',
+          'refund_promise_text', 'refund_sla_hours',
         ]);
 
       const map: Record<string, string> = {};
@@ -117,6 +122,8 @@ export function useSystemSettings(): SystemSettings {
         supportedCountryCodes: map.supported_country_codes
           ? map.supported_country_codes.split(',').map(c => c.trim())
           : DEFAULTS.supportedCountryCodes,
+        refundPromiseText: map.refund_promise_text || DEFAULTS.refundPromiseText,
+        refundSlaHours: parseInt(map.refund_sla_hours || '24', 10) || 24,
       };
     },
     staleTime: jitteredStaleTime(15 * 60 * 1000),

@@ -324,6 +324,13 @@ function ProductListingCardInner({
           </p>
         )}
 
+        {/* On-time delivery badge */}
+        {(product as any).on_time_delivery_pct != null && (product as any).completed_order_count > 5 && (
+          <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-primary bg-primary/10 rounded-full px-1.5 py-0.5 w-fit mb-0.5">
+            ✓ On-time: {(product as any).on_time_delivery_pct}%
+          </span>
+        )}
+
         {deliveryText && (
           <div className="flex items-center gap-0.5 mb-0.5">
             <Clock size={9} className="text-rating-star" />

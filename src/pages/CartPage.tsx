@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Minus, Plus, Clock, Store, MapPin, Bell, ChevronRight, Trash2 } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, Clock, Store, MapPin, Bell, ChevronRight, Trash2, ShieldCheck } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VegBadge } from '@/components/ui/veg-badge';
@@ -173,6 +173,12 @@ export default function CartPage() {
         </div>
 
         {c.sellerGroups.length > 1 && (<p className="text-xs text-muted-foreground text-center mt-4 px-4">Your cart has items from {c.sellerGroups.length} sellers. Separate orders will be created for each.</p>)}
+
+        {/* Refund Promise */}
+        <div className="mx-4 mt-4 flex items-center gap-3 bg-primary/5 border border-primary/15 rounded-xl p-3">
+          <ShieldCheck size={18} className="text-primary shrink-0" />
+          <p className="text-xs text-muted-foreground leading-relaxed">{c.settings.refundPromiseText}</p>
+        </div>
       </div>
 
       {/* Sticky Footer */}
