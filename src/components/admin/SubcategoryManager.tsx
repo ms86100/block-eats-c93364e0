@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, Plus, Edit2, Trash2, Tag, RefreshCw } from 'lucide-react';
-import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { friendlyError } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -38,7 +37,20 @@ interface OpenSubcategoryCreateEventDetail {
 }
 
 export function SubcategoryManager() {
-  const { configs, isLoading: configsLoading, refresh: refreshConfigs } = useCategoryConfigs();
+  const [allConfigs, setAllConfigs] = useState<Array<{ id: string; display_name: string; icon: string }>>([]);
+  const [configsLoading, setConfigsLoading] = useState(true);
+  
+  const fetchConfigs = useCallback(async () => {
+    setConfigsLoading(true);
+    const { data } = await supabase
+      .from('category_config')
+      .select('id, display_name, icon')
+      .order('display_order', { ascending: true });
+    setAllConfigs(data || []);
+    setConfigsLoading(false);
+  }, []);
+
+  useEffect(() => { fetchConfigs(); }, [fetchConfigs]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Empty string means "all categories" — never sent as a DB filter
@@ -84,6 +96,7 @@ export function SubcategoryManager() {
       if (preferredConfigId) {
         setSelectedConfigId(preferredConfigId);
       }
+      fetchConfigs(); // Refresh categories to pick up any newly created ones
       setIsDialogOpen(true);
     };
 
@@ -92,8 +105,8 @@ export function SubcategoryManager() {
   }, [selectedConfigId]);
 
   const getCategoryName = (configId: string) => {
-    const c = configs.find(cfg => cfg.id === configId);
-    return c ? `${c.icon} ${c.displayName}` : configId;
+    const c = allConfigs.find(cfg => cfg.id === configId);
+    return c ? `${c.icon} ${c.display_name}` : configId;
   };
 
   const resetForm = () => {
@@ -109,6 +122,7 @@ export function SubcategoryManager() {
     if (nextConfigId) {
       setSelectedConfigId(nextConfigId);
     }
+    fetchConfigs(); // Always refresh to pick up newly created categories
     setIsDialogOpen(true);
   };
 
@@ -204,12 +218,12 @@ export function SubcategoryManager() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
-              {configs.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.icon} {c.displayName}</SelectItem>
+              {allConfigs.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.icon} {c.display_name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-xl" onClick={() => refreshConfigs()} disabled={configsLoading} title="Refresh categories">
+          <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-xl" onClick={() => fetchConfigs()} disabled={configsLoading} title="Refresh categories">
             <RefreshCw size={14} className={configsLoading ? 'animate-spin' : ''} />
           </Button>
           <Button size="sm" onClick={() => openCreate()} className="rounded-xl font-semibold gap-1.5">
@@ -270,8 +284,8 @@ export function SubcategoryManager() {
                   <Select value={createConfigId} onValueChange={setCreateConfigId}>
                     <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
-                      {configs.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.icon} {c.displayName}</SelectItem>
+                      {allConfigs.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.icon} {c.display_name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
