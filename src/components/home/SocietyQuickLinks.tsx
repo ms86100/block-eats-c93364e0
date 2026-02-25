@@ -31,7 +31,7 @@ export function SocietyQuickLinks() {
   if (visibleLinks.length === 0) return null;
 
   return (
-    <div className="px-4 mt-4 mb-2">
+    <div className="px-4 mt-4 mb-2 max-w-5xl">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-extrabold text-[15px] text-foreground tracking-tight flex items-center gap-1.5">
           <Building2 size={15} className="text-primary" />

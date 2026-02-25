@@ -192,7 +192,7 @@ function ProductListings({
   return (
     <div className="space-y-8 mt-5">
       {categories.map(cat => (
-        <div key={cat.category}>
+        <div key={cat.category} className="max-w-5xl">
           <div className="flex items-center justify-between px-4 mb-3">
             <h3 className="font-extrabold text-[15px] text-foreground tracking-tight flex items-center gap-1.5">
               <span className="text-base">{cat.icon}</span>
