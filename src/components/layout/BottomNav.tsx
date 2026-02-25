@@ -47,7 +47,7 @@ function BottomNavInner() {
   const visibleItems = isLoading
     ? navItems
     : navItems.filter(item => {
-        if (item.to === '/society' && !hasAnyFeature) return false;
+        if (item.to === '/society' && !hasAnyFeature && !isAdmin) return false;
         if ('featureKey' in item && item.featureKey) return isFeatureEnabled((item as any).featureKey);
         return true;
       });

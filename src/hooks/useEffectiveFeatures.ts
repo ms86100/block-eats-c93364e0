@@ -68,12 +68,15 @@ export function useEffectiveFeatures() {
   // Fix #16: Memoize featureMap and all accessor functions
   const featureMap = useMemo(() => new Map(features.map(f => [f.feature_key, f])), [features]);
 
+  const { isAdmin } = useAuth();
+
   const isFeatureEnabled = useCallback((key: FeatureKey): boolean => {
+    if (isAdmin) return true; // Platform admins bypass all feature gates
     if (!effectiveSocietyId) return false;
     const feature = featureMap.get(key);
     if (!feature) return false;
     return feature.is_enabled;
-  }, [effectiveSocietyId, featureMap]);
+  }, [isAdmin, effectiveSocietyId, featureMap]);
 
   const getFeatureState = useCallback((key: FeatureKey): FeatureState => {
     const feature = featureMap.get(key);
