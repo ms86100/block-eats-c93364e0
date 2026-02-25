@@ -122,17 +122,28 @@ export function BuilderManagementSheet({ open, onOpenChange, builderId, builderN
     setIsLoading(false);
   };
 
-  const searchProfiles = async () => {
-    if (searchTerm.length < 2) return;
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const searchProfiles = async (term?: string) => {
+    const q = term ?? searchTerm;
+    if (q.length < 2) { setSearchResults([]); setHasSearched(false); return; }
     setIsSearching(true);
     const { data } = await supabase
       .from('profiles')
       .select('id, name, email')
-      .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+      .or(`name.ilike.%${q}%,email.ilike.%${q}%`)
       .limit(10);
     setSearchResults((data || []) as ProfileResult[]);
+    setHasSearched(true);
     setIsSearching(false);
   };
+
+  // Debounced auto-search on typing
+  useEffect(() => {
+    if (searchTerm.length < 2) { setSearchResults([]); setHasSearched(false); return; }
+    const timer = setTimeout(() => searchProfiles(searchTerm), 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const addMember = async () => {
     if (!selectedUserId) return;
@@ -216,13 +227,14 @@ export function BuilderManagementSheet({ open, onOpenChange, builderId, builderN
                     <Input
                       value={searchTerm}
                       onChange={e => setSearchTerm(e.target.value)}
-                      placeholder="Search by name or email"
+                      placeholder="Type name or email to search..."
                       className="text-sm"
-                      onKeyDown={e => e.key === 'Enter' && searchProfiles()}
                     />
-                    <Button size="sm" variant="outline" onClick={searchProfiles} disabled={isSearching}>
-                      <Search size={14} />
-                    </Button>
+                    {isSearching && (
+                      <div className="flex items-center px-2">
+                        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
                   </div>
 
                   {searchResults.length > 0 && (
@@ -283,6 +295,9 @@ export function BuilderManagementSheet({ open, onOpenChange, builderId, builderN
                   </CardContent>
                 </Card>
               ))}
+              {hasSearched && searchResults.length === 0 && !isSearching && (
+                <p className="text-center text-muted-foreground py-4 text-sm">No matching users found. Try a different name or email.</p>
+              )}
               {members.length === 0 && (
                 <p className="text-center text-muted-foreground py-4 text-sm">No members yet</p>
               )}
