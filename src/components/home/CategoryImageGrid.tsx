@@ -107,7 +107,7 @@ function CategoryImageGridInner({ parentGroup, title, activeCategories }: Catego
   if (categories.length === 0) return null;
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 max-w-5xl">
       {/* Section header */}
       <div className="flex items-center justify-between mb-3 px-4">
         <h3 className="font-extrabold text-[15px] text-foreground tracking-tight">{title}</h3>
@@ -120,7 +120,7 @@ function CategoryImageGridInner({ parentGroup, title, activeCategories }: Catego
       </div>
 
       {/* Responsive card grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 px-4 max-w-7xl mx-auto">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-4">
         {categories.slice(0, 6).map((cat) => {
           const meta = metaMap[cat.category] || { count: 0, sellerCount: 0, minPrice: null, collageImages: [], hasBestseller: false };
           return (
