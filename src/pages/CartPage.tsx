@@ -179,6 +179,12 @@ export default function CartPage() {
           <ShieldCheck size={18} className="text-primary shrink-0" />
           <p className="text-xs text-muted-foreground leading-relaxed">{c.settings.refundPromiseText}</p>
         </div>
+
+        {/* Neighborhood Guarantee */}
+        <div className="mx-4 mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+          <span className="text-sm">🛡️</span>
+          <p className="text-[10px] text-muted-foreground">Protected by <span className="font-semibold text-foreground">Neighborhood Guarantee</span> — disputes resolved by your society committee</p>
+        </div>
       </div>
 
       {/* Sticky Footer */}

@@ -7,6 +7,7 @@ import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
 import { RatingStars } from '@/components/ui/rating-stars';
 import { ReviewList } from '@/components/review/ReviewList';
 import { FavoriteButton } from '@/components/favorite/FavoriteButton';
+import { SellerReputationTab } from '@/components/seller/SellerReputationTab';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -449,6 +450,7 @@ export default function SellerDetailPage() {
             <TabsTrigger value="reviews" className="flex-1">
               Reviews ({seller.total_reviews})
             </TabsTrigger>
+            <TabsTrigger value="reputation" className="flex-1">Reputation</TabsTrigger>
           </TabsList>
 
           <TabsContent value="menu" className="mt-4">
@@ -530,6 +532,10 @@ export default function SellerDetailPage() {
 
           <TabsContent value="reviews" className="mt-4">
             <ReviewList sellerId={seller.id} />
+          </TabsContent>
+
+          <TabsContent value="reputation" className="mt-4">
+            <SellerReputationTab sellerId={seller.id} />
           </TabsContent>
         </Tabs>
       </div>

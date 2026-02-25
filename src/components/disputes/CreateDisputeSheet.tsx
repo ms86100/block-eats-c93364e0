@@ -86,8 +86,11 @@ export function CreateDisputeSheet({ open, onOpenChange, onCreated }: Props) {
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <ShieldAlert size={18} />
-            Raise a Concern
+            Neighborhood Guarantee
           </SheetTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Your society committee will review this as a neutral party
+          </p>
         </SheetHeader>
         <div className="space-y-4 mt-4">
           <div>

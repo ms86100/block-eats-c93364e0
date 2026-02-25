@@ -121,7 +121,8 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl h-[85vh] flex flex-col">
         <SheetHeader>
-          <SheetTitle className="text-left">Concern Details</SheetTitle>
+          <SheetTitle className="text-left">Neighborhood Guarantee</SheetTitle>
+          <p className="text-xs text-muted-foreground">Your society committee reviews this as a neutral party</p>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 mt-4">

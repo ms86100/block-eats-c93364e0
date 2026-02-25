@@ -87,6 +87,7 @@ const WorkerSalaryPage = lazy(() => import("./pages/WorkerSalaryPage"));
 const AuthorizedPersonsPage = lazy(() => import("./pages/AuthorizedPersonsPage"));
 const BuilderInspectionsPage = lazy(() => import("./pages/BuilderInspectionsPage"));
 const TestResultsPage = lazy(() => import("./pages/TestResultsPage"));
+const CollectiveBuyPage = lazy(() => import("./pages/CollectiveBuyPage"));
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -264,6 +265,7 @@ function AppRoutes() {
         <Route path="/subscriptions" element={<ProtectedRoute><MySubscriptionsPage /></ProtectedRoute>} />
         <Route path="/directory" element={<ProtectedRoute><TrustDirectoryPage /></ProtectedRoute>} />
         <Route path="/disputes" element={<ProtectedRoute><DisputesPage /></ProtectedRoute>} />
+        <Route path="/group-buys" element={<ProtectedRoute><CollectiveBuyPage /></ProtectedRoute>} />
         <Route path="/society/finances" element={<ProtectedRoute><RouteErrorBoundary sectionName="Society Finances"><SocietyFinancesPage /></RouteErrorBoundary></ProtectedRoute>} />
         <Route path="/society/progress" element={<ProtectedRoute><RouteErrorBoundary sectionName="Construction Progress"><SocietyProgressPage /></RouteErrorBoundary></ProtectedRoute>} />
         <Route path="/society/snags" element={<ProtectedRoute><RouteErrorBoundary sectionName="Snag List"><SnagListPage /></RouteErrorBoundary></ProtectedRoute>} />

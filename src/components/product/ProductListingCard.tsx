@@ -1,11 +1,12 @@
-import { useMemo, memo } from 'react';
-import { Plus, Minus, Clock, MapPin, ShoppingCart, Activity } from 'lucide-react';
+import { useMemo, useState, memo } from 'react';
+import { Plus, Minus, Clock, MapPin, ShoppingCart, Activity, Bell } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useHaptics } from '@/hooks/useHaptics';
 import { Badge } from '@/components/ui/badge';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { useCart } from '@/hooks/useCart';
 import { ProductActionType } from '@/types/database';
+import { NotifyMeButton } from './NotifyMeButton';
 import { ACTION_CONFIG } from '@/lib/marketplace-constants';
 import { useCardAnalytics } from '@/hooks/useCardAnalytics';
 import { MARKETPLACE_FALLBACKS, type MarketplaceConfig } from '@/hooks/useMarketplaceConfig';
@@ -395,11 +396,7 @@ function ProductListingCardInner({
       )}
 
       {!viewOnly && isOutOfStock && (
-        <div className="px-2.5 pb-2.5 text-center">
-          <span className="text-[9px] font-medium text-muted-foreground">
-            {mc.labels.soldOut}
-          </span>
-        </div>
+        <NotifyMeButton productId={product.id} />
       )}
     </div>
   );

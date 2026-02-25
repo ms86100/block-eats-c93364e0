@@ -907,6 +907,103 @@ export type Database = {
           },
         ]
       }
+      collective_buy_participants: {
+        Row: {
+          id: string
+          joined_at: string
+          quantity: number
+          request_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          quantity?: number
+          request_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          quantity?: number
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collective_buy_participants_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "collective_buy_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_buy_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collective_buy_requests: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_quantity: number
+          expires_at: string
+          id: string
+          product_id: string
+          society_id: string
+          status: string
+          target_quantity: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_quantity?: number
+          expires_at?: string
+          id?: string
+          product_id: string
+          society_id: string
+          status?: string
+          target_quantity?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_quantity?: number
+          expires_at?: string
+          id?: string
+          product_id?: string
+          society_id?: string
+          status?: string
+          target_quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collective_buy_requests_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_buy_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_buy_requests_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collective_escalations: {
         Row: {
           category: string
@@ -4560,6 +4657,48 @@ export type Database = {
           },
         ]
       }
+      seller_reputation_ledger: {
+        Row: {
+          event_detail: Json | null
+          event_type: string
+          id: string
+          is_positive: boolean
+          occurred_at: string
+          seller_id: string
+        }
+        Insert: {
+          event_detail?: Json | null
+          event_type: string
+          id?: string
+          is_positive?: boolean
+          occurred_at?: string
+          seller_id: string
+        }
+        Update: {
+          event_detail?: Json | null
+          event_type?: string
+          id?: string
+          is_positive?: boolean
+          occurred_at?: string
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_reputation_ledger_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_reputation_ledger_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_audit_trail"
+            referencedColumns: ["seller_id"]
+          },
+        ]
+      }
       seller_settlements: {
         Row: {
           created_at: string
@@ -5537,6 +5676,45 @@ export type Database = {
             columns: ["society_id"]
             isOneToOne: false
             referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_watchlist: {
+        Row: {
+          created_at: string
+          id: string
+          notified_at: string | null
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notified_at?: string | null
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notified_at?: string | null
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_watchlist_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_watchlist_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
