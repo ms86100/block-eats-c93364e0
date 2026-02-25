@@ -80,7 +80,7 @@ export default function GateEntryPage() {
 
   return (
     <AppLayout headerTitle="Gate Entry" showLocation={false}>
-      <FeatureGate feature="gate_entry">
+      <FeatureGate feature={["gate_entry", "visitor_management"]}>
       <div className="p-4 space-y-4">
         {/* Resident Confirmation (for confirmation mode) */}
         <ResidentConfirmation />

@@ -109,7 +109,7 @@ export default function WorkforceManagementPage() {
 
   return (
     <AppLayout headerTitle="Workforce" showLocation={false}>
-      <FeatureGate feature="workforce_management">
+      <FeatureGate feature={["workforce_management", "domestic_help"]}>
         <div className="p-4 space-y-4 pb-24">
           <ModuleSearchBar context="workforce" value="" onChange={() => {}} />
           {/* Summary Stats */}

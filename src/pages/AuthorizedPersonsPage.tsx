@@ -94,7 +94,7 @@ export default function AuthorizedPersonsPage() {
 
   return (
     <AppLayout headerTitle="Authorized Persons" showLocation={false}>
-      <FeatureGate feature="visitor_management">
+      <FeatureGate feature={["visitor_management", "authorized_persons"]}>
       <div className="p-4 space-y-4">
         <p className="text-xs text-muted-foreground">
           Family members and trusted individuals authorized for gate entry without OTP.

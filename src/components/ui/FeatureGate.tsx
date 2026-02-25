@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface FeatureGateProps {
-  feature: FeatureKey;
+  feature: FeatureKey | FeatureKey[];
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }
@@ -46,7 +46,10 @@ export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
     );
   }
 
-  if (!isFeatureEnabled(feature)) {
+  const features = Array.isArray(feature) ? feature : [feature];
+  const hasAccess = features.some(f => isFeatureEnabled(f));
+
+  if (!hasAccess) {
     return fallback ?? (
       <div className="flex flex-col items-center justify-center min-h-[40vh] text-center p-6">
         <ShieldOff className="text-muted-foreground mb-4" size={48} />

@@ -175,7 +175,7 @@ export default function BulletinPage() {
 
   return (
     <AppLayout headerTitle="Community" showLocation={false}>
-      <FeatureGate feature="bulletin">
+      <FeatureGate feature={["bulletin", "help_requests"]}>
       <div className="pt-2">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full grid grid-cols-2 mb-3 mx-4" style={{ width: 'calc(100% - 2rem)' }}>

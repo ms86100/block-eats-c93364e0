@@ -36,7 +36,7 @@ export default function MyWorkersPage() {
 
   return (
     <AppLayout headerTitle="My Workers" showLocation={false}>
-      <FeatureGate feature="workforce_management">
+      <FeatureGate feature={["workforce_management", "domestic_help"]}>
       <div className="p-4 space-y-4">
         {/* Summary Card */}
         <Card className="bg-primary/5 border-primary/20">
