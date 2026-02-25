@@ -1,4 +1,3 @@
-import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -7,997 +6,139 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { VegBadge } from '@/components/ui/veg-badge';
 import { Badge } from '@/components/ui/badge';
 import { ProductImageUpload } from '@/components/ui/product-image-upload';
-import { useAuth } from '@/contexts/AuthContext';
-import { Product, ProductCategory, SellerProfile, ProductActionType } from '@/types/database';
-import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
-import { ParentGroup } from '@/types/categories';
+import { ProductCategory } from '@/types/database';
 import { SellerSwitcher } from '@/components/seller/SellerSwitcher';
 import { ArrowLeft, Plus, Edit, Trash2, Loader2, Star, Award, Bell, AlertTriangle, Store, ShieldAlert, Upload, Send, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { friendlyError } from '@/lib/utils';
 import { BulkProductUpload } from '@/components/seller/BulkProductUpload';
 import { useCurrency } from '@/hooks/useCurrency';
-import { useSubcategories } from '@/hooks/useSubcategories';
 import { AttributeBlockBuilder } from '@/components/seller/AttributeBlockBuilder';
-import { type BlockData } from '@/hooks/useAttributeBlocks';
+import { useSellerProducts } from '@/hooks/useSellerProducts';
 
 export default function SellerProductsPage() {
-  const { user, sellerProfiles, currentSellerId } = useAuth();
-  const { groupedConfigs, configs } = useCategoryConfigs();
+  const sp = useSellerProducts();
   const { formatPrice, currencySymbol } = useCurrency();
-  const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
-  const [primaryGroup, setPrimaryGroup] = useState<ParentGroup | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [licenseBlocked, setLicenseBlocked] = useState<{ blocked: boolean; status: string; licenseName: string } | null>(null);
-  const [isBulkOpen, setIsBulkOpen] = useState(false);
-  const [attributeBlocks, setAttributeBlocks] = useState<BlockData[]>([]);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    mrp: '',
-    prep_time_minutes: '',
-    category: '' as ProductCategory | '',
-    is_veg: true,
-    is_available: true,
-    is_bestseller: false,
-    is_recommended: false,
-    is_urgent: false,
-    image_url: null as string | null,
-    action_type: 'add_to_cart' as ProductActionType,
-    contact_phone: '',
-    stock_quantity: '' as string,
-    low_stock_threshold: '5',
-    subcategory_id: '' as string,
-    lead_time_hours: '' as string,
-    accepts_preorders: false,
-  });
-
-  // Get the active category config for dynamic form hints
-  const activeCategoryConfig = useMemo(() => {
-    if (!formData.category) return null;
-    return configs.find(c => c.category === formData.category) || null;
-  }, [formData.category, configs]);
-
-  // Determine if current category shows veg toggle (DB-driven)
-  const showVegToggle = useMemo(() => {
-    if (activeCategoryConfig) return activeCategoryConfig.formHints.showVegToggle;
-    return false;
-  }, [activeCategoryConfig]);
-
-  // Determine if current category shows duration field (DB-driven)
-  const showDurationField = useMemo(() => {
-    if (activeCategoryConfig) return activeCategoryConfig.formHints.showDurationField;
-    return false;
-  }, [activeCategoryConfig]);
-
-  // Get only categories that belong to the seller's primary group
-  const allowedCategories = useMemo(() => {
-    if (!primaryGroup || !groupedConfigs[primaryGroup]) return [];
-    return groupedConfigs[primaryGroup];
-  }, [primaryGroup, groupedConfigs]);
-
-  // Subcategories for the selected category
-  const activeCategoryConfigId = activeCategoryConfig?.id || null;
-  const { data: subcategories = [] } = useSubcategories(activeCategoryConfigId);
-
-  useEffect(() => {
-    if (user && currentSellerId) {
-      fetchData(currentSellerId);
-    } else if (user && sellerProfiles.length > 0) {
-      fetchData(sellerProfiles[0].id);
-    }
-  }, [user, currentSellerId, sellerProfiles]);
-
-  const fetchData = async (sellerId: string) => {
-    if (!user) return;
-    setIsLoading(true);
-
-    try {
-      const { data: profile } = await supabase
-        .from('seller_profiles')
-        .select('*')
-        .eq('id', sellerId)
-        .single();
-
-      if (!profile) {
-        setIsLoading(false);
-        setSellerProfile(null);
-        return;
-      }
-
-      setSellerProfile(profile as SellerProfile);
-      // Get the seller's primary group for category filtering
-      setPrimaryGroup((profile as any).primary_group as ParentGroup | null);
-
-      const { data: productData } = await supabase
-        .from('products')
-        .select('*')
-        .eq('seller_id', profile.id)
-        .order('is_bestseller', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      setProducts((productData || []) as Product[]);
-
-      // Check license status for mandatory groups
-      if ((profile as any).primary_group) {
-        const { data: groupData } = await supabase
-          .from('parent_groups')
-          .select('id, requires_license, license_mandatory, license_type_name')
-          .eq('slug', (profile as any).primary_group)
-          .eq('requires_license', true)
-          .eq('license_mandatory', true)
-          .maybeSingle();
-
-        if (groupData) {
-          const { data: licenseData } = await supabase
-            .from('seller_licenses')
-            .select('status')
-            .eq('seller_id', profile.id)
-            .eq('group_id', groupData.id)
-            .maybeSingle();
-
-          const status = licenseData?.status || 'none';
-          if (status !== 'approved') {
-            setLicenseBlocked({ blocked: true, status, licenseName: groupData.license_type_name || 'License' });
-          } else {
-            setLicenseBlocked(null);
-          }
-        } else {
-          setLicenseBlocked(null);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    const defaultCategory = allowedCategories.length === 1 ? allowedCategories[0].category as ProductCategory : '';
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      mrp: '',
-      
-      prep_time_minutes: '',
-      category: defaultCategory,
-      is_veg: true,
-      is_available: true,
-      is_bestseller: false,
-      is_recommended: false,
-      is_urgent: false,
-      image_url: null,
-      action_type: 'add_to_cart',
-      contact_phone: '',
-      stock_quantity: '',
-      low_stock_threshold: '5',
-      subcategory_id: '',
-      lead_time_hours: '',
-      accepts_preorders: false,
-    });
-    setEditingProduct(null);
-    setAttributeBlocks([]);
-  };
-
-  const openEditDialog = (product: Product) => {
-    setEditingProduct(product);
-    setFormData({
-      name: product.name,
-      description: product.description || '',
-      price: product.price.toString(),
-      mrp: (product as any).mrp?.toString() || '',
-      
-      prep_time_minutes: (product as any).prep_time_minutes?.toString() || '',
-      category: product.category,
-      is_veg: product.is_veg,
-      is_available: product.is_available,
-      is_bestseller: product.is_bestseller,
-      is_recommended: product.is_recommended,
-      is_urgent: product.is_urgent || false,
-      image_url: product.image_url,
-      action_type: (product as any).action_type || 'add_to_cart',
-      contact_phone: (product as any).contact_phone || '',
-      stock_quantity: (product as any).stock_quantity?.toString() || '',
-      low_stock_threshold: (product as any).low_stock_threshold?.toString() || '5',
-      subcategory_id: (product as any).subcategory_id || '',
-      lead_time_hours: (product as any).lead_time_hours?.toString() || '',
-      accepts_preorders: (product as any).accepts_preorders || false,
-    });
-    // Load attribute blocks from specifications
-    const specs = (product as any).specifications;
-    if (specs?.blocks && Array.isArray(specs.blocks)) {
-      setAttributeBlocks(specs.blocks as BlockData[]);
-    } else {
-      setAttributeBlocks([]);
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!sellerProfile || !user) return;
-
-    if (!formData.name.trim() || !formData.category) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    // Price validation: use DB-driven requires_price from category_config
-    const categoryRequiresPrice = activeCategoryConfig
-      ? (activeCategoryConfig as any).behavior?.isPhysicalProduct !== false || !['contact_only', 'request_quote', 'make_offer'].includes(formData.action_type)
-      : true;
-    const price = parseFloat(formData.price);
-    // Also check the action_type-level rule: contact_seller & request_quote don't need price
-    const actionNeedsPrice = !['contact_seller', 'request_quote', 'make_offer'].includes(formData.action_type);
-    if (categoryRequiresPrice && actionNeedsPrice && (isNaN(price) || price <= 0)) {
-      toast.error('Please enter a valid price');
-      return;
-    }
-
-    // Contact phone validation
-    if (formData.action_type === 'contact_seller' && !formData.contact_phone.trim()) {
-      toast.error('Phone number is required for Contact Seller action');
-      return;
-    }
-
-    // Phone format validation
-    if (formData.contact_phone.trim() && !/^[\d+\-\s()]{7,15}$/.test(formData.contact_phone.trim())) {
-      toast.error('Please enter a valid phone number');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const prepTime = formData.prep_time_minutes ? parseInt(formData.prep_time_minutes) : null;
-      const mrp = formData.mrp ? parseFloat(formData.mrp) : null;
-      
-      const stockQty = formData.stock_quantity ? parseInt(formData.stock_quantity) : null;
-      const lowStockThreshold = formData.low_stock_threshold ? parseInt(formData.low_stock_threshold) : 5;
-      const productData = {
-        seller_id: sellerProfile.id,
-        name: formData.name.trim(),
-        description: formData.description.trim() || null,
-        price: isNaN(price) ? 0 : price,
-        mrp: (mrp && !isNaN(mrp) && mrp > 0) ? mrp : null,
-        
-        prep_time_minutes: (prepTime && !isNaN(prepTime) && prepTime > 0) ? prepTime : null,
-        category: formData.category,
-        is_veg: formData.is_veg,
-        is_available: formData.is_available,
-        is_bestseller: formData.is_bestseller,
-        is_recommended: formData.is_recommended,
-        is_urgent: formData.is_urgent,
-        image_url: formData.image_url,
-        action_type: formData.action_type,
-        contact_phone: formData.contact_phone.trim() || null,
-        stock_quantity: (stockQty !== null && !isNaN(stockQty) && stockQty >= 0) ? stockQty : null,
-        low_stock_threshold: lowStockThreshold,
-        subcategory_id: formData.subcategory_id || null,
-        lead_time_hours: formData.lead_time_hours ? parseInt(formData.lead_time_hours) : null,
-        accepts_preorders: formData.accepts_preorders,
-        specifications: attributeBlocks.length > 0 ? { blocks: attributeBlocks } : null,
-        ...(editingProduct ? { approval_status: 'pending' } : { approval_status: 'draft' }),
-      };
-
-      if (editingProduct) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData as any)
-          .eq('id', editingProduct.id);
-
-        if (error) throw error;
-        toast.success('Product updated');
-      } else {
-        const { error } = await supabase.from('products').insert(productData as any);
-
-        if (error) throw error;
-        toast.success('Product added');
-      }
-
-      setIsDialogOpen(false);
-      resetForm();
-      if (sellerProfile) fetchData(sellerProfile.id);
-    } catch (error: any) {
-      console.error('Error saving product:', error);
-      toast.error(friendlyError(error));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
-
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', deleteTarget.id);
-
-      if (error) throw error;
-      toast.success('Product deleted');
-      if (sellerProfile) fetchData(sellerProfile.id);
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      toast.error(friendlyError(error));
-    } finally {
-      setDeleteTarget(null);
-    }
-  };
-
-  const toggleAvailability = async (product: Product) => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ is_available: !product.is_available })
-        .eq('id', product.id);
-
-      if (error) throw error;
-      if (sellerProfile) fetchData(sellerProfile.id);
-    } catch (error) {
-      console.error('Error updating availability:', error);
-      toast.error('Failed to update');
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <AppLayout showHeader={false}>
-        <div className="p-4">
-          <Skeleton className="h-8 w-32 mb-4" />
-          <Skeleton className="h-12 w-full mb-4" />
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-xl mb-3" />
-          ))}
-        </div>
-      </AppLayout>
-    );
+  if (sp.isLoading) {
+    return <AppLayout showHeader={false}><div className="p-4"><Skeleton className="h-8 w-32 mb-4" /><Skeleton className="h-12 w-full mb-4" />{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl mb-3" />)}</div></AppLayout>;
   }
 
   return (
     <AppLayout showHeader={false}>
       <div className="p-4 safe-top">
         <div className="flex items-center justify-between mb-6">
-          <Link to="/seller" className="flex items-center gap-2 text-muted-foreground">
-            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-muted shrink-0">
-              <ArrowLeft size={18} />
-            </span>
-            <span>Back</span>
-          </Link>
+          <Link to="/seller" className="flex items-center gap-2 text-muted-foreground"><span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-muted shrink-0"><ArrowLeft size={18} /></span><span>Back</span></Link>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setIsBulkOpen(true)}>
-              <Upload size={16} className="mr-1" />
-              Bulk Add
-            </Button>
-            <Dialog open={isDialogOpen} onOpenChange={(open) => {
-              setIsDialogOpen(open);
-              if (!open) resetForm();
-            }}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus size={16} className="mr-1" />
-                  Add Product
-                </Button>
-              </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingProduct ? 'Edit Product' : 'Add New Product'}
-                </DialogTitle>
-                {/* Business Context Indicator */}
-                {sellerProfile && (
-                  <div className="flex items-center gap-2 mt-2 p-2 bg-primary/5 border border-primary/20 rounded-lg">
-                    <Store size={14} className="text-primary" />
-                    <span className="text-xs text-primary font-medium">
-                      Adding to: {sellerProfile.business_name}
-                    </span>
-                  </div>
-                )}
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                {/* Product Image Upload */}
-                <div className="space-y-2">
-                  <Label>Product Image</Label>
-                  {user && (
-                    <ProductImageUpload
-                      value={formData.image_url}
-                      onChange={(url) => setFormData({ ...formData, image_url: url })}
-                      userId={user.id}
-                      productName={formData.name}
-                      categoryName={activeCategoryConfig?.displayName || formData.category || undefined}
-                      description={formData.description || undefined}
-                    />
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name">Product Name *</Label>
-                  <Input
-                    id="name"
-                    placeholder={activeCategoryConfig?.formHints.namePlaceholder || "e.g., Product Name"}
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder={activeCategoryConfig?.formHints.descriptionPlaceholder || "Describe your product..."}
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    rows={2}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">{activeCategoryConfig?.formHints.priceLabel || 'Price'} ({currencySymbol}) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      placeholder="0"
-                      value={formData.price}
-                      onChange={(e) =>
-                        setFormData({ ...formData, price: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mrp">MRP ({currencySymbol})</Label>
-                    <Input
-                      id="mrp"
-                      type="number"
-                      placeholder="Original price"
-                      value={formData.mrp}
-                      onChange={(e) => {
-                        const mrpVal = e.target.value;
-                        const mrpNum = parseFloat(mrpVal);
-                        const priceNum = parseFloat(formData.price);
-                        setFormData({ ...formData, mrp: mrpVal });
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    {formData.mrp && formData.price && parseFloat(formData.mrp) > parseFloat(formData.price) && (
-                      <p className="text-[10px] text-green-600 font-medium">
-                        {Math.round(((parseFloat(formData.mrp) - parseFloat(formData.price)) / parseFloat(formData.mrp)) * 100)}% OFF — Selling at {currencySymbol}{formData.price} (MRP {currencySymbol}{formData.mrp})
-                      </p>
-                    )}
-                  </div>
-                  {showDurationField && (
-                    <div className="space-y-2">
-                      <Label htmlFor="prep_time">{activeCategoryConfig?.formHints.durationLabel || 'Duration (min)'}</Label>
-                      <Input
-                        id="prep_time"
-                        type="number"
-                        placeholder="e.g. 30"
-                        value={formData.prep_time_minutes}
-                        onChange={(e) =>
-                          setFormData({ ...formData, prep_time_minutes: e.target.value })
-                        }
-                      />
-                    </div>
-                  )}
-                  {/* Only show category dropdown if seller has multiple categories */}
-                  {allowedCategories.length > 1 ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category *</Label>
-                      <Select
-                        value={formData.category}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, category: value as ProductCategory })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {allowedCategories.map((config) => (
-                            <SelectItem key={config.category} value={config.category}>
-                              {config.icon} {config.displayName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : allowedCategories.length === 1 ? (
-                    <div className="space-y-2">
-                      <Label>Category</Label>
-                      <div className="flex items-center gap-2 p-2 bg-muted rounded-md text-sm">
-                        <span>{allowedCategories[0].icon}</span>
-                        <span>{allowedCategories[0].displayName}</span>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-                {/* Subcategory Picker (DB-driven) */}
-                {subcategories.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Subcategory</Label>
-                    <Select
-                      value={formData.subcategory_id || 'none'}
-                      onValueChange={(v) => setFormData({ ...formData, subcategory_id: v === 'none' ? '' : v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select subcategory (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {subcategories.map(sub => (
-                          <SelectItem key={sub.id} value={sub.id}>
-                            {sub.icon || '📂'} {sub.display_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {/* Lead Time & Pre-order Config */}
-                <div className="p-3 bg-muted rounded-lg space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-medium block">Lead Time</span>
-                      <span className="text-xs text-muted-foreground">How many hours in advance must buyers order?</span>
-                    </div>
+            <Button variant="outline" onClick={() => sp.setIsBulkOpen(true)}><Upload size={16} className="mr-1" />Bulk Add</Button>
+            <Dialog open={sp.isDialogOpen} onOpenChange={(open) => { sp.setIsDialogOpen(open); if (!open) sp.resetForm(); }}>
+              <DialogTrigger asChild><Button><Plus size={16} className="mr-1" />Add Product</Button></DialogTrigger>
+              <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{sp.editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+                  {sp.sellerProfile && <div className="flex items-center gap-2 mt-2 p-2 bg-primary/5 border border-primary/20 rounded-lg"><Store size={14} className="text-primary" /><span className="text-xs text-primary font-medium">Adding to: {sp.sellerProfile.business_name}</span></div>}
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-2"><Label>Product Image</Label>{sp.user && <ProductImageUpload value={sp.formData.image_url} onChange={(url) => sp.setFormData({ ...sp.formData, image_url: url })} userId={sp.user.id} productName={sp.formData.name} categoryName={sp.activeCategoryConfig?.displayName || sp.formData.category || undefined} description={sp.formData.description || undefined} />}</div>
+                  <div className="space-y-2"><Label htmlFor="name">Product Name *</Label><Input id="name" placeholder={sp.activeCategoryConfig?.formHints.namePlaceholder || "e.g., Product Name"} value={sp.formData.name} onChange={(e) => sp.setFormData({ ...sp.formData, name: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="description">Description</Label><Textarea id="description" placeholder={sp.activeCategoryConfig?.formHints.descriptionPlaceholder || "Describe your product..."} value={sp.formData.description} onChange={(e) => sp.setFormData({ ...sp.formData, description: e.target.value })} rows={2} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2"><Label htmlFor="price">{sp.activeCategoryConfig?.formHints.priceLabel || 'Price'} ({currencySymbol}) *</Label><Input id="price" type="number" placeholder="0" value={sp.formData.price} onChange={(e) => sp.setFormData({ ...sp.formData, price: e.target.value })} /></div>
+                    <div className="space-y-2"><Label htmlFor="mrp">MRP ({currencySymbol})</Label><Input id="mrp" type="number" placeholder="Original price" value={sp.formData.mrp} onChange={(e) => sp.setFormData({ ...sp.formData, mrp: e.target.value })} /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Hours in advance</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="e.g. 2"
-                        value={formData.lead_time_hours}
-                        onChange={(e) => setFormData({ ...formData, lead_time_hours: e.target.value })}
-                      />
-                    </div>
+                    <div className="space-y-2">{sp.formData.mrp && sp.formData.price && parseFloat(sp.formData.mrp) > parseFloat(sp.formData.price) && <p className="text-[10px] text-green-600 font-medium">{Math.round(((parseFloat(sp.formData.mrp) - parseFloat(sp.formData.price)) / parseFloat(sp.formData.mrp)) * 100)}% OFF</p>}</div>
+                    {sp.showDurationField && <div className="space-y-2"><Label htmlFor="prep_time">{sp.activeCategoryConfig?.formHints.durationLabel || 'Duration (min)'}</Label><Input id="prep_time" type="number" placeholder="e.g. 30" value={sp.formData.prep_time_minutes} onChange={(e) => sp.setFormData({ ...sp.formData, prep_time_minutes: e.target.value })} /></div>}
+                    {sp.allowedCategories.length > 1 ? <div className="space-y-2"><Label htmlFor="category">Category *</Label><Select value={sp.formData.category} onValueChange={(value) => sp.setFormData({ ...sp.formData, category: value as ProductCategory })}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{sp.allowedCategories.map((config) => <SelectItem key={config.category} value={config.category}>{config.icon} {config.displayName}</SelectItem>)}</SelectContent></Select></div> : sp.allowedCategories.length === 1 ? <div className="space-y-2"><Label>Category</Label><div className="flex items-center gap-2 p-2 bg-muted rounded-md text-sm"><span>{sp.allowedCategories[0].icon}</span><span>{sp.allowedCategories[0].displayName}</span></div></div> : null}
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <div>
-                      <span className="text-sm font-medium block">Accept Pre-orders</span>
-                      <span className="text-xs text-muted-foreground">Allow buyers to order for future dates</span>
-                    </div>
-                    <Switch
-                      checked={formData.accepts_preorders}
-                      onCheckedChange={(checked) => setFormData({ ...formData, accepts_preorders: checked })}
-                    />
-                  </div>
+                  {sp.subcategories.length > 0 && <div className="space-y-2"><Label>Subcategory</Label><Select value={sp.formData.subcategory_id || 'none'} onValueChange={(v) => sp.setFormData({ ...sp.formData, subcategory_id: v === 'none' ? '' : v })}><SelectTrigger><SelectValue placeholder="Select subcategory (optional)" /></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{sp.subcategories.map(sub => <SelectItem key={sub.id} value={sub.id}>{sub.icon || '📂'} {sub.display_name}</SelectItem>)}</SelectContent></Select></div>}
+                  <div className="p-3 bg-muted rounded-lg space-y-3"><div className="grid grid-cols-2 gap-3"><div className="space-y-1"><Label className="text-xs">Hours in advance</Label><Input type="number" min="0" placeholder="e.g. 2" value={sp.formData.lead_time_hours} onChange={(e) => sp.setFormData({ ...sp.formData, lead_time_hours: e.target.value })} /></div></div><div className="flex items-center justify-between pt-2 border-t"><div><span className="text-sm font-medium block">Accept Pre-orders</span><span className="text-xs text-muted-foreground">Allow buyers to order for future dates</span></div><Switch checked={sp.formData.accepts_preorders} onCheckedChange={(checked) => sp.setFormData({ ...sp.formData, accepts_preorders: checked })} /></div></div>
+                  {sp.showVegToggle && <div className="flex items-center justify-between p-3 bg-muted rounded-lg"><div className="flex items-center gap-2"><VegBadge isVeg={sp.formData.is_veg} /><span className="text-sm font-medium">{sp.formData.is_veg ? 'Vegetarian' : 'Non-Vegetarian'}</span></div><Switch checked={sp.formData.is_veg} onCheckedChange={(checked) => sp.setFormData({ ...sp.formData, is_veg: checked })} /></div>}
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg"><div className="flex items-center gap-2"><Star size={16} className="text-warning" /><span className="text-sm font-medium">Mark as Bestseller</span></div><Switch checked={sp.formData.is_bestseller} onCheckedChange={(checked) => sp.setFormData({ ...sp.formData, is_bestseller: checked })} /></div>
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg"><div className="flex items-center gap-2"><Award size={16} className="text-success" /><span className="text-sm font-medium">Recommended</span></div><Switch checked={sp.formData.is_recommended} onCheckedChange={(checked) => sp.setFormData({ ...sp.formData, is_recommended: checked })} /></div>
+                  <div className="flex items-center justify-between p-3 bg-warning/10 border border-warning/30 rounded-lg"><div className="flex items-center gap-2"><Bell size={16} className="text-warning" /><div><span className="text-sm font-medium block">Urgent Order Alert</span><span className="text-xs text-muted-foreground">3-min timer, auto-cancel if not responded</span></div></div><Switch checked={sp.formData.is_urgent} onCheckedChange={(checked) => sp.setFormData({ ...sp.formData, is_urgent: checked })} /></div>
+                  <div className="p-3 bg-muted rounded-lg space-y-3"><div className="flex items-center justify-between"><div><span className="text-sm font-medium block">Track Stock Quantity</span><span className="text-xs text-muted-foreground">Auto-marks unavailable when stock hits zero</span></div><Switch checked={sp.formData.stock_quantity !== ''} onCheckedChange={(checked) => sp.setFormData({ ...sp.formData, stock_quantity: checked ? '10' : '' })} /></div>{sp.formData.stock_quantity !== '' && <div className="grid grid-cols-2 gap-3 pt-2 border-t"><div className="space-y-1"><Label className="text-xs">Current Stock</Label><Input type="number" min="0" value={sp.formData.stock_quantity} onChange={(e) => sp.setFormData({ ...sp.formData, stock_quantity: e.target.value })} /></div><div className="space-y-1"><Label className="text-xs">Low Stock Alert</Label><Input type="number" min="1" value={sp.formData.low_stock_threshold} onChange={(e) => sp.setFormData({ ...sp.formData, low_stock_threshold: e.target.value })} /></div></div>}</div>
+                  <AttributeBlockBuilder category={sp.formData.category || null} value={sp.attributeBlocks} onChange={sp.setAttributeBlocks} />
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg"><span className="text-sm font-medium">Available for order</span><Switch checked={sp.formData.is_available} onCheckedChange={(checked) => sp.setFormData({ ...sp.formData, is_available: checked })} /></div>
+                  <Button className="w-full" onClick={sp.handleSave} disabled={sp.isSaving}>{sp.isSaving && <Loader2 className="animate-spin mr-2" size={18} />}{sp.editingProduct ? 'Save Changes' : 'Add Product'}</Button>
                 </div>
-
-                {showVegToggle && (
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <VegBadge isVeg={formData.is_veg} />
-                      <span className="text-sm font-medium">
-                        {formData.is_veg ? 'Vegetarian' : 'Non-Vegetarian'}
-                      </span>
-                    </div>
-                    <Switch
-                      checked={formData.is_veg}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, is_veg: checked })
-                      }
-                    />
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Star size={16} className="text-warning" />
-                    <span className="text-sm font-medium">Mark as Bestseller</span>
-                  </div>
-                  <Switch
-                    checked={formData.is_bestseller}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_bestseller: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Award size={16} className="text-success" />
-                    <span className="text-sm font-medium">Recommended</span>
-                  </div>
-                  <Switch
-                    checked={formData.is_recommended}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_recommended: checked })
-                    }
-                  />
-                </div>
-
-                {/* Urgent Order Toggle */}
-                <div className="flex items-center justify-between p-3 bg-warning/10 border border-warning/30 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Bell size={16} className="text-warning" />
-                    <div>
-                      <span className="text-sm font-medium block">Urgent Order Alert</span>
-                      <span className="text-xs text-muted-foreground">
-                        3-min timer, auto-cancel if not responded
-                      </span>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={formData.is_urgent}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_urgent: checked })
-                    }
-                  />
-                </div>
-
-                {/* Stock Quantity Tracking */}
-                <div className="p-3 bg-muted rounded-lg space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-medium block">Track Stock Quantity</span>
-                      <span className="text-xs text-muted-foreground">Auto-marks unavailable when stock hits zero</span>
-                    </div>
-                    <Switch
-                      checked={formData.stock_quantity !== ''}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, stock_quantity: checked ? '10' : '' })
-                      }
-                    />
-                  </div>
-                  {formData.stock_quantity !== '' && (
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Current Stock</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          placeholder="e.g. 50"
-                          value={formData.stock_quantity}
-                          onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Low Stock Alert</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="e.g. 5"
-                          value={formData.low_stock_threshold}
-                          onChange={(e) => setFormData({ ...formData, low_stock_threshold: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-
-                {/* Attribute Block Builder */}
-                <AttributeBlockBuilder
-                  category={formData.category || null}
-                  value={attributeBlocks}
-                  onChange={setAttributeBlocks}
-                />
-
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <span className="text-sm font-medium">Available for order</span>
-                  <Switch
-                    checked={formData.is_available}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_available: checked })
-                    }
-                  />
-                </div>
-
-                <Button
-                  className="w-full"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <Loader2 className="animate-spin mr-2" size={18} />
-                  ) : null}
-                  {editingProduct ? 'Save Changes' : 'Add Product'}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
-        {/* Bulk Product Upload Sheet */}
-        {sellerProfile && (
-          <BulkProductUpload
-            isOpen={isBulkOpen}
-            onClose={() => setIsBulkOpen(false)}
-            sellerId={sellerProfile.id}
-            allowedCategories={allowedCategories}
-            onSuccess={() => sellerProfile && fetchData(sellerProfile.id)}
-          />
+        {sp.sellerProfile && <BulkProductUpload isOpen={sp.isBulkOpen} onClose={() => sp.setIsBulkOpen(false)} sellerId={sp.sellerProfile.id} allowedCategories={sp.allowedCategories} onSuccess={() => sp.sellerProfile && sp.fetchData(sp.sellerProfile.id)} />}
+
+        {sp.sellerProfile && (
+          <div className="mb-4 p-3 bg-card rounded-xl shadow-sm border"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><Store size={18} className="text-primary" /></div><div><h2 className="font-semibold text-sm">{sp.sellerProfile.business_name}</h2><p className="text-xs text-muted-foreground capitalize">{sp.primaryGroup?.replace('_', ' ')} • {sp.products.length} products</p></div></div>{sp.sellerProfiles.length > 1 && <SellerSwitcher />}</div></div>
         )}
 
-        {/* Active Business Context - Always visible */}
-        {sellerProfile && (
-          <div className="mb-4 p-3 bg-card rounded-xl shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Store size={18} className="text-primary" />
-                </div>
-                <div>
-                  <h2 className="font-semibold text-sm">{sellerProfile.business_name}</h2>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {primaryGroup?.replace('_', ' ')} • {products.length} products
-                  </p>
-                </div>
-              </div>
-              {sellerProfiles.length > 1 && (
-                <SellerSwitcher />
-              )}
-            </div>
+        {sp.licenseBlocked?.blocked && (
+          <div className={`mb-4 p-3 rounded-xl border flex items-start gap-3 ${sp.licenseBlocked.status === 'rejected' ? 'bg-destructive/10 border-destructive/30' : 'bg-warning/10 border-warning/30'}`}>
+            <ShieldAlert size={20} className={sp.licenseBlocked.status === 'rejected' ? 'text-destructive mt-0.5' : 'text-warning mt-0.5'} />
+            <div><p className={`text-sm font-semibold ${sp.licenseBlocked.status === 'rejected' ? 'text-destructive' : 'text-warning'}`}>{sp.licenseBlocked.status === 'rejected' ? `${sp.licenseBlocked.licenseName} Rejected` : sp.licenseBlocked.status === 'pending' ? `${sp.licenseBlocked.licenseName} Pending Verification` : `${sp.licenseBlocked.licenseName} Required`}</p><p className="text-xs text-muted-foreground mt-0.5">{sp.licenseBlocked.status === 'rejected' ? 'Your license was rejected. Please re-upload from Seller Settings.' : sp.licenseBlocked.status === 'pending' ? 'Your license is being reviewed.' : 'You need to upload your license from Seller Settings.'}</p></div>
           </div>
         )}
 
-        {/* License Status Banner */}
-        {licenseBlocked?.blocked && (
-          <div className={`mb-4 p-3 rounded-xl border flex items-start gap-3 ${
-            licenseBlocked.status === 'rejected'
-              ? 'bg-destructive/10 border-destructive/30'
-              : 'bg-warning/10 border-warning/30'
-          }`}>
-            <ShieldAlert size={20} className={licenseBlocked.status === 'rejected' ? 'text-destructive mt-0.5' : 'text-warning mt-0.5'} />
-            <div>
-              <p className={`text-sm font-semibold ${licenseBlocked.status === 'rejected' ? 'text-destructive' : 'text-warning'}`}>
-                {licenseBlocked.status === 'rejected'
-                  ? `${licenseBlocked.licenseName} Rejected`
-                  : licenseBlocked.status === 'pending'
-                    ? `${licenseBlocked.licenseName} Pending Verification`
-                    : `${licenseBlocked.licenseName} Required`}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {licenseBlocked.status === 'rejected'
-                  ? 'Your license was rejected. Please re-upload from Seller Settings. Products cannot be saved until approved.'
-                  : licenseBlocked.status === 'pending'
-                    ? 'Your license is being reviewed. Products cannot be saved until it is approved.'
-                    : 'You need to upload your license from Seller Settings before you can add or edit products.'}
-              </p>
-            </div>
-          </div>
-        )}
+        <h1 className="text-xl font-bold mb-4">Your Products ({sp.products.length})</h1>
 
-        <h1 className="text-xl font-bold mb-4">Your Products ({products.length})</h1>
-
-        {/* Bulk Submit for Approval */}
-        {products.some(p => (p as any).approval_status === 'draft') && (
+        {sp.products.some(p => (p as any).approval_status === 'draft') && (
           <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">
-                {products.filter(p => (p as any).approval_status === 'draft').length} draft product(s) ready
-              </p>
-              <p className="text-xs text-muted-foreground">Submit for admin review to make them visible to buyers</p>
-            </div>
-            <Button size="sm" onClick={async () => {
-              const draftIds = products.filter(p => (p as any).approval_status === 'draft').map(p => p.id);
-              const { error } = await supabase.from('products').update({ approval_status: 'pending' } as any).in('id', draftIds);
-              if (error) { toast.error('Failed to submit'); return; }
-              toast.success(`${draftIds.length} product(s) submitted for approval`);
-              if (sellerProfile) fetchData(sellerProfile.id);
-            }}>
-              <Send size={14} className="mr-1" />
-              Submit All for Approval
-            </Button>
+            <div><p className="text-sm font-medium">{sp.products.filter(p => (p as any).approval_status === 'draft').length} draft product(s) ready</p><p className="text-xs text-muted-foreground">Submit for admin review to make them visible to buyers</p></div>
+            <Button size="sm" onClick={async () => { const draftIds = sp.products.filter(p => (p as any).approval_status === 'draft').map(p => p.id); const { error } = await supabase.from('products').update({ approval_status: 'pending' } as any).in('id', draftIds); if (error) { toast.error('Failed to submit'); return; } toast.success(`${draftIds.length} product(s) submitted for approval`); if (sp.sellerProfile) sp.fetchData(sp.sellerProfile.id); }}><Send size={14} className="mr-1" />Submit All for Approval</Button>
           </div>
         )}
 
-        {products.length > 0 ? (
+        {sp.products.length > 0 ? (
           <div className="space-y-3">
-            {products.map((product) => {
+            {sp.products.map((product) => {
               const approvalStatus = (product as any).approval_status || 'approved';
-              const isEditable = approvalStatus !== 'pending'; // Allow edit on draft, rejected, and approved
-
+              const isEditable = approvalStatus !== 'pending';
               return (
-              <div
-                key={product.id}
-                className={`bg-card rounded-xl p-4 shadow-sm transition-opacity ${
-                  !product.is_available ? 'opacity-60' : ''
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 relative">
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <span className="text-xl">{configs.find(c => c.category === product.category)?.icon || '📦'}</span>
-                      </div>
-                    )}
-                    {!product.is_available && (
-                      <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                        <span className="text-[10px] font-medium text-destructive">Out of Stock</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2 flex-wrap">
-                      {(() => {
-                        const prodConfig = configs.find(c => c.category === product.category);
-                        return (prodConfig?.formHints.showVegToggle ?? false) && <VegBadge isVeg={product.is_veg} size="sm" />;
-                      })()}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-medium truncate">{product.name}</h3>
-                          {/* Approval Status Badge */}
-                          {approvalStatus === 'draft' && (
-                            <Badge variant="outline" className="text-[10px] px-1 gap-0.5 border-muted-foreground/30">
-                              <Clock size={10} /> Draft
-                            </Badge>
-                          )}
-                          {approvalStatus === 'pending' && (
-                            <Badge className="bg-warning/20 text-warning-foreground text-[10px] px-1 gap-0.5">
-                              <Clock size={10} /> Pending
-                            </Badge>
-                          )}
-                          {approvalStatus === 'rejected' && (
-                            <Badge variant="destructive" className="text-[10px] px-1 gap-0.5">
-                              <XCircle size={10} /> Rejected
-                            </Badge>
-                          )}
-                          {approvalStatus === 'approved' && (
-                            <Badge className="bg-success/20 text-success text-[10px] px-1 gap-0.5">
-                              <CheckCircle2 size={10} /> Live
-                            </Badge>
-                          )}
-                          {product.is_bestseller && (
-                            <Badge className="bg-warning/20 text-warning-foreground text-[10px] px-1">
-                              <Star size={10} className="mr-0.5 fill-warning text-warning" />
-                              Bestseller
-                            </Badge>
-                          )}
-                          {product.is_recommended && (
-                            <Badge className="bg-success/20 text-success text-[10px] px-1">
-                              Recommended
-                            </Badge>
-                          )}
-                          {product.is_urgent && (
-                            <Badge className="bg-destructive/20 text-destructive text-[10px] px-1">
-                              <Bell size={10} className="mr-0.5" />
-                              Urgent
-                            </Badge>
-                          )}
+                <div key={product.id} className={`bg-card rounded-xl p-4 shadow-sm transition-opacity ${!product.is_available ? 'opacity-60' : ''}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 relative">
+                      {product.image_url ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted flex items-center justify-center"><span className="text-xl">{sp.configs.find(c => c.category === product.category)?.icon || '📦'}</span></div>}
+                      {!product.is_available && <div className="absolute inset-0 bg-background/70 flex items-center justify-center"><span className="text-[10px] font-medium text-destructive">Out of Stock</span></div>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-2 flex-wrap">
+                        {(() => { const c = sp.configs.find(c => c.category === product.category); return (c?.formHints.showVegToggle ?? false) && <VegBadge isVeg={product.is_veg} size="sm" />; })()}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-medium truncate">{product.name}</h3>
+                            {approvalStatus === 'draft' && <Badge variant="outline" className="text-[10px] px-1 gap-0.5 border-muted-foreground/30"><Clock size={10} /> Draft</Badge>}
+                            {approvalStatus === 'pending' && <Badge className="bg-warning/20 text-warning-foreground text-[10px] px-1 gap-0.5"><Clock size={10} /> Pending</Badge>}
+                            {approvalStatus === 'rejected' && <Badge variant="destructive" className="text-[10px] px-1 gap-0.5"><XCircle size={10} /> Rejected</Badge>}
+                            {approvalStatus === 'approved' && <Badge className="bg-success/20 text-success text-[10px] px-1 gap-0.5"><CheckCircle2 size={10} /> Live</Badge>}
+                            {product.is_bestseller && <Badge className="bg-warning/20 text-warning-foreground text-[10px] px-1"><Star size={10} className="mr-0.5 fill-warning text-warning" />Bestseller</Badge>}
+                          </div>
+                          <p className="text-sm font-semibold text-primary">{formatPrice(product.price)}</p>
                         </div>
-                        <p className="text-sm font-semibold text-primary">
-                          {formatPrice(product.price)}
-                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        {isEditable ? (<><Button size="sm" variant="outline" onClick={() => sp.openEditDialog(product)}><Edit size={14} className="mr-1" />Edit</Button><Button size="sm" variant="ghost" className="text-destructive" onClick={() => sp.setDeleteTarget(product)}><Trash2 size={14} /></Button>{approvalStatus === 'draft' && <Button size="sm" variant="secondary" onClick={async () => { const { error } = await supabase.from('products').update({ approval_status: 'pending' } as any).eq('id', product.id); if (error) { toast.error('Failed to submit'); return; } toast.success('Submitted for approval'); if (sp.sellerProfile) sp.fetchData(sp.sellerProfile.id); }}><Send size={14} className="mr-1" />Submit</Button>}</>) : <span className="text-xs text-muted-foreground italic">Awaiting admin review</span>}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      {isEditable ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openEditDialog(product)}
-                          >
-                            <Edit size={14} className="mr-1" />
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive"
-                            onClick={() => setDeleteTarget(product)}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                          {approvalStatus === 'draft' && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={async () => {
-                                const { error } = await supabase.from('products').update({ approval_status: 'pending' } as any).eq('id', product.id);
-                                if (error) { toast.error('Failed to submit'); return; }
-                                toast.success('Submitted for approval');
-                                if (sellerProfile) fetchData(sellerProfile.id);
-                              }}
-                            >
-                              <Send size={14} className="mr-1" />
-                              Submit
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">
-                          Awaiting admin review
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <Switch
-                      checked={product.is_available}
-                      onCheckedChange={() => toggleAvailability(product)}
-                    />
-                    <span className="text-[10px] text-muted-foreground">
-                      {product.is_available ? 'In Stock' : 'Out'}
-                    </span>
+                    <div className="flex flex-col items-center gap-1"><Switch checked={product.is_available} onCheckedChange={() => sp.toggleAvailability(product)} /><span className="text-[10px] text-muted-foreground">{product.is_available ? 'In Stock' : 'Out'}</span></div>
                   </div>
                 </div>
-              </div>
               );
             })}
           </div>
         ) : (
-          <div className="text-center py-12 bg-muted rounded-xl">
-            <p className="text-muted-foreground mb-4">No products yet</p>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus size={16} className="mr-1" />
-              Add Your First Product
-            </Button>
-          </div>
+          <div className="text-center py-12 bg-muted rounded-xl"><p className="text-muted-foreground mb-4">No products yet</p><Button onClick={() => sp.setIsDialogOpen(true)}><Plus size={16} className="mr-1" />Add Your First Product</Button></div>
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This product will be permanently removed. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep Product</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+      <AlertDialog open={!!sp.deleteTarget} onOpenChange={(open) => !open && sp.setDeleteTarget(null)}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete "{sp.deleteTarget?.name}"?</AlertDialogTitle><AlertDialogDescription>This product will be permanently removed.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Keep Product</AlertDialogCancel><AlertDialogAction onClick={sp.confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
     </AppLayout>
   );
