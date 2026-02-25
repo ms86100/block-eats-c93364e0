@@ -17,7 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Plus, Edit2, Trash2, Tag } from 'lucide-react';
+import { Loader2, Plus, Edit2, Trash2, Tag, RefreshCw } from 'lucide-react';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { friendlyError } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -38,7 +38,7 @@ interface OpenSubcategoryCreateEventDetail {
 }
 
 export function SubcategoryManager() {
-  const { configs } = useCategoryConfigs();
+  const { configs, isLoading: configsLoading, refresh: refreshConfigs } = useCategoryConfigs();
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Empty string means "all categories" — never sent as a DB filter
@@ -197,7 +197,7 @@ export function SubcategoryManager() {
         </div>
 
         {/* Filter by category */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Select value={selectedConfigId || 'all'} onValueChange={handleFilterChange}>
             <SelectTrigger className="flex-1 rounded-xl">
               <SelectValue placeholder="All categories" />
@@ -209,6 +209,9 @@ export function SubcategoryManager() {
               ))}
             </SelectContent>
           </Select>
+          <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-xl" onClick={() => refreshConfigs()} disabled={configsLoading} title="Refresh categories">
+            <RefreshCw size={14} className={configsLoading ? 'animate-spin' : ''} />
+          </Button>
           <Button size="sm" onClick={() => openCreate()} className="rounded-xl font-semibold gap-1.5">
             <Plus size={13} /> Add Subcategory
           </Button>
