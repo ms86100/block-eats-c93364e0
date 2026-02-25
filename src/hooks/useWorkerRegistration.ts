@@ -105,19 +105,22 @@ export function useWorkerRegistration(
       return;
     }
 
-    if (!photoBlob) { toast.error('Live photo is required'); return; }
+    // Photo is optional
     if (activeDays.length === 0) { toast.error('Select at least one active day'); return; }
 
     setFieldErrors({});
     setIsSubmitting(true);
 
     try {
-      const sanitizedName = name.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-      const fileName = `workers/${effectiveSocietyId}/${Date.now()}_${sanitizedName}.jpg`;
-      const { error: uploadError } = await supabase.storage.from('app-images').upload(fileName, photoBlob, { contentType: 'image/jpeg' });
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage.from('app-images').getPublicUrl(fileName);
+      let publicUrl: string | null = null;
+      if (photoBlob) {
+        const sanitizedName = name.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+        const fileName = `workers/${effectiveSocietyId}/${Date.now()}_${sanitizedName}.jpg`;
+        const { error: uploadError } = await supabase.storage.from('app-images').upload(fileName, photoBlob, { contentType: 'image/jpeg' });
+        if (uploadError) throw uploadError;
+        const { data } = supabase.storage.from('app-images').getPublicUrl(fileName);
+        publicUrl = data.publicUrl;
+      }
 
       const { data: worker, error } = await supabase.from('society_workers').insert({
         user_id: user.id, society_id: effectiveSocietyId, worker_type: workerType,
@@ -152,7 +155,7 @@ export function useWorkerRegistration(
     }
   }, [user, effectiveSocietyId, name, phone, workerType, shiftStart, shiftEnd, entryFrequency, emergencyPhone, flatNumbers, preferredLanguage, photoBlob, activeDays, categoryId, onSuccess, onOpenChange]);
 
-  const isSubmitDisabled = !name.trim() || !photoBlob || !preferredLanguage || !entryFrequency || languages.length === 0 || entryFrequencyOptions.length === 0 || isSubmitting;
+  const isSubmitDisabled = !name.trim() || !preferredLanguage || !entryFrequency || languages.length === 0 || entryFrequencyOptions.length === 0 || isSubmitting;
 
   return {
     name, setName, phone, setPhone, workerType, setWorkerType,
