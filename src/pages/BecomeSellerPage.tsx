@@ -135,16 +135,16 @@ export default function BecomeSellerPage() {
         </div>
 
         {/* Progress Stepper */}
-        <div className="flex items-center justify-between mb-6 px-1">
+        <div className="flex items-center justify-between mb-6 px-0 overflow-x-auto scrollbar-hide gap-1">
           {STEP_META.map((meta, i) => {
             const stepNum = i + 1; const Icon = meta.icon;
             const isCompleted = step > stepNum; const isActive = step === stepNum;
             return (
-              <div key={meta.label} className="flex flex-col items-center gap-1 flex-1">
-                <div className={cn('w-8 h-8 rounded-full flex items-center justify-center transition-all text-xs', isCompleted && 'bg-primary text-primary-foreground', isActive && 'bg-primary/20 text-primary ring-2 ring-primary', !isCompleted && !isActive && 'bg-muted text-muted-foreground')}>
-                  {isCompleted ? <CheckCircle2 size={16} /> : <Icon size={14} />}
+              <div key={meta.label} className="flex flex-col items-center gap-1 min-w-[3rem] flex-1">
+                <div className={cn('w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all text-xs', isCompleted && 'bg-primary text-primary-foreground', isActive && 'bg-primary/20 text-primary ring-2 ring-primary', !isCompleted && !isActive && 'bg-muted text-muted-foreground')}>
+                  {isCompleted ? <CheckCircle2 size={14} /> : <Icon size={12} />}
                 </div>
-                <span className={cn('text-[10px] font-medium text-center leading-tight', isActive ? 'text-primary' : 'text-muted-foreground')}>{meta.label}</span>
+                <span className={cn('text-[9px] sm:text-[10px] font-medium text-center leading-tight truncate w-full', isActive ? 'text-primary' : 'text-muted-foreground')}>{meta.label}</span>
               </div>
             );
           })}

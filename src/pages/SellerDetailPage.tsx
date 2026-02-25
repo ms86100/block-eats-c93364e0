@@ -230,7 +230,7 @@ export default function SellerDetailPage() {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         
-        <div className="absolute top-4 left-4 right-4 flex justify-between safe-top">
+        <div className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 right-4 flex justify-between">
           <button
             onClick={() => navigate(-1)}
             className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center shadow-md border border-white/20"
@@ -536,7 +536,7 @@ export default function SellerDetailPage() {
 
       {/* Cart Footer */}
       {cartCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-primary safe-bottom">
+        <div className="fixed bottom-0 left-0 right-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-primary">
           <Link to="/cart">
             <div className="flex items-center justify-between text-primary-foreground">
               <div className="flex items-center gap-3">

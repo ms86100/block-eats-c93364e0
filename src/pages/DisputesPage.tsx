@@ -122,7 +122,7 @@ export default function DisputesPage() {
 
       <Button
         size="icon"
-        className="fixed bottom-24 right-4 z-40 w-12 h-12 rounded-full shadow-lg"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 w-12 h-12 rounded-full shadow-lg"
         onClick={() => setShowCreate(true)}
       >
         <Plus size={22} />

@@ -172,7 +172,7 @@ export default function OrderDetailPage() {
 
       {/* Seller Action Bar */}
       {o.isSellerView && order.status !== 'completed' && order.status !== 'cancelled' && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border safe-bottom">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border pb-[env(safe-area-inset-bottom)]">
           <div className="px-4 py-3 flex gap-3">
             {order.status === 'placed' && <Button variant="outline" className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground h-12" onClick={() => o.setIsRejectionDialogOpen(true)} disabled={o.isUpdating}><XCircle size={16} className="mr-1.5" />Reject</Button>}
             {o.orderFulfillmentType === 'delivery' && order.status === 'ready' ? (

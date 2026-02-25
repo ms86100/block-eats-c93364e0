@@ -31,8 +31,10 @@ export default function VisitorManagementPage() {
             <div><p className="font-semibold">Today's Visitors</p><p className="text-2xl font-bold text-primary">{v.todayCount}</p></div>
           </div>
           <Sheet open={v.isAddOpen} onOpenChange={v.setIsAddOpen}>
-            <SheetTrigger asChild><Button size="sm"><UserPlus size={16} className="mr-1" />Add</Button></SheetTrigger>
-            {v.visitors.length > 0 && <Button size="sm" variant="outline" onClick={v.handleExport} title="Export CSV"><Download size={16} /></Button>}
+            <div className="flex gap-2">
+              {v.visitors.length > 0 && <Button size="sm" variant="outline" onClick={v.handleExport} title="Export CSV"><Download size={16} /></Button>}
+              <SheetTrigger asChild><Button size="sm"><UserPlus size={16} className="mr-1" />Add</Button></SheetTrigger>
+            </div>
             <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto">
               <SheetHeader><SheetTitle>Add Visitor</SheetTitle><SheetDescription>Pre-approve a visitor with an OTP for gate entry</SheetDescription></SheetHeader>
               <div className="space-y-4 py-4">

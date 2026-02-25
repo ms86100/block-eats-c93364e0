@@ -205,7 +205,7 @@ export default function BulletinPage() {
                 ))
               )}
             </div>
-            <Button size="icon" className="fixed bottom-28 right-4 z-40 w-12 h-12 rounded-full shadow-lg" onClick={() => setShowCreate(true)}>
+            <Button size="icon" className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 w-12 h-12 rounded-full shadow-lg" onClick={() => setShowCreate(true)}>
               <Plus size={22} />
             </Button>
           </TabsContent>
@@ -221,7 +221,7 @@ export default function BulletinPage() {
                 <HelpRequestCard key={req.id} request={req} onOpen={handleOpenHelp} />
               ))
             )}
-            <Button size="icon" className="fixed bottom-28 right-4 z-40 w-12 h-12 rounded-full shadow-lg" onClick={() => setShowCreateHelp(true)}>
+            <Button size="icon" className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 w-12 h-12 rounded-full shadow-lg" onClick={() => setShowCreateHelp(true)}>
               <Plus size={22} />
             </Button>
           </TabsContent>
