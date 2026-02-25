@@ -201,7 +201,7 @@ export default function CategoryPage() {
       <div className="flex min-h-[calc(100vh-180px)]">
         {/* Left sidebar — category thumbnails */}
         {siblingCategories.length > 1 && (
-          <div className="w-[100px] shrink-0 border-r border-border dark:bg-[hsl(0,0%,5%)] bg-card overflow-y-auto scrollbar-hide py-2">
+          <div className="w-[80px] shrink-0 border-r border-border dark:bg-[hsl(0,0%,5%)] bg-card overflow-y-auto scrollbar-hide py-2">
             {siblingCategories.map((cat) => {
               const isActive = cat.category === category;
               return (
@@ -216,8 +216,8 @@ export default function CategoryPage() {
                   {isActive && (
                     <div className="absolute left-0 top-1 bottom-1 w-1 rounded-r-full bg-primary" />
                   )}
-                  <div className={cn(
-                    'w-[60px] h-[60px] rounded-xl flex items-center justify-center text-xl overflow-hidden transition-colors',
+                    <div className={cn(
+                    'w-[52px] h-[52px] rounded-xl flex items-center justify-center text-xl overflow-hidden transition-colors',
                     isActive
                       ? 'ring-2 ring-primary bg-primary/10'
                       : 'bg-muted'

@@ -44,7 +44,7 @@ export default function SearchPage() {
               <Link to="/" className="shrink-0 h-10 w-10 rounded-full bg-muted flex items-center justify-center"><ArrowLeft size={18} className="text-foreground" /></Link>
               <div className="flex-1 relative">
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
-                {!s.query && <div className="absolute left-9 top-1/2 -translate-y-1/2 pointer-events-none pr-16 overflow-hidden max-w-[calc(100%-4rem)]"><TypewriterPlaceholder context="search" /></div>}
+                {!s.query && <div className="absolute left-9 top-1/2 -translate-y-1/2 pointer-events-none pr-16 overflow-hidden whitespace-nowrap max-w-[calc(100%-4rem)]"><TypewriterPlaceholder context="search" /></div>}
                 <Input placeholder="" value={s.query} onChange={(e) => s.setQuery(e.target.value)} className="pl-9 pr-16 h-10 rounded-xl text-sm bg-muted border-0 focus-visible:ring-1" autoFocus />
                 {s.query && <button onClick={() => s.setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"><X size={14} /></button>}
               </div>
@@ -104,7 +104,7 @@ export default function SearchPage() {
 
           {/* Results */}
           {s.showLoading ? (
-            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 mt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 mt-2">
               {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-52 w-full rounded-xl" />)}
             </div>
           ) : s.displayProducts.length > 0 ? (
@@ -174,7 +174,7 @@ function ProductGridByCategory({ products, categoryMap, categoryConfigs, marketp
               <span className="text-xs text-muted-foreground">({items.length})</span>
               <span className="text-[11px] font-semibold text-accent ml-auto">From {formatPrice(Math.min(...items.map(p => p.price)))}</span>
             </div>
-            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
               {items.map((p) => <ProductListingCard key={p.product_id} product={toProductWithSeller(p)} categoryConfigs={categoryConfigs as any} marketplaceConfig={marketplaceConfig} badgeConfigs={badgeConfigs} onNavigate={onNavigate} />)}
             </div>
           </div>

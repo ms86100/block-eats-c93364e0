@@ -197,11 +197,6 @@ export default function OrdersPage() {
   return (
     <AppLayout>
       <div className="pb-4">
-        {/* Section title */}
-        <div className="px-4 pt-2 pb-1">
-          <h2 className="text-sm font-bold text-foreground">Your Orders</h2>
-        </div>
-
         <div className="px-4 pt-3">
           {isSeller ? (
             <Tabs defaultValue="buying" className="w-full">

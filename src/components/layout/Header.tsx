@@ -94,7 +94,7 @@ function HeaderInner({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-full shrink-0"
+                    className="h-10 w-10 rounded-full shrink-0"
                     onClick={handleBack}
                   >
                     <ArrowLeft size={18} />

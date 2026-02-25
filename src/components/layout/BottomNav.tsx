@@ -47,7 +47,7 @@ function BottomNavInner() {
     : navItems.filter(item => !('featureKey' in item && item.featureKey) || isFeatureEnabled((item as any).featureKey));
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 bg-card border-t border-border safe-bottom">
+    <nav className="fixed inset-x-0 bottom-0 z-50 bg-card border-t border-border pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
         {visibleItems.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to || 

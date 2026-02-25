@@ -139,7 +139,8 @@ export default function SellerDashboardPage() {
 
   return (
     <AppLayout headerTitle="Seller Dashboard" showLocation={false}>
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-5">
+        {/* ── Store Overview ── */}
         <StoreStatusCard
           sellerProfile={sellerProfile}
           sellerProfiles={sellerProfiles}
@@ -148,97 +149,91 @@ export default function SellerDashboardPage() {
 
         <SellerVisibilityChecklist sellerId={sellerProfile.id} />
 
-        {/* Store Performance Card - "How buyers see your store" */}
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">How buyers see your store</h3>
-              <Link to={`/seller/${sellerProfile.id}`}>
-                <Button variant="ghost" size="sm" className="gap-1 text-xs h-7">
-                  <Eye size={14} />
-                  Preview
-                </Button>
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                <Star size={16} className="text-warning" />
-                <div>
-                  <p className="text-sm font-semibold">
-                    {Number(sellerProfile.rating || 0).toFixed(1)} ★
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {sellerProfile.total_reviews || 0} reviews
-                  </p>
+        {/* ── Performance & Earnings ── */}
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Performance</p>
+          
+          {/* Store Performance Card */}
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm">How buyers see your store</h3>
+                <Link to={`/seller/${sellerProfile.id}`}>
+                  <Button variant="ghost" size="sm" className="gap-1 text-xs h-7">
+                    <Eye size={14} />
+                    Preview
+                  </Button>
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                  <Star size={16} className="text-warning" />
+                  <div>
+                    <p className="text-sm font-semibold">{Number(sellerProfile.rating || 0).toFixed(1)} ★</p>
+                    <p className="text-[10px] text-muted-foreground">{sellerProfile.total_reviews || 0} reviews</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                  <Clock size={16} className="text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold">{sellerProfile.avg_response_minutes != null ? `~${sellerProfile.avg_response_minutes} min` : 'N/A'}</p>
+                    <p className="text-[10px] text-muted-foreground">Avg response</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                  <CheckCircle size={16} className="text-success" />
+                  <div>
+                    <p className="text-sm font-semibold">{sellerProfile.completed_order_count || 0}</p>
+                    <p className="text-[10px] text-muted-foreground">Orders fulfilled</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                  <XCircle size={16} className="text-destructive" />
+                  <div>
+                    <p className="text-sm font-semibold">{sellerProfile.cancellation_rate != null ? `${sellerProfile.cancellation_rate}%` : '0%'}</p>
+                    <p className="text-[10px] text-muted-foreground">Cancellation</p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                <Clock size={16} className="text-primary" />
-                <div>
-                  <p className="text-sm font-semibold">
-                    {sellerProfile.avg_response_minutes != null
-                      ? `~${sellerProfile.avg_response_minutes} min`
-                      : 'N/A'}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">Avg response</p>
-                </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(sellerProfile.completed_order_count || 0) === 0 && (
+                  <Badge variant="secondary" className="text-[10px] bg-secondary text-secondary-foreground">New Seller</Badge>
+                )}
+                {(sellerProfile.cancellation_rate === 0 || sellerProfile.cancellation_rate === null) && (sellerProfile.completed_order_count || 0) > 2 && (
+                  <Badge variant="secondary" className="text-[10px] bg-success/10 text-success">
+                    <ShieldCheck size={10} className="mr-0.5" />0% Cancellation
+                  </Badge>
+                )}
               </div>
-              <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                <CheckCircle size={16} className="text-success" />
-                <div>
-                  <p className="text-sm font-semibold">
-                    {sellerProfile.completed_order_count || 0}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">Orders fulfilled</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                <XCircle size={16} className="text-destructive" />
-                <div>
-                  <p className="text-sm font-semibold">
-                    {sellerProfile.cancellation_rate != null
-                      ? `${sellerProfile.cancellation_rate}%`
-                      : '0%'}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">Cancellation</p>
-                </div>
-              </div>
-            </div>
-            {/* Badges buyers see */}
-            <div className="flex flex-wrap gap-1.5">
-              {(sellerProfile.completed_order_count || 0) === 0 && (
-                <Badge variant="secondary" className="text-[10px] bg-secondary text-secondary-foreground">
-                  New Seller
-                </Badge>
-              )}
-              {(sellerProfile.cancellation_rate === 0 || sellerProfile.cancellation_rate === null) && (sellerProfile.completed_order_count || 0) > 2 && (
-                <Badge variant="secondary" className="text-[10px] bg-success/10 text-success">
-                  <ShieldCheck size={10} className="mr-0.5" />
-                  0% Cancellation
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <EarningsSummary
-          todayEarnings={stats?.todayEarnings || 0}
-          weekEarnings={stats?.weekEarnings || 0}
-          totalEarnings={stats?.totalEarnings || 0}
-        />
+          <EarningsSummary
+            todayEarnings={stats?.todayEarnings || 0}
+            weekEarnings={stats?.weekEarnings || 0}
+            totalEarnings={stats?.totalEarnings || 0}
+          />
 
-        <DashboardStats
-          totalOrders={stats?.totalOrders || 0}
-          pendingOrders={stats?.pendingOrders || 0}
-          todayOrders={stats?.todayOrders || 0}
-          completedOrders={stats?.completedOrders || 0}
-        />
+          <DashboardStats
+            totalOrders={stats?.totalOrders || 0}
+            pendingOrders={stats?.pendingOrders || 0}
+            todayOrders={stats?.todayOrders || 0}
+            completedOrders={stats?.completedOrders || 0}
+          />
+        </div>
 
-        <QuickActions />
-        <CouponManager />
+        {/* ── Tools & Promotions ── */}
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Tools & Promotions</p>
+          <QuickActions />
+          <CouponManager />
+        </div>
         
-        {/* Analytics Section */}
-        <SellerAnalytics sellerId={sellerProfile.id} />
+        {/* ── Analytics ── */}
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Analytics</p>
+          <SellerAnalytics sellerId={sellerProfile.id} />
+        </div>
 
         {/* Orders Section */}
         <div>

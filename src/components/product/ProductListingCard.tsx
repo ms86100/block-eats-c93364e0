@@ -292,7 +292,7 @@ function ProductListingCardInner({
       </div>
 
       {/* ━━━ CONTENT ━━━ */}
-      <div className="px-2.5 pb-2.5 pt-4 flex flex-col flex-1">
+      <div className={cn("px-2.5 pb-2.5 flex flex-col flex-1", !viewOnly && !isOutOfStock ? "pt-4" : "pt-2.5")}>
         {variantText && (
           <span className="inline-flex items-center justify-center border border-border rounded-full text-[8px] font-medium px-1.5 py-px mb-1 w-fit text-muted-foreground">
             {variantText}
