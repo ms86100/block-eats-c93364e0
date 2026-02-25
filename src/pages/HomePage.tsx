@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { OnboardingWalkthrough, useOnboarding } from '@/components/onboarding/OnboardingWalkthrough';
 import { VerificationPendingScreen } from '@/components/onboarding/VerificationPendingScreen';
 import { MarketplaceSection } from '@/components/home/MarketplaceSection';
+import { ReorderLastOrder } from '@/components/home/ReorderLastOrder';
 import { SocietyQuickLinks } from '@/components/home/SocietyQuickLinks';
 import { FeaturedBanners } from '@/components/home/FeaturedBanners';
 import { CommunityTeaser } from '@/components/home/CommunityTeaser';
@@ -99,6 +100,9 @@ export default function HomePage() {
 
         {/* ═══ FEATURED BANNERS ═══ */}
         <FeaturedBanners />
+
+        {/* ═══ REORDER LAST ORDER ═══ */}
+        <ReorderLastOrder />
 
         {/* ═══ SOCIETY QUICK LINKS ═══ */}
         <SocietyQuickLinks />

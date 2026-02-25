@@ -6682,6 +6682,13 @@ export type Database = {
           unique_customers: number
         }[]
       }
+      get_society_order_stats: {
+        Args: { _product_ids: string[]; _society_id: string }
+        Returns: {
+          families_this_week: number
+          product_id: string
+        }[]
+      }
       get_unified_gate_log: {
         Args: { _date?: string; _society_id: string }
         Returns: {

@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { useProductsByCategory } from '@/hooks/queries/useProductsByCategory';
 import { useParentGroups } from '@/hooks/useParentGroups';
+import { useSocialProof } from '@/hooks/queries/useSocialProof';
 import { ParentGroupTabs } from '@/components/home/ParentGroupTabs';
 import { CategoryImageGrid } from '@/components/home/CategoryImageGrid';
 import { FeaturedBanners } from '@/components/home/FeaturedBanners';
@@ -11,9 +11,8 @@ import { ShopByStoreDiscovery } from '@/components/home/ShopByStoreDiscovery';
 import { ProductListingCard, ProductWithSeller } from '@/components/product/ProductListingCard';
 import { ProductDetailSheet } from '@/components/product/ProductDetailSheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Store, ChevronRight, ShoppingBag, Sparkles, Clock } from 'lucide-react';
+import { ChevronRight, ShoppingBag, Sparkles, Clock, TrendingUp, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { escapeIlike } from '@/lib/query-utils';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { useMarketplaceConfig } from '@/hooks/useMarketplaceConfig';
 import { useBadgeConfig } from '@/hooks/useBadgeConfig';
@@ -31,6 +30,26 @@ export function MarketplaceSection() {
 
   const { data: localCategories = [], isLoading: loadingLocal } = useProductsByCategory(80);
   const { parentGroupInfos } = useParentGroups();
+
+  // Collect all product IDs for social proof
+  const allProducts = useMemo(() => localCategories.flatMap(c => c.products), [localCategories]);
+  const allProductIds = useMemo(() => allProducts.map(p => p.id), [allProducts]);
+  const { data: socialProofMap } = useSocialProof(allProductIds);
+
+  // Task 14: Discovery sections
+  const newThisWeek = useMemo(() => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return allProducts
+      .filter(p => new Date(p.created_at).getTime() >= weekAgo)
+      .slice(0, 10);
+  }, [allProducts]);
+
+  const popularNearYou = useMemo(() => {
+    // Sort by completed_order_count descending (proxy for popularity)
+    return [...allProducts]
+      .sort((a, b) => ((b as any).completed_order_count || 0) - ((a as any).completed_order_count || 0))
+      .slice(0, 10);
+  }, [allProducts]);
 
   const filteredCategories = activeGroup
     ? localCategories.filter(cat => cat.parentGroup === activeGroup)
@@ -93,6 +112,36 @@ export function MarketplaceSection() {
       {/* ━━━ Featured Banners ━━━ */}
       <FeaturedBanners />
 
+      {/* ━━━ Discovery: Popular Near You ━━━ */}
+      {!activeGroup && popularNearYou.length > 3 && (
+        <DiscoveryRow
+          title="Popular near you"
+          icon={<Flame size={14} className="text-destructive" />}
+          products={popularNearYou}
+          onProductTap={handleProductTap}
+          onNavigate={navigate}
+          categoryConfigs={categoryConfigs}
+          marketplaceConfig={mc}
+          badgeConfigs={badgeConfigs}
+          socialProofMap={socialProofMap}
+        />
+      )}
+
+      {/* ━━━ Discovery: New This Week ━━━ */}
+      {!activeGroup && newThisWeek.length > 0 && (
+        <DiscoveryRow
+          title="New this week"
+          icon={<Sparkles size={14} className="text-primary" />}
+          products={newThisWeek}
+          onProductTap={handleProductTap}
+          onNavigate={navigate}
+          categoryConfigs={categoryConfigs}
+          marketplaceConfig={mc}
+          badgeConfigs={badgeConfigs}
+          socialProofMap={socialProofMap}
+        />
+      )}
+
       {/* ━━━ Product Listings ━━━ */}
       <ProductListings
         categories={filteredCategories}
@@ -102,6 +151,7 @@ export function MarketplaceSection() {
         categoryConfigs={categoryConfigs}
         marketplaceConfig={mc}
         badgeConfigs={badgeConfigs}
+        socialProofMap={socialProofMap}
       />
 
       {/* ━━━ Shop by Store Discovery ━━━ */}
@@ -119,9 +169,48 @@ export function MarketplaceSection() {
   );
 }
 
+// ── Discovery Row (New This Week / Popular Near You) ──
+function DiscoveryRow({
+  title, icon, products, onProductTap, onNavigate, categoryConfigs, marketplaceConfig, badgeConfigs, socialProofMap,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  products: ProductWithSeller[];
+  onProductTap?: (p: ProductWithSeller) => void;
+  onNavigate?: (path: string) => void;
+  categoryConfigs?: any[];
+  marketplaceConfig?: any;
+  badgeConfigs?: any[];
+  socialProofMap?: Map<string, number>;
+}) {
+  return (
+    <div className="mt-5">
+      <div className="flex items-center gap-1.5 px-4 mb-3">
+        {icon}
+        <h3 className="font-extrabold text-[15px] text-foreground tracking-tight">{title}</h3>
+      </div>
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x snap-mandatory">
+        {products.map(product => (
+          <div key={product.id} className="w-[155px] shrink-0 snap-start">
+            <ProductListingCard
+              product={product}
+              onTap={onProductTap}
+              onNavigate={onNavigate}
+              categoryConfigs={categoryConfigs}
+              marketplaceConfig={marketplaceConfig}
+              badgeConfigs={badgeConfigs}
+              socialProofCount={socialProofMap?.get(product.id)}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Product Listings by Category ──
 function ProductListings({
-  categories, isLoading, onProductTap, onNavigate, categoryConfigs, marketplaceConfig, badgeConfigs,
+  categories, isLoading, onProductTap, onNavigate, categoryConfigs, marketplaceConfig, badgeConfigs, socialProofMap,
 }: {
   categories: { category: string; parentGroup: string; displayName: string; icon: string; products: ProductWithSeller[] }[];
   isLoading: boolean;
@@ -130,6 +219,7 @@ function ProductListings({
   categoryConfigs?: any[];
   marketplaceConfig?: any;
   badgeConfigs?: any[];
+  socialProofMap?: Map<string, number>;
 }) {
   if (isLoading) {
     return (
@@ -216,6 +306,7 @@ function ProductListings({
                   categoryConfigs={categoryConfigs}
                   marketplaceConfig={marketplaceConfig}
                   badgeConfigs={badgeConfigs}
+                  socialProofCount={socialProofMap?.get(product.id)}
                 />
               </div>
             ))}

@@ -74,6 +74,7 @@ interface ProductListingCardProps {
   categoryConfigs?: CategoryConfig[];
   marketplaceConfig?: MarketplaceConfig;
   badgeConfigs?: BadgeConfigRow[];
+  socialProofCount?: number;
 }
 
 /* ━━━ Main Component — Premium dark card ━━━ */
@@ -88,6 +89,7 @@ function ProductListingCardInner({
   categoryConfigs = [],
   marketplaceConfig,
   badgeConfigs = [],
+  socialProofCount,
 }: ProductListingCardProps) {
   const { items, addItem, updateQuantity } = useCart();
   const { impact, selectionChanged } = useHaptics();
@@ -328,6 +330,13 @@ function ProductListingCardInner({
         {(product as any).on_time_delivery_pct != null && (product as any).completed_order_count > 5 && (
           <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-primary bg-primary/10 rounded-full px-1.5 py-0.5 w-fit mb-0.5">
             ✓ On-time: {(product as any).on_time_delivery_pct}%
+          </span>
+        )}
+
+        {/* Social proof badge */}
+        {socialProofCount != null && socialProofCount > 0 && (
+          <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-accent-foreground bg-accent/15 rounded-full px-1.5 py-0.5 w-fit mb-0.5">
+            👥 {socialProofCount} {socialProofCount === 1 ? 'family' : 'families'} ordered this week
           </span>
         )}
 
