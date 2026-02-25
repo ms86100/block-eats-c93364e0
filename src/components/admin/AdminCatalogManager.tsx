@@ -69,7 +69,7 @@ export function AdminCatalogManager() {
   });
   const TAB_ITEMS = [
     { value: 'overview', label: 'Overview', icon: Layers3 },
-    { value: 'categories', label: 'Categories (under Groups)', icon: Grid3X3 },
+    { value: 'categories', label: 'Categories', icon: Grid3X3 },
     { value: 'attributes', label: 'Attributes', icon: Blocks },
   ];
 
@@ -94,7 +94,7 @@ export function AdminCatalogManager() {
               <TreePine size={14} className="text-primary shrink-0" />
               <span className="text-xs font-bold flex-1">Taxonomy Overview</span>
               <Badge variant="secondary" className="text-[9px] rounded-md">
-                {parentGroups.length}G · {(categories as any[]).length}C · {subcategories.length}S
+                {parentGroups.length} sections · {(categories as any[]).length} categories · {subcategories.length} subcategories
               </Badge>
               <motion.div animate={{ rotate: taxonomyOpen ? 90 : 0 }} transition={{ duration: 0.15 }}>
                 <ChevronRight size={14} className="text-muted-foreground" />
@@ -108,7 +108,7 @@ export function AdminCatalogManager() {
                   <div className="flex items-center gap-1.5 font-semibold text-foreground">
                     <span>{group.icon}</span>
                     <span>{group.name}</span>
-                    <span className="text-muted-foreground font-normal">(Group)</span>
+                    <span className="text-muted-foreground font-normal">(Section)</span>
                   </div>
                   {group.categories.length === 0 && (
                     <div className="ml-5 text-muted-foreground italic">No categories</div>

@@ -65,7 +65,7 @@ function GenerateImageButton({ categoryName, categoryKey, parentGroup, imageUrl,
   );
 }
 
-function SortableGroupItem({ group, groupCats, onToggle, onEdit, onDelete, onAddCategory, children }: { group: ParentGroupRow; groupCats: CategoryConfigRow[]; onToggle: (group: ParentGroupRow, enabled: boolean) => void; onEdit: (group: ParentGroupRow) => void; onDelete: (group: ParentGroupRow) => void; onAddCategory: (slug: string) => void; children: React.ReactNode; }) {
+function SortableSectionItem({ group, groupCats, onToggle, onEdit, onDelete, onAddCategory, children }: { group: ParentGroupRow; groupCats: CategoryConfigRow[]; onToggle: (group: ParentGroupRow, enabled: boolean) => void; onEdit: (group: ParentGroupRow) => void; onDelete: (group: ParentGroupRow) => void; onAddCategory: (slug: string) => void; children: React.ReactNode; }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 50 : 'auto' as any };
   const activeCount = groupCats.filter((c) => c.is_active).length;
@@ -82,7 +82,7 @@ function SortableGroupItem({ group, groupCats, onToggle, onEdit, onDelete, onAdd
           <div>
             <h4 className="font-bold text-sm">{group.name}</h4>
             <p className="text-[10px] text-muted-foreground font-medium">
-              {activeCount}/{groupCats.length} categories active
+              {activeCount}/{groupCats.length} categories · Section
             </p>
           </div>
         </div>
@@ -175,11 +175,11 @@ export function CategoryManager() {
               </div>
               <div>
                 <CardTitle className="text-sm font-bold">Category Management</CardTitle>
-                <CardDescription className="text-xs">Drag to reorder. Disabled items won't appear to users.</CardDescription>
+                <CardDescription className="text-xs">Manage categories and subcategories. Sections group categories for buyers.</CardDescription>
               </div>
             </div>
             <Button onClick={() => cm.openGroupDialog()} size="sm" className="rounded-xl font-semibold gap-1.5">
-              <Plus size={13} />Add Group
+              <Plus size={13} />Add Section
             </Button>
           </div>
         </CardHeader>
@@ -202,7 +202,7 @@ export function CategoryManager() {
                     const groupCats = (cm.groupedCategories[group.slug] || []).sort((a, b) => a.display_order - b.display_order);
                     return (
                       <motion.div key={group.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}>
-                        <SortableGroupItem group={group} groupCats={groupCats} onToggle={cm.toggleGroup} onEdit={cm.openGroupDialog} onDelete={cm.setDeleteGroup} onAddCategory={cm.openAddDialog}>
+                        <SortableSectionItem group={group} groupCats={groupCats} onToggle={cm.toggleGroup} onEdit={cm.openGroupDialog} onDelete={cm.setDeleteGroup} onAddCategory={cm.openAddDialog}>
                           <div className="space-y-1.5 ml-3">
                             {groupCats.length === 0 && (
                               <p className="text-sm text-muted-foreground py-3 px-3">No categories yet. Click "Add Category" to create one.</p>
@@ -215,7 +215,7 @@ export function CategoryManager() {
                               </SortableContext>
                             </DndContext>
                           </div>
-                        </SortableGroupItem>
+                        </SortableSectionItem>
                       </motion.div>
                     );
                   })}
@@ -316,8 +316,8 @@ export function CategoryManager() {
       <Dialog open={cm.isAddDialogOpen} onOpenChange={cm.setIsAddDialogOpen}>
         <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-bold">Add Category to {cm.addingToGroup}</DialogTitle>
-            <DialogDescription className="text-xs">Create a new category under this group.</DialogDescription>
+            <DialogTitle className="font-bold">Add Category</DialogTitle>
+            <DialogDescription className="text-xs">Create a new category under this section.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -374,18 +374,18 @@ export function CategoryManager() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Group Add/Edit Dialog ── */}
+      {/* ── Section Add/Edit Dialog ── */}
       <Dialog open={cm.isGroupDialogOpen} onOpenChange={(open) => { if (!open) { cm.setIsGroupDialogOpen(false); cm.setEditingGroup(null); } }}>
         <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-bold">{cm.editingGroup ? 'Edit Group' : 'Add Group'}</DialogTitle>
+            <DialogTitle className="font-bold">{cm.editingGroup ? 'Edit Section' : 'Add Section'}</DialogTitle>
             <DialogDescription className="text-xs">
-              {cm.editingGroup ? 'Update this category group.' : 'Create a new top-level category group.'}
+              {cm.editingGroup ? 'Update this section.' : 'Sections visually group categories for buyers on the home page.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs font-semibold">Group Name *</Label>
+              <Label className="text-xs font-semibold">Section Name *</Label>
               <Input value={cm.groupForm.name} onChange={(e) => cm.setGroupForm({ ...cm.groupForm, name: e.target.value })} placeholder="e.g. Pet Services" className="rounded-xl" />
             </div>
             <div className="space-y-2">
@@ -417,26 +417,26 @@ export function CategoryManager() {
               <Input value={cm.groupForm.description} onChange={(e) => cm.setGroupForm({ ...cm.groupForm, description: e.target.value })} placeholder="Short description" className="rounded-xl" />
             </div>
             <Button onClick={cm.saveGroup} disabled={cm.isSaving} className="w-full rounded-xl h-11 font-semibold">
-              {cm.isSaving ? <><Loader2 className="animate-spin mr-2" size={16} />Saving...</> : cm.editingGroup ? 'Save Group' : 'Create Group'}
+              {cm.isSaving ? <><Loader2 className="animate-spin mr-2" size={16} />Saving...</> : cm.editingGroup ? 'Save Section' : 'Create Section'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Group Confirmation ── */}
+      {/* ── Delete Section Confirmation ── */}
       <AlertDialog open={!!cm.deleteGroup} onOpenChange={(open) => !open && cm.setDeleteGroup(null)}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-bold">Delete group "{cm.deleteGroup?.name}"?</AlertDialogTitle>
+            <AlertDialogTitle className="font-bold">Delete section "{cm.deleteGroup?.name}"?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will also remove all categories under this group. If sellers are using it, the group will be disabled instead.
+              This will also remove all categories under this section. If sellers are using it, the section will be disabled instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={cm.confirmDeleteGroup} disabled={cm.isDeletingGroup} className="bg-destructive text-destructive-foreground rounded-xl">
               {cm.isDeletingGroup ? <Loader2 className="animate-spin mr-1" size={14} /> : null}
-              Delete Group
+              Delete Section
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

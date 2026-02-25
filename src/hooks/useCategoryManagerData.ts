@@ -165,8 +165,8 @@ export function useCategoryManagerData() {
       }
       await refreshGroups();
       queryClient.invalidateQueries({ queryKey: ['category-configs'] });
-      toast.success(enable ? `${group.name} enabled` : `${group.name} disabled`);
-    } catch { toast.error('Failed to update group'); }
+      toast.success(enable ? `${group.name} section enabled` : `${group.name} section disabled`);
+    } catch { toast.error('Failed to update section'); }
   };
 
   const openGroupDialog = (group?: ParentGroupRow) => {
@@ -187,12 +187,12 @@ export function useCategoryManagerData() {
     try {
       if (editingGroup) {
         await supabase.from('parent_groups').update({ name: groupForm.name.trim(), icon: groupForm.icon.trim(), color: groupForm.color, description: groupForm.description.trim() }).eq('id', editingGroup.id);
-        toast.success('Category group updated');
+        toast.success('Section updated');
       } else {
         const slug = groupForm.name.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '_');
         const maxOrder = groups.length > 0 ? Math.max(...groups.map(g => g.sort_order)) : 0;
         await supabase.from('parent_groups').insert({ slug, name: groupForm.name.trim(), icon: groupForm.icon.trim(), color: groupForm.color, description: groupForm.description.trim(), sort_order: maxOrder + 1 });
-        toast.success('Category group created');
+        toast.success('Section created');
       }
       await refreshGroups();
       queryClient.invalidateQueries({ queryKey: ['category-configs'] });
@@ -212,21 +212,21 @@ export function useCategoryManagerData() {
           await supabase.from('parent_groups').update({ is_active: false }).eq('id', deleteGroup.id);
           await supabase.from('category_config').update({ is_active: false }).in('id', groupCats.map(c => c.id));
           setCategories(categories.map(c => c.parent_group === deleteGroup.slug ? { ...c, is_active: false } : c));
-          toast.info('Group disabled (sellers are using it)');
+          toast.info('Section disabled (sellers are using it)');
         } else {
           await supabase.from('category_config').delete().in('id', groupCats.map(c => c.id));
           await supabase.from('parent_groups').delete().eq('id', deleteGroup.id);
           setCategories(categories.filter(c => c.parent_group !== deleteGroup.slug));
-          toast.success('Group and its subcategories deleted');
+          toast.success('Section and its categories deleted');
         }
       } else {
         await supabase.from('parent_groups').delete().eq('id', deleteGroup.id);
-        toast.success('Group deleted');
+        toast.success('Section deleted');
       }
       queryClient.invalidateQueries({ queryKey: ['category-configs'] });
       await refreshGroups();
       setDeleteGroup(null);
-    } catch { toast.error('Failed to delete group'); }
+    } catch { toast.error('Failed to delete section'); }
     finally { setIsDeletingGroup(false); }
   };
 
@@ -241,8 +241,8 @@ export function useCategoryManagerData() {
     try {
       await Promise.all(reordered.map((g, i) => supabase.from('parent_groups').update({ sort_order: i }).eq('id', g.id)));
       await refreshGroups();
-      toast.success('Group order updated');
-    } catch { toast.error('Failed to reorder groups'); await refreshGroups(); }
+      toast.success('Section order updated');
+    } catch { toast.error('Failed to reorder sections'); await refreshGroups(); }
   }, [groups, selectedGroupSlug, refreshGroups]);
 
   const handleSubcategoryDragEnd = useCallback(async (groupSlug: string, event: DragEndEvent) => {
