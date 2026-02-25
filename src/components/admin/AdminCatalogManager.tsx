@@ -5,11 +5,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCategoryConfig } from '@/hooks/queries/useCategoryConfig';
+import { useParentGroups } from '@/hooks/useParentGroups';
+import { useSubcategories } from '@/hooks/useSubcategories';
 import { CategoryManager } from '@/components/admin/CategoryManager';
 import { SubcategoryManager } from '@/components/admin/SubcategoryManager';
 import { AdminAttributeBlockManager } from '@/components/admin/AdminAttributeBlockManager';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Layers3, Grid3X3, Blocks } from 'lucide-react';
+import { ChevronDown, ChevronRight, Layers3, Grid3X3, Blocks, TreePine } from 'lucide-react';
 
 interface AttributeBlock {
   id: string;
@@ -29,7 +32,9 @@ export function AdminCatalogManager() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const { data: categories = [], isLoading: categoriesLoading } = useCategoryConfig();
-
+  const { groups: parentGroups, isLoading: groupsLoading } = useParentGroups();
+  const { data: subcategories = [], isLoading: subcatsLoading } = useSubcategories();
+  const [taxonomyOpen, setTaxonomyOpen] = useState(false);
   useEffect(() => { fetchBlocks(); }, []);
 
   const fetchBlocks = async () => {
@@ -49,11 +54,22 @@ export function AdminCatalogManager() {
   const toggleExpand = (slug: string) =>
     setExpandedCategory(prev => prev === slug ? null : slug);
 
-  const isLoading = categoriesLoading || blocksLoading;
+  const isLoading = categoriesLoading || blocksLoading || groupsLoading || subcatsLoading;
 
+  // Build taxonomy tree data
+  const taxonomyTree = parentGroups.map(group => {
+    const groupCats = (categories as any[]).filter((c: any) => c.parentGroup === group.slug || c.parent_group === group.slug);
+    return {
+      ...group,
+      categories: groupCats.map((cat: any) => ({
+        ...cat,
+        subcategories: subcategories.filter(sub => sub.category_config_id === cat.id),
+      })),
+    };
+  });
   const TAB_ITEMS = [
     { value: 'overview', label: 'Overview', icon: Layers3 },
-    { value: 'categories', label: 'Categories', icon: Grid3X3 },
+    { value: 'categories', label: 'Categories (under Groups)', icon: Grid3X3 },
     { value: 'attributes', label: 'Attributes', icon: Blocks },
   ];
 
@@ -70,6 +86,59 @@ export function AdminCatalogManager() {
             );
           })}
         </TabsList>
+
+        {/* Taxonomy Overview Tree */}
+        <Collapsible open={taxonomyOpen} onOpenChange={setTaxonomyOpen} className="mt-3">
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-2 w-full p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors text-left">
+              <TreePine size={14} className="text-primary shrink-0" />
+              <span className="text-xs font-bold flex-1">Taxonomy Overview</span>
+              <Badge variant="secondary" className="text-[9px] rounded-md">
+                {parentGroups.length}G · {(categories as any[]).length}C · {subcategories.length}S
+              </Badge>
+              <motion.div animate={{ rotate: taxonomyOpen ? 90 : 0 }} transition={{ duration: 0.15 }}>
+                <ChevronRight size={14} className="text-muted-foreground" />
+              </motion.div>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 p-3 rounded-xl bg-muted/20 border border-border/30 text-xs font-mono space-y-0.5 max-h-[300px] overflow-y-auto">
+              {taxonomyTree.map((group, gi) => (
+                <div key={group.id}>
+                  <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                    <span>{group.icon}</span>
+                    <span>{group.name}</span>
+                    <span className="text-muted-foreground font-normal">(Group)</span>
+                  </div>
+                  {group.categories.length === 0 && (
+                    <div className="ml-5 text-muted-foreground italic">No categories</div>
+                  )}
+                  {group.categories.map((cat: any, ci: number) => (
+                    <div key={cat.id} className="ml-5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">{ci === group.categories.length - 1 ? '└──' : '├──'}</span>
+                        <span>{cat.icon}</span>
+                        <span className="font-medium">{cat.displayName || cat.display_name}</span>
+                        <span className="text-muted-foreground font-normal">(Category)</span>
+                      </div>
+                      {cat.subcategories.map((sub: any, si: number) => (
+                        <div key={sub.id} className="ml-8 flex items-center gap-1.5">
+                          <span className="text-muted-foreground">{si === cat.subcategories.length - 1 ? '└──' : '├──'}</span>
+                          <span>{sub.icon || '📂'}</span>
+                          <span>{sub.display_name}</span>
+                          <span className="text-muted-foreground font-normal">(Sub)</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {taxonomyTree.length === 0 && (
+                <p className="text-muted-foreground italic">No taxonomy data yet.</p>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Overview — category cards with linked attribute badges */}
         <TabsContent value="overview" className="mt-4">

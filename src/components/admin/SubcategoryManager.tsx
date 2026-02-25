@@ -116,16 +116,18 @@ function GenerateSubcategoryImageButton({ name, subcategoryId, parentCategoryNam
 }
 
 export function SubcategoryManager() {
-  const [allConfigs, setAllConfigs] = useState<Array<{ id: string; display_name: string; icon: string }>>([]);
+  const [allConfigs, setAllConfigs] = useState<Array<{ id: string; display_name: string; icon: string; parent_group: string }>>([]);
   const [configsLoading, setConfigsLoading] = useState(true);
+  const [parentGroups, setParentGroups] = useState<Array<{ slug: string; name: string; icon: string }>>([]);
 
   const fetchConfigs = useCallback(async () => {
     setConfigsLoading(true);
-    const { data } = await supabase
-      .from('category_config')
-      .select('id, display_name, icon')
-      .order('display_order', { ascending: true });
-    setAllConfigs(data || []);
+    const [configRes, groupRes] = await Promise.all([
+      supabase.from('category_config').select('id, display_name, icon, parent_group').order('display_order', { ascending: true }),
+      supabase.from('parent_groups').select('slug, name, icon').order('sort_order'),
+    ]);
+    setAllConfigs(configRes.data || []);
+    setParentGroups(groupRes.data || []);
     setConfigsLoading(false);
   }, []);
 
@@ -170,9 +172,21 @@ export function SubcategoryManager() {
     return () => window.removeEventListener('admin:open-subcategory-create', handleOpenCreate);
   }, [selectedConfigId]);
 
+  const getGroupName = (groupSlug: string) => {
+    const g = parentGroups.find(pg => pg.slug === groupSlug);
+    return g ? `${g.icon} ${g.name}` : groupSlug;
+  };
+
   const getCategoryName = (configId: string) => {
     const c = allConfigs.find(cfg => cfg.id === configId);
     return c ? `${c.icon} ${c.display_name}` : configId;
+  };
+
+  const getFullBreadcrumb = (configId: string) => {
+    const c = allConfigs.find(cfg => cfg.id === configId);
+    if (!c) return configId;
+    const groupLabel = getGroupName(c.parent_group);
+    return `${groupLabel} → ${c.icon} ${c.display_name}`;
   };
 
   const getParentCategoryName = (configId: string) => {
@@ -304,9 +318,12 @@ export function SubcategoryManager() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
-              {allConfigs.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.icon} {c.display_name}</SelectItem>
-              ))}
+              {allConfigs.map(c => {
+                const groupLabel = getGroupName(c.parent_group);
+                return (
+                  <SelectItem key={c.id} value={c.id}>[{groupLabel}] {c.icon} {c.display_name}</SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-xl" onClick={() => fetchConfigs()} disabled={configsLoading} title="Refresh categories">
@@ -340,7 +357,7 @@ export function SubcategoryManager() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{sub.display_name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {getCategoryName(sub.category_config_id)} · <span className="font-mono">{sub.slug}</span>
+                      {getFullBreadcrumb(sub.category_config_id)} · <span className="font-mono">{sub.slug}</span>
                     </p>
                   </div>
                   {sub.color && (
@@ -375,20 +392,23 @@ export function SubcategoryManager() {
                 {/* Parent Category */}
                 {!editingSub ? (
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold">Parent Category *</Label>
+                    <Label className="text-xs font-semibold">Parent Category (Group → Category) *</Label>
                     <Select value={createConfigId} onValueChange={setCreateConfigId}>
                       <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select category" /></SelectTrigger>
                       <SelectContent>
-                        {allConfigs.map(c => (
-                          <SelectItem key={c.id} value={c.id}>{c.icon} {c.display_name}</SelectItem>
-                        ))}
+                        {allConfigs.map(c => {
+                          const groupLabel = getGroupName(c.parent_group);
+                          return (
+                            <SelectItem key={c.id} value={c.id}>[{groupLabel}] {c.icon} {c.display_name}</SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Label className="text-xs font-semibold">Parent:</Label>
-                    <Badge variant="secondary" className="rounded-lg text-xs">{getCategoryName(editingSub.category_config_id)}</Badge>
+                    <Badge variant="secondary" className="rounded-lg text-xs">{getFullBreadcrumb(editingSub.category_config_id)}</Badge>
                   </div>
                 )}
 
