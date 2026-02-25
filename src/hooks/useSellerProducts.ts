@@ -163,7 +163,23 @@ export function useSellerProducts() {
         lead_time_hours: formData.lead_time_hours ? parseInt(formData.lead_time_hours) : null,
         accepts_preorders: formData.accepts_preorders,
         specifications: attributeBlocks.length > 0 ? { blocks: attributeBlocks } : null,
-        ...(editingProduct ? { approval_status: 'pending' } : { approval_status: 'draft' }),
+        ...(editingProduct
+          ? {
+              // Only reset to pending if content-significant fields changed
+              approval_status: (() => {
+                const ep = editingProduct as any;
+                const contentChanged =
+                  formData.name.trim() !== ep.name ||
+                  (formData.description.trim() || null) !== (ep.description || null) ||
+                  parseFloat(formData.price) !== ep.price ||
+                  formData.category !== ep.category ||
+                  formData.image_url !== ep.image_url ||
+                  formData.action_type !== (ep.action_type || 'add_to_cart') ||
+                  formData.subcategory_id !== (ep.subcategory_id || '');
+                return contentChanged ? 'pending' : ep.approval_status;
+              })(),
+            }
+          : { approval_status: 'draft' }),
       };
       if (editingProduct) {
         const { error } = await supabase.from('products').update(productData as any).eq('id', editingProduct.id);
