@@ -21,7 +21,6 @@ interface HeaderProps {
 
 function HeaderInner({ 
   showCart = true, 
-  showLocation = true, 
   title,
   showBack,
   className 
@@ -86,47 +85,31 @@ function HeaderInner({
         className
       )}>
         <div className="px-4 pt-1 pb-2 safe-top">
-          {/* Top row: delivery info + actions */}
+          {/* Top row: always show branding + actions */}
           <div className="flex items-start justify-between">
-            {title ? (
-              <div className="flex items-center gap-2">
-                {(showBack ?? true) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 rounded-full shrink-0"
-                    onClick={handleBack}
-                  >
-                    <ArrowLeft size={18} />
-                  </Button>
-                )}
-                <h1 className="text-lg font-bold text-foreground tracking-tight">{title}</h1>
-              </div>
-            ) : (
-              <div className="min-w-0 flex-1">
-                <h1 className="text-[22px] font-extrabold tracking-tight leading-tight">
-                  <span className="text-primary">S</span>
-                  <span className="text-foreground">oci</span>
-                  <span className="text-warning">v</span>
-                  <span className="text-foreground">a</span>
-                </h1>
-                <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
-                  {settings.headerTagline}
-                </p>
-                {showLocation && displaySociety && (
-                  <button 
-                    className="flex items-center gap-1 mt-1"
-                    onClick={() => selectionChanged()}
-                  >
-                    <Building size={12} className="text-muted-foreground shrink-0" />
-                    <span className="text-[11px] font-semibold text-foreground truncate max-w-[65vw]">
-                      {displaySociety.name}
-                    </span>
-                    <ChevronDown size={12} className="text-muted-foreground shrink-0" />
-                  </button>
-                )}
-              </div>
-            )}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-[22px] font-extrabold tracking-tight leading-tight">
+                <span className="text-primary">S</span>
+                <span className="text-foreground">oci</span>
+                <span className="text-warning">v</span>
+                <span className="text-foreground">a</span>
+              </h1>
+              <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
+                {settings.headerTagline}
+              </p>
+              {displaySociety && (
+                <button 
+                  className="flex items-center gap-1 mt-1"
+                  onClick={() => selectionChanged()}
+                >
+                  <Building size={12} className="text-muted-foreground shrink-0" />
+                  <span className="text-[11px] font-semibold text-foreground truncate max-w-[65vw]">
+                    {displaySociety.name}
+                  </span>
+                  <ChevronDown size={12} className="text-muted-foreground shrink-0" />
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-1.5 mt-1">
               <ThemeToggle className="h-9 w-9 rounded-full bg-secondary text-foreground border border-border hover:bg-muted" />
@@ -167,7 +150,7 @@ function HeaderInner({
             </div>
           </div>
 
-          {/* Search bar */}
+          {/* Search bar - only on home (no title) */}
           {!title && (
             <Link to="/search" className="block mt-2">
               <div className="flex items-center gap-2.5 bg-secondary rounded-xl px-4 py-2.5 border border-border">
@@ -180,6 +163,25 @@ function HeaderInner({
             </Link>
           )}
         </div>
+
+        {/* Breadcrumb bar - shown when title is present */}
+        {title && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 border-t border-border">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-full shrink-0"
+              onClick={handleBack}
+            >
+              <ArrowLeft size={14} />
+            </Button>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
+              <span className="text-muted-foreground/50">›</span>
+              <span className="font-semibold text-foreground truncate">{title}</span>
+            </div>
+          </div>
+        )}
       </header>
 
       {isViewingAs && (
