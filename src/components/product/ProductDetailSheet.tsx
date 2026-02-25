@@ -9,7 +9,7 @@ import { ReportSheet } from '@/components/report/ReportSheet';
 import { ProductAttributeBlocks } from './ProductAttributeBlocks';
 import { Plus, Minus, Store, MapPin, Home, Clock, Truck, Users, Zap, RotateCcw, ChevronRight, ChevronDown, Shield, Flag } from 'lucide-react';
 import { useProductDetail, ProductDetail } from '@/hooks/useProductDetail';
-import { hapticImpact, hapticSelection } from '@/lib/haptics';
+import { hapticImpact } from '@/lib/haptics';
 
 interface ProductDetailSheetProps {
   product: ProductDetail | null;
@@ -159,9 +159,9 @@ export function ProductDetailSheet({ product, open, onOpenChange, categoryIcon, 
                 <div className="flex items-center justify-between">
                   <div><span className="text-lg font-bold text-foreground">{d.formatPrice(product.price * d.quantity)}</span><span className="text-xs text-muted-foreground ml-1.5">{d.quantity} item{d.quantity > 1 ? 's' : ''}</span></div>
                   <div className="flex items-center bg-accent rounded-xl overflow-hidden">
-                    <button className="px-3 py-2.5 text-accent-foreground" onClick={() => { hapticSelection(); d.updateQuantity(product.product_id, d.quantity - 1); }}><Minus size={16} strokeWidth={3} /></button>
+                    <button className="px-3 py-2.5 text-accent-foreground" onClick={() => { hapticImpact('medium'); d.updateQuantity(product.product_id, d.quantity - 1); }}><Minus size={16} strokeWidth={3} /></button>
                     <span className="font-bold text-base text-accent-foreground min-w-[28px] text-center tabular-nums">{d.quantity}</span>
-                    <button className="px-3 py-2.5 text-accent-foreground" onClick={() => { hapticSelection(); d.updateQuantity(product.product_id, d.quantity + 1); }}><Plus size={16} strokeWidth={3} /></button>
+                    <button className="px-3 py-2.5 text-accent-foreground" onClick={() => { hapticImpact('medium'); d.updateQuantity(product.product_id, d.quantity + 1); }}><Plus size={16} strokeWidth={3} /></button>
                   </div>
                 </div>
               )

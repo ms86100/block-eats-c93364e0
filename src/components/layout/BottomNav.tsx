@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Home, Building2, LayoutGrid, ShoppingCart, User, Shield, ClipboardList, Briefcase, ListChecks } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { hapticSelection } from '@/lib/haptics';
+// GlobalHapticListener handles navigation haptics centrally
 import { useEffectiveFeatures } from '@/hooks/useEffectiveFeatures';
 import { useCartCount } from '@/hooks/useCartCount';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,7 +58,7 @@ function BottomNavInner() {
             <NavLink
               key={to}
               to={to}
-              onClick={() => hapticSelection()}
+              /* haptic handled by GlobalHapticListener */
               className={cn(
                 'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all duration-200 min-w-[48px] relative',
                 isActive

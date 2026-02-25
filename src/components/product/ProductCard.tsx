@@ -1,5 +1,5 @@
 import { Plus, Minus, Star, Award } from 'lucide-react';
-import { hapticImpact, hapticSelection } from '@/lib/haptics';
+import { hapticImpact } from '@/lib/haptics';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { VegBadge } from '@/components/ui/veg-badge';
@@ -37,12 +37,12 @@ export function ProductCard({ product, variant = 'horizontal', onTap }: ProductC
   };
 
   const handleIncrement = () => {
-    hapticSelection();
+    hapticImpact('medium');
     updateQuantity(product.id, quantity + 1);
   };
 
   const handleDecrement = () => {
-    hapticSelection();
+    hapticImpact('medium');
     updateQuantity(product.id, quantity - 1);
   };
 

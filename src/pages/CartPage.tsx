@@ -11,7 +11,7 @@ import { CouponInput } from '@/components/cart/CouponInput';
 import { FulfillmentSelector } from '@/components/delivery/FulfillmentSelector';
 import { OrderProgressOverlay } from '@/components/checkout/OrderProgressOverlay';
 import { useCartPage } from '@/hooks/useCartPage';
-import { hapticSelection, hapticImpact } from '@/lib/haptics';
+import { hapticImpact } from '@/lib/haptics';
 import { toast } from 'sonner';
 
 export default function CartPage() {
@@ -108,11 +108,11 @@ export default function CartPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="inline-flex items-center bg-accent rounded-lg overflow-hidden">
-                        <button className="h-8 w-8 flex items-center justify-center active:scale-95 transition-transform" onClick={() => { hapticSelection(); c.updateQuantity(item.product_id, item.quantity - 1); }}><Minus size={14} className="text-accent-foreground" /></button>
+                        <button className="h-8 w-8 flex items-center justify-center active:scale-95 transition-transform" onClick={() => { hapticImpact('medium'); c.updateQuantity(item.product_id, item.quantity - 1); }}><Minus size={14} className="text-accent-foreground" /></button>
                         <span className="w-6 text-center text-sm font-bold text-accent-foreground tabular-nums">{item.quantity}</span>
-                        <button className="h-8 w-8 flex items-center justify-center active:scale-95 transition-transform" onClick={() => { hapticSelection(); c.updateQuantity(item.product_id, item.quantity + 1); }}><Plus size={14} className="text-accent-foreground" /></button>
+                        <button className="h-8 w-8 flex items-center justify-center active:scale-95 transition-transform" onClick={() => { hapticImpact('medium'); c.updateQuantity(item.product_id, item.quantity + 1); }}><Plus size={14} className="text-accent-foreground" /></button>
                       </div>
-                      <button className="h-8 w-8 flex items-center justify-center text-muted-foreground" onClick={() => { hapticImpact('light'); const name = item.product?.name || 'Item'; c.removeItem(item.product_id); toast(`${name} removed`, { action: { label: 'Undo', onClick: () => c.addItem(item.product as any) }, duration: 4000 }); }}><Trash2 size={15} /></button>
+                      <button className="h-8 w-8 flex items-center justify-center text-muted-foreground" onClick={() => { hapticImpact('medium'); const name = item.product?.name || 'Item'; c.removeItem(item.product_id); toast(`${name} removed`, { action: { label: 'Undo', onClick: () => c.addItem(item.product as any) }, duration: 4000 }); }}><Trash2 size={15} /></button>
                     </div>
                   </div>
                 ))}

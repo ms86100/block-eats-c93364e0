@@ -51,14 +51,14 @@ export function ProductGridCard({ product, behavior, onTap, className, viewOnly 
   const handleIncrement = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    hapticSelection();
+    hapticImpact('medium');
     updateQuantity(product.id, quantity + 1);
   };
 
   const handleDecrement = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    hapticSelection();
+    hapticImpact('medium');
     updateQuantity(product.id, quantity - 1);
   };
 
