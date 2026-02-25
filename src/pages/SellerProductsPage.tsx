@@ -99,7 +99,7 @@ export default function SellerProductsPage() {
           <div className="space-y-3">
             {sp.products.map((product) => {
               const approvalStatus = (product as any).approval_status || 'approved';
-              const isEditable = approvalStatus !== 'pending';
+              const showPendingHint = approvalStatus === 'pending';
               return (
                 <div key={product.id} className={`bg-card rounded-xl p-4 shadow-sm transition-opacity ${!product.is_available ? 'opacity-60' : ''}`}>
                   <div className="flex items-start gap-3">
@@ -122,8 +122,11 @@ export default function SellerProductsPage() {
                           <p className="text-sm font-semibold text-primary">{formatPrice(product.price)}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        {isEditable ? (<><Button size="sm" variant="outline" onClick={() => sp.openEditDialog(product)}><Edit size={14} className="mr-1" />Edit</Button><Button size="sm" variant="ghost" className="text-destructive" onClick={() => sp.setDeleteTarget(product)}><Trash2 size={14} /></Button>{approvalStatus === 'draft' && <Button size="sm" variant="secondary" onClick={async () => { const { error } = await supabase.from('products').update({ approval_status: 'pending' } as any).eq('id', product.id); if (error) { toast.error('Failed to submit'); return; } toast.success('Submitted for approval'); if (sp.sellerProfile) sp.fetchData(sp.sellerProfile.id); }}><Send size={14} className="mr-1" />Submit</Button>}</>) : <span className="text-xs text-muted-foreground italic">Awaiting admin review</span>}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <Button size="sm" variant="outline" onClick={() => sp.openEditDialog(product)}><Edit size={14} className="mr-1" />Edit</Button>
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => sp.setDeleteTarget(product)}><Trash2 size={14} /></Button>
+                        {approvalStatus === 'draft' && <Button size="sm" variant="secondary" onClick={async () => { const { error } = await supabase.from('products').update({ approval_status: 'pending' } as any).eq('id', product.id); if (error) { toast.error('Failed to submit'); return; } toast.success('Submitted for approval'); if (sp.sellerProfile) sp.fetchData(sp.sellerProfile.id); }}><Send size={14} className="mr-1" />Submit</Button>}
+                        {showPendingHint && <span className="text-xs text-muted-foreground italic">Under review — edits are still allowed</span>}
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-1"><Switch checked={product.is_available} onCheckedChange={() => sp.toggleAvailability(product)} /><span className="text-[10px] text-muted-foreground">{product.is_available ? 'In Stock' : 'Out'}</span></div>
