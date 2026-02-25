@@ -1,11 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Ticket, X, Check } from 'lucide-react';
+import { Ticket, X, Check, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
+import { hapticImpact } from '@/lib/haptics';
+
+interface CouponData {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  max_discount_amount: number | null;
+  min_order_amount: number | null;
+  expires_at: string | null;
+  starts_at: string;
+  usage_limit: number | null;
+  times_used: number;
+  per_user_limit: number;
+}
 
 interface CouponInputProps {
   sellerId: string;
@@ -20,13 +35,91 @@ export function CouponInput({ sellerId, totalAmount, onApply, onRemove, appliedC
   const { user, effectiveSocietyId } = useAuth();
   const [code, setCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<CouponData[]>([]);
+  const [showAvailable, setShowAvailable] = useState(false);
+  const [userRedemptions, setUserRedemptions] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!effectiveSocietyId || !user) return;
+    let cancelled = false;
+
+    async function fetchCoupons() {
+      const { data } = await supabase
+        .from('coupons')
+        .select('id, code, discount_type, discount_value, max_discount_amount, min_order_amount, expires_at, starts_at, usage_limit, times_used, per_user_limit')
+        .eq('society_id', effectiveSocietyId!)
+        .eq('seller_id', sellerId)
+        .eq('is_active', true);
+
+      if (cancelled || !data) return;
+
+      const now = new Date();
+      const valid = (data as CouponData[]).filter(c => {
+        if (c.expires_at && new Date(c.expires_at) < now) return false;
+        if (new Date(c.starts_at) > now) return false;
+        if (c.usage_limit && c.times_used >= c.usage_limit) return false;
+        return true;
+      });
+
+      setAvailableCoupons(valid);
+
+      // Fetch user redemption counts
+      if (valid.length > 0) {
+        const { data: redemptions } = await supabase
+          .from('coupon_redemptions')
+          .select('coupon_id')
+          .eq('user_id', user!.id)
+          .in('coupon_id', valid.map(c => c.id));
+
+        if (!cancelled && redemptions) {
+          const counts: Record<string, number> = {};
+          redemptions.forEach(r => { counts[r.coupon_id] = (counts[r.coupon_id] || 0) + 1; });
+          setUserRedemptions(counts);
+        }
+      }
+    }
+
+    fetchCoupons();
+    return () => { cancelled = true; };
+  }, [effectiveSocietyId, sellerId, user]);
+
+  const calculateDiscount = (coupon: CouponData) => {
+    let discount = 0;
+    if (coupon.discount_type === 'percentage') {
+      discount = (totalAmount * coupon.discount_value) / 100;
+      if (coupon.max_discount_amount) discount = Math.min(discount, coupon.max_discount_amount);
+    } else {
+      discount = Math.min(coupon.discount_value, totalAmount);
+    }
+    return Math.round(discount * 100) / 100;
+  };
+
+  const canApplyCoupon = (coupon: CouponData) => {
+    if (coupon.min_order_amount && totalAmount < coupon.min_order_amount) return false;
+    if ((userRedemptions[coupon.id] || 0) >= coupon.per_user_limit) return false;
+    return true;
+  };
+
+  const applyCouponDirectly = (coupon: CouponData) => {
+    if (!canApplyCoupon(coupon)) {
+      if (coupon.min_order_amount && totalAmount < coupon.min_order_amount) {
+        toast.error(`Minimum order of ${formatPrice(coupon.min_order_amount)} required`);
+      } else {
+        toast.error('You have already used this coupon');
+      }
+      return;
+    }
+    hapticImpact('medium');
+    const discountAmount = calculateDiscount(coupon);
+    onApply({ id: coupon.id, code: coupon.code, discountAmount });
+    toast.success(`Coupon applied! You save ${formatPrice(discountAmount)}`);
+  };
 
   const handleApply = async () => {
     if (!code.trim() || !user || !effectiveSocietyId) return;
     setIsValidating(true);
 
     try {
-      // Fetch coupon by code and society
       const { data: coupon, error } = await supabase
         .from('coupons')
         .select('*')
@@ -36,60 +129,30 @@ export function CouponInput({ sellerId, totalAmount, onApply, onRemove, appliedC
         .eq('is_active', true)
         .single();
 
-      if (error || !coupon) {
-        toast.error('Invalid or expired coupon code');
-        return;
-      }
+      if (error || !coupon) { toast.error('Invalid or expired coupon code'); return; }
+      if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) { toast.error('This coupon has expired'); return; }
+      if (new Date(coupon.starts_at) > new Date()) { toast.error('This coupon is not yet active'); return; }
+      if (coupon.usage_limit && coupon.times_used >= coupon.usage_limit) { toast.error('This coupon has reached its usage limit'); return; }
 
-      // Check expiry
-      if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
-        toast.error('This coupon has expired');
-        return;
-      }
-
-      // Check start date
-      if (new Date(coupon.starts_at) > new Date()) {
-        toast.error('This coupon is not yet active');
-        return;
-      }
-
-      // Check usage limit
-      if (coupon.usage_limit && coupon.times_used >= coupon.usage_limit) {
-        toast.error('This coupon has reached its usage limit');
-        return;
-      }
-
-      // Check per-user limit
       const { count } = await supabase
         .from('coupon_redemptions')
         .select('*', { count: 'exact', head: true })
         .eq('coupon_id', coupon.id)
         .eq('user_id', user.id);
 
-      if (count !== null && count >= coupon.per_user_limit) {
-        toast.error('You have already used this coupon');
-        return;
-      }
+      if (count !== null && count >= coupon.per_user_limit) { toast.error('You have already used this coupon'); return; }
+      if (coupon.min_order_amount && totalAmount < coupon.min_order_amount) { toast.error(`Minimum order of ${formatPrice(coupon.min_order_amount)} required`); return; }
 
-      // Check min order
-      if (coupon.min_order_amount && totalAmount < coupon.min_order_amount) {
-        toast.error(`Minimum order of ${formatPrice(coupon.min_order_amount)} required`);
-        return;
-      }
-
-      // Calculate discount
       let discountAmount = 0;
       if (coupon.discount_type === 'percentage') {
         discountAmount = (totalAmount * coupon.discount_value) / 100;
-        if (coupon.max_discount_amount) {
-          discountAmount = Math.min(discountAmount, coupon.max_discount_amount);
-        }
+        if (coupon.max_discount_amount) discountAmount = Math.min(discountAmount, coupon.max_discount_amount);
       } else {
         discountAmount = Math.min(coupon.discount_value, totalAmount);
       }
-
       discountAmount = Math.round(discountAmount * 100) / 100;
 
+      hapticImpact('medium');
       onApply({ id: coupon.id, code: coupon.code, discountAmount });
       toast.success(`Coupon applied! You save ${formatPrice(discountAmount)}`);
     } catch {
@@ -116,20 +179,91 @@ export function CouponInput({ sellerId, totalAmount, onApply, onRemove, appliedC
     );
   }
 
+  const eligibleCoupons = availableCoupons.filter(c => canApplyCoupon(c));
+  const ineligibleCoupons = availableCoupons.filter(c => !canApplyCoupon(c));
+
   return (
-    <div className="flex gap-2">
-      <div className="relative flex-1">
-        <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-        <Input
-          placeholder="Enter coupon code"
-          value={code}
-          onChange={e => setCode(e.target.value.toUpperCase())}
-          className="pl-9 uppercase"
-        />
+    <div className="space-y-3">
+      {/* Manual code input */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+          <Input
+            placeholder="Enter coupon code"
+            value={code}
+            onChange={e => setCode(e.target.value.toUpperCase())}
+            className="pl-9 uppercase"
+          />
+        </div>
+        <Button variant="outline" onClick={handleApply} disabled={isValidating || !code.trim()}>
+          {isValidating ? 'Checking...' : 'Apply'}
+        </Button>
       </div>
-      <Button variant="outline" onClick={handleApply} disabled={isValidating || !code.trim()}>
-        {isValidating ? 'Checking...' : 'Apply'}
-      </Button>
+
+      {/* Available coupons toggle */}
+      {availableCoupons.length > 0 && (
+        <button
+          onClick={() => setShowAvailable(!showAvailable)}
+          className="flex items-center gap-2 w-full text-left text-sm font-medium text-primary py-1.5"
+        >
+          <Tag size={14} />
+          <span>{availableCoupons.length} coupon{availableCoupons.length !== 1 ? 's' : ''} available</span>
+          {showAvailable ? <ChevronUp size={14} className="ml-auto" /> : <ChevronDown size={14} className="ml-auto" />}
+        </button>
+      )}
+
+      {/* Available coupons list */}
+      {showAvailable && availableCoupons.length > 0 && (
+        <div className="space-y-2">
+          {eligibleCoupons.map(coupon => (
+            <div key={coupon.id} className="border border-dashed border-primary/30 bg-primary/5 rounded-xl p-3 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-bold text-primary text-sm tracking-wide">{coupon.code}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {coupon.discount_type === 'percentage'
+                    ? `${coupon.discount_value}% off${coupon.max_discount_amount ? ` (up to ${formatPrice(coupon.max_discount_amount)})` : ''}`
+                    : `${formatPrice(coupon.discount_value)} off`}
+                  {coupon.min_order_amount ? ` · Min order ${formatPrice(coupon.min_order_amount)}` : ''}
+                </p>
+                <p className="text-xs font-medium text-primary mt-1">
+                  You save {formatPrice(calculateDiscount(coupon))}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground shrink-0 text-xs h-8 px-3"
+                onClick={() => applyCouponDirectly(coupon)}
+              >
+                Apply
+              </Button>
+            </div>
+          ))}
+
+          {ineligibleCoupons.map(coupon => {
+            const isMinOrder = coupon.min_order_amount && totalAmount < coupon.min_order_amount;
+            return (
+              <div key={coupon.id} className="border border-dashed border-border bg-muted/50 rounded-xl p-3 opacity-60">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-bold text-muted-foreground text-sm tracking-wide">{coupon.code}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {coupon.discount_type === 'percentage'
+                    ? `${coupon.discount_value}% off${coupon.max_discount_amount ? ` (up to ${formatPrice(coupon.max_discount_amount)})` : ''}`
+                    : `${formatPrice(coupon.discount_value)} off`}
+                </p>
+                <p className="text-xs text-destructive mt-1">
+                  {isMinOrder
+                    ? `Add ${formatPrice(coupon.min_order_amount! - totalAmount)} more to unlock`
+                    : 'Already used'}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
