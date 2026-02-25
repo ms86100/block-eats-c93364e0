@@ -21,13 +21,13 @@ export function WorkerRegistrationSheet({ open, onOpenChange, onSuccess, categor
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Register Worker</SheetTitle>
-          <SheetDescription>Live photo capture required. No gallery uploads.</SheetDescription>
+          <SheetDescription>Live photo capture is optional. No gallery uploads.</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-4">
           {/* Live Photo */}
           <div>
-            <Label className="mb-2 block">Photo (Live Capture Only) *</Label>
+            <Label className="mb-2 block">Photo (Live Capture Only)</Label>
             <LiveCameraCapture onCapture={w.handlePhotoCapture} capturedPreview={w.photoPreview} onClear={w.clearPhoto} />
           </div>
 

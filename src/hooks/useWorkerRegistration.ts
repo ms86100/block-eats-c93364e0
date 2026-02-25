@@ -51,6 +51,17 @@ export function useWorkerRegistration(
     if (defaultShiftEnd && !shiftEnd) setShiftEnd(defaultShiftEnd);
   }, [defaultShiftStart, defaultShiftEnd]);
 
+  useEffect(() => {
+    if (!categoryId) {
+      setWorkerType('');
+      return;
+    }
+    const selectedCategory = categories.find(c => c.id === categoryId);
+    if (selectedCategory) {
+      setWorkerType(selectedCategory.name);
+    }
+  }, [categoryId, categories]);
+
   const { data: languages = [] } = useQuery({
     queryKey: ['supported-languages'],
     queryFn: async () => {
@@ -155,7 +166,7 @@ export function useWorkerRegistration(
     }
   }, [user, effectiveSocietyId, name, phone, workerType, shiftStart, shiftEnd, entryFrequency, emergencyPhone, flatNumbers, preferredLanguage, photoBlob, activeDays, categoryId, onSuccess, onOpenChange]);
 
-  const isSubmitDisabled = !name.trim() || !preferredLanguage || !entryFrequency || languages.length === 0 || entryFrequencyOptions.length === 0 || isSubmitting;
+  const isSubmitDisabled = !name.trim() || isSubmitting;
 
   return {
     name, setName, phone, setPhone, workerType, setWorkerType,
