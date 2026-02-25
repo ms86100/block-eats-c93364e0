@@ -30,7 +30,7 @@ const workerNavItems: { to: string; icon: typeof Briefcase; label: string }[] = 
 
 function BottomNavInner() {
   const location = useLocation();
-  const { isFeatureEnabled, isLoading } = useEffectiveFeatures();
+  const { features, isFeatureEnabled, isLoading } = useEffectiveFeatures();
   const { isAdmin, isSocietyAdmin, isBuilderMember, roles, isSecurityOfficer, isWorker } = useAuth();
   const itemCount = useCartCount();
   // hapticSelection is called directly from lib/haptics
@@ -42,9 +42,15 @@ function BottomNavInner() {
       ? workerNavItems
       : residentNavItems;
 
+  const hasAnyFeature = features.some(f => f.is_enabled);
+
   const visibleItems = isLoading
     ? navItems
-    : navItems.filter(item => !('featureKey' in item && item.featureKey) || isFeatureEnabled((item as any).featureKey));
+    : navItems.filter(item => {
+        if (item.to === '/society' && !hasAnyFeature) return false;
+        if ('featureKey' in item && item.featureKey) return isFeatureEnabled((item as any).featureKey);
+        return true;
+      });
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 bg-card border-t border-border pb-[env(safe-area-inset-bottom)]">
