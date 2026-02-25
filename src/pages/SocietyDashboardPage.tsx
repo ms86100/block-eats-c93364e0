@@ -119,28 +119,28 @@ export default function SocietyDashboardPage() {
         title: 'Security & Access',
         emoji: '🔐',
         items: [
-          { icon: Users, label: 'Visitors', to: '/visitors', stat: 'Gate Management', iconBg: 'bg-blue-500/10', iconColor: 'text-blue-500', featureKey: 'visitor_management', keywords: ['guest', 'entry', 'otp', 'gate', 'security', 'pass', 'invite'] },
-          { icon: UserPlus, label: 'Authorized Persons', to: '/authorized-persons', stat: 'Family gate access', iconBg: 'bg-indigo-500/10', iconColor: 'text-indigo-500', featureKey: 'visitor_management', keywords: ['family', 'relative', 'permanent', 'access', 'approve'] },
-          { icon: Car, label: 'Parking', to: '/parking', stat: 'Slots & violations', iconBg: 'bg-sky-500/10', iconColor: 'text-sky-500', featureKey: 'vehicle_parking', keywords: ['vehicle', 'car', 'bike', 'slot', 'sticker', 'violation'] },
-          { icon: Package, label: 'Parcels', to: '/parcels', stat: 'Delivery tracking', iconBg: 'bg-amber-500/10', iconColor: 'text-amber-500', featureKey: 'parcel_management', keywords: ['courier', 'amazon', 'flipkart', 'package', 'collect'] },
+          { icon: Users, label: 'Visitors', to: '/visitors', stat: 'Gate Management', iconBg: 'bg-info/10', iconColor: 'text-info', featureKey: 'visitor_management', keywords: ['guest', 'entry', 'otp', 'gate', 'security', 'pass', 'invite'] },
+          { icon: UserPlus, label: 'Authorized Persons', to: '/authorized-persons', stat: 'Family gate access', iconBg: 'bg-primary/10', iconColor: 'text-primary', featureKey: 'visitor_management', keywords: ['family', 'relative', 'permanent', 'access', 'approve'] },
+          { icon: Car, label: 'Parking', to: '/parking', stat: 'Slots & violations', iconBg: 'bg-info/10', iconColor: 'text-info', featureKey: 'vehicle_parking', keywords: ['vehicle', 'car', 'bike', 'slot', 'sticker', 'violation'] },
+          { icon: Package, label: 'Parcels', to: '/parcels', stat: 'Delivery tracking', iconBg: 'bg-warning/10', iconColor: 'text-warning', featureKey: 'parcel_management', keywords: ['courier', 'amazon', 'flipkart', 'package', 'collect'] },
         ],
       },
       {
         title: 'Workforce',
         emoji: '👷',
         items: [
-          { icon: UserCheck, label: 'My Workers', to: '/my-workers', stat: 'Registered help', iconBg: 'bg-teal-500/10', iconColor: 'text-teal-500', featureKey: 'workforce_management', keywords: ['maid', 'cook', 'driver', 'nanny', 'domestic', 'help', 'staff'] },
-          { icon: Wrench, label: 'Workforce Mgmt', to: '/workforce', stat: 'Manage workers', iconBg: 'bg-orange-500/10', iconColor: 'text-orange-500', featureKey: 'workforce_management', keywords: ['manage', 'register', 'worker', 'employee', 'staff'] },
-          { icon: Briefcase, label: 'Hire Workers', to: '/worker-hire', stat: 'Find local help', iconBg: 'bg-violet-500/10', iconColor: 'text-violet-500', featureKey: 'worker_marketplace', keywords: ['plumber', 'electrician', 'carpenter', 'cleaner', 'job', 'hire'] },
+          { icon: UserCheck, label: 'My Workers', to: '/my-workers', stat: 'Registered help', iconBg: 'bg-success/10', iconColor: 'text-success', featureKey: 'workforce_management', keywords: ['maid', 'cook', 'driver', 'nanny', 'domestic', 'help', 'staff'] },
+          { icon: Wrench, label: 'Workforce Mgmt', to: '/workforce', stat: 'Manage workers', iconBg: 'bg-warning/10', iconColor: 'text-warning', featureKey: 'workforce_management', keywords: ['manage', 'register', 'worker', 'employee', 'staff'] },
+          { icon: Briefcase, label: 'Hire Workers', to: '/worker-hire', stat: 'Find local help', iconBg: 'bg-primary/10', iconColor: 'text-primary', featureKey: 'worker_marketplace', keywords: ['plumber', 'electrician', 'carpenter', 'cleaner', 'job', 'hire'] },
         ],
       },
       {
         title: 'Finances & Payments',
         emoji: '💰',
         items: [
-          { icon: IndianRupee, label: 'Finances', to: '/society/finances', stat: `${stats.recentExpenses} this month`, iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-500', featureKey: 'finances', keywords: ['expense', 'income', 'budget', 'money', 'billing', 'account', 'revenue'] },
-          { icon: Landmark, label: 'Payment Schedule', to: '/payment-milestones', stat: 'Track milestones', iconBg: 'bg-blue-500/10', iconColor: 'text-blue-500', featureKey: 'payment_milestones', keywords: ['emi', 'installment', 'due', 'schedule', 'builder', 'payment'] },
-          { icon: CreditCard, label: 'Maintenance', to: '/maintenance', stat: stats.pendingDues > 0 ? `${stats.pendingDues} pending` : 'All clear', iconBg: 'bg-green-500/10', iconColor: 'text-green-500', featureKey: 'maintenance', keywords: ['dues', 'monthly', 'charge', 'fee', 'bill', 'society charge'] },
+          { icon: IndianRupee, label: 'Finances', to: '/society/finances', stat: `${stats.recentExpenses} this month`, iconBg: 'bg-success/10', iconColor: 'text-success', featureKey: 'finances', keywords: ['expense', 'income', 'budget', 'money', 'billing', 'account', 'revenue'] },
+          { icon: Landmark, label: 'Payment Schedule', to: '/payment-milestones', stat: 'Track milestones', iconBg: 'bg-info/10', iconColor: 'text-info', featureKey: 'payment_milestones', keywords: ['emi', 'installment', 'due', 'schedule', 'builder', 'payment'] },
+          { icon: CreditCard, label: 'Maintenance', to: '/maintenance', stat: stats.pendingDues > 0 ? `${stats.pendingDues} pending` : 'All clear', iconBg: 'bg-success/10', iconColor: 'text-success', featureKey: 'maintenance', keywords: ['dues', 'monthly', 'charge', 'fee', 'bill', 'society charge'] },
         ],
       },
       {
@@ -148,19 +148,19 @@ export default function SocietyDashboardPage() {
         emoji: '🏗️',
         items: [
           { icon: Building2, label: 'Construction', to: '/society/progress', stat: `${stats.recentMilestones} updates`, iconBg: 'bg-primary/10', iconColor: 'text-primary', featureKey: 'construction_progress', keywords: ['building', 'progress', 'milestone', 'tower', 'flat', 'handover'] },
-          { icon: Bug, label: 'Snag Reports', to: '/society/snags', stat: `${stats.openSnags} open`, iconBg: 'bg-red-500/10', iconColor: 'text-red-500', featureKey: 'snag_management', keywords: ['defect', 'issue', 'complaint', 'repair', 'fix', 'damage', 'broken'] },
-          { icon: ClipboardCheck, label: 'Inspection', to: '/inspection', stat: 'Pre-handover check', iconBg: 'bg-lime-500/10', iconColor: 'text-lime-500', featureKey: 'inspection', keywords: ['checklist', 'pre-handover', 'quality', 'check', 'verify'] },
-          { icon: FileText, label: 'Documents', to: '/society/progress', stat: `${stats.documents} uploaded`, iconBg: 'bg-cyan-500/10', iconColor: 'text-cyan-500', featureKey: 'construction_progress', keywords: ['file', 'pdf', 'agreement', 'plan', 'blueprint', 'approval', 'noc'] },
-          { icon: MessageCircle, label: 'Q&A', to: '/society/progress', stat: `${stats.unansweredQs} unanswered`, iconBg: 'bg-purple-500/10', iconColor: 'text-purple-500', featureKey: 'construction_progress', keywords: ['question', 'answer', 'ask', 'query', 'doubt'] },
+          { icon: Bug, label: 'Snag Reports', to: '/society/snags', stat: `${stats.openSnags} open`, iconBg: 'bg-destructive/10', iconColor: 'text-destructive', featureKey: 'snag_management', keywords: ['defect', 'issue', 'complaint', 'repair', 'fix', 'damage', 'broken'] },
+          { icon: ClipboardCheck, label: 'Inspection', to: '/inspection', stat: 'Pre-handover check', iconBg: 'bg-success/10', iconColor: 'text-success', featureKey: 'inspection', keywords: ['checklist', 'pre-handover', 'quality', 'check', 'verify'] },
+          { icon: FileText, label: 'Documents', to: '/society/progress', stat: `${stats.documents} uploaded`, iconBg: 'bg-info/10', iconColor: 'text-info', featureKey: 'construction_progress', keywords: ['file', 'pdf', 'agreement', 'plan', 'blueprint', 'approval', 'noc'] },
+          { icon: MessageCircle, label: 'Q&A', to: '/society/progress', stat: `${stats.unansweredQs} unanswered`, iconBg: 'bg-primary/10', iconColor: 'text-primary', featureKey: 'construction_progress', keywords: ['question', 'answer', 'ask', 'query', 'doubt'] },
         ],
       },
       {
         title: 'Community',
         emoji: '🏘️',
         items: [
-          { icon: ShieldAlert, label: 'Disputes', to: '/disputes', stat: `${stats.openDisputes} open`, iconBg: 'bg-rose-500/10', iconColor: 'text-rose-500', featureKey: 'disputes', keywords: ['complaint', 'issue', 'grievance', 'escalate', 'resolve', 'ticket'] },
-          { icon: Truck, label: 'Deliveries', to: '/society/deliveries', stat: 'Track deliveries', iconBg: 'bg-orange-500/10', iconColor: 'text-orange-500', featureKey: 'delivery_management', keywords: ['delivery', 'rider', 'order', 'track', 'shipping'] },
-          { icon: Megaphone, label: 'Notices', to: '/society/notices', stat: 'Official circulars', iconBg: 'bg-yellow-500/10', iconColor: 'text-yellow-500', featureKey: 'society_notices', keywords: ['announcement', 'circular', 'notice', 'news', 'update', 'alert'] },
+          { icon: ShieldAlert, label: 'Disputes', to: '/disputes', stat: `${stats.openDisputes} open`, iconBg: 'bg-destructive/10', iconColor: 'text-destructive', featureKey: 'disputes', keywords: ['complaint', 'issue', 'grievance', 'escalate', 'resolve', 'ticket'] },
+          { icon: Truck, label: 'Deliveries', to: '/society/deliveries', stat: 'Track deliveries', iconBg: 'bg-warning/10', iconColor: 'text-warning', featureKey: 'delivery_management', keywords: ['delivery', 'rider', 'order', 'track', 'shipping'] },
+          { icon: Megaphone, label: 'Notices', to: '/society/notices', stat: 'Official circulars', iconBg: 'bg-warning/10', iconColor: 'text-warning', featureKey: 'society_notices', keywords: ['announcement', 'circular', 'notice', 'news', 'update', 'alert'] },
         ],
       },
     ];
@@ -173,10 +173,10 @@ export default function SocietyDashboardPage() {
         items: [
           { icon: CalendarDays, label: 'Worker Attendance', to: '/worker-attendance', stat: 'Track attendance', iconBg: 'bg-primary/10', iconColor: 'text-primary', featureKey: 'workforce_management', keywords: ['attendance', 'check-in', 'present', 'absent'] },
           { icon: ClipboardList, label: 'Worker Leave', to: '/worker-leave', stat: 'Leave records', iconBg: 'bg-primary/10', iconColor: 'text-primary', featureKey: 'workforce_management', keywords: ['leave', 'off', 'holiday', 'absence'] },
-          { icon: Wallet, label: 'Worker Salary', to: '/worker-salary', stat: 'Salary records', iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-500', featureKey: 'workforce_management', keywords: ['salary', 'pay', 'wage', 'payment'] },
-          { icon: Truck, label: 'Delivery Partners', to: '/delivery-partners', stat: 'Manage partners', iconBg: 'bg-orange-500/10', iconColor: 'text-orange-500', featureKey: 'delivery_management', keywords: ['delivery', 'partner', 'rider', 'logistics'] },
-          { icon: ShieldCheck, label: 'Guard Kiosk', to: '/guard-kiosk', stat: 'Verify visitor OTPs', iconBg: 'bg-green-500/10', iconColor: 'text-green-500', featureKey: 'guard_kiosk', keywords: ['guard', 'security', 'otp', 'verify', 'gate', 'watchman'] },
-          { icon: Shield, label: 'Society Admin', to: '/society/admin', stat: 'Manage society', iconBg: 'bg-blue-500/10', iconColor: 'text-blue-500', keywords: ['admin', 'settings', 'manage', 'configure', 'committee'] },
+          { icon: Wallet, label: 'Worker Salary', to: '/worker-salary', stat: 'Salary records', iconBg: 'bg-success/10', iconColor: 'text-success', featureKey: 'workforce_management', keywords: ['salary', 'pay', 'wage', 'payment'] },
+          { icon: Truck, label: 'Delivery Partners', to: '/delivery-partners', stat: 'Manage partners', iconBg: 'bg-warning/10', iconColor: 'text-warning', featureKey: 'delivery_management', keywords: ['delivery', 'partner', 'rider', 'logistics'] },
+          { icon: ShieldCheck, label: 'Guard Kiosk', to: '/guard-kiosk', stat: 'Verify visitor OTPs', iconBg: 'bg-success/10', iconColor: 'text-success', featureKey: 'guard_kiosk', keywords: ['guard', 'security', 'otp', 'verify', 'gate', 'watchman'] },
+          { icon: Shield, label: 'Society Admin', to: '/society/admin', stat: 'Manage society', iconBg: 'bg-info/10', iconColor: 'text-info', keywords: ['admin', 'settings', 'manage', 'configure', 'committee'] },
         ],
       });
     }
@@ -231,7 +231,7 @@ export default function SocietyDashboardPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-full shrink-0"
+              className="h-10 w-10 rounded-full shrink-0"
               onClick={() => navigate(-1)}
             >
               <ArrowLeft size={18} />

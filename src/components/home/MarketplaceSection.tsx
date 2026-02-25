@@ -205,9 +205,9 @@ function ProductListings({
               see all <ChevronRight size={12} />
             </a>
           </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1">
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x snap-mandatory">
             {cat.products.slice(0, 8).map(product => (
-              <div key={product.id} className="w-[155px] shrink-0">
+              <div key={product.id} className="w-[155px] shrink-0 snap-start">
                 <ProductListingCard
                   product={product}
                   onTap={onProductTap}
