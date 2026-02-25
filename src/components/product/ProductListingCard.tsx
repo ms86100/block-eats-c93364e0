@@ -1,5 +1,6 @@
 import { useMemo, memo } from 'react';
-import { Plus, Minus, Clock, MapPin, ShoppingCart } from 'lucide-react';
+import { Plus, Minus, Clock, MapPin, ShoppingCart, Activity } from 'lucide-react';
+import { formatDistanceToNowStrict } from 'date-fns';
 import { useHaptics } from '@/hooks/useHaptics';
 import { Badge } from '@/components/ui/badge';
 import { VegBadge } from '@/components/ui/veg-badge';
@@ -257,15 +258,22 @@ function ProductListingCardInner({
             </div>
           )}
 
-          {/* Distance badge */}
-          {(product as any).distance_km != null && !(product as any).is_same_society && (
-            <div className="absolute bottom-1 left-1">
+          {/* Distance badge — visible for ALL products */}
+          <div className="absolute bottom-1 left-1">
+            {(product as any).distance_km != null ? (
               <span className="inline-flex items-center gap-0.5 bg-background/90 backdrop-blur-sm text-[7px] font-bold text-primary px-1 py-0.5 rounded-full shadow-sm border border-border">
                 <MapPin size={7} className="shrink-0" />
-                {(product as any).distance_km} km
+                {(product as any).distance_km < 1
+                  ? `${Math.round((product as any).distance_km * 1000)}m away`
+                  : `${(product as any).distance_km} km away`}
               </span>
-            </div>
-          )}
+            ) : (product as any).is_same_society !== false ? (
+              <span className="inline-flex items-center gap-0.5 bg-background/90 backdrop-blur-sm text-[7px] font-bold text-accent-foreground px-1 py-0.5 rounded-full shadow-sm border border-border">
+                <MapPin size={7} className="shrink-0" />
+                In your society
+              </span>
+            ) : null}
+          </div>
         </div>
 
         {/* ━━━ ADD button overlapping image bottom edge ━━━ */}
@@ -308,6 +316,11 @@ function ProductListingCardInner({
         {product.seller_name && (
           <p className="text-[10px] text-muted-foreground leading-tight line-clamp-1 mb-0.5">
             by {product.seller_name}
+            {(product as any).last_active_at && (
+              <span className="ml-1 text-[8px] opacity-70">
+                · {formatSellerActivity((product as any).last_active_at)}
+              </span>
+            )}
           </p>
         )}
 
@@ -374,6 +387,21 @@ function ProductListingCardInner({
       )}
     </div>
   );
+}
+
+/* ── Helper: format seller last-active into human-friendly text ── */
+function formatSellerActivity(lastActiveAt: string): string {
+  try {
+    const d = new Date(lastActiveAt);
+    const diffMs = Date.now() - d.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    if (diffHours < 1) return 'Active now';
+    if (diffHours < 24) return `${Math.floor(diffHours)}h ago`;
+    if (diffHours < 48) return 'Yesterday';
+    return formatDistanceToNowStrict(d, { addSuffix: true });
+  } catch {
+    return '';
+  }
 }
 
 export const ProductListingCard = memo(ProductListingCardInner, (prev, next) => {

@@ -177,7 +177,13 @@ export default function CartPage() {
 
       {/* Sticky Footer */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border pb-[env(safe-area-inset-bottom)]">
-        <p className="text-[10px] text-muted-foreground text-center pt-2 px-4">Payments are processed by third-party providers and are not covered by Apple. <Link to="/terms" className="underline">Refund & Cancellation Policy</Link></p>
+        {c.sellerGroups.length > 0 && (
+          <p className="text-[11px] text-primary font-medium text-center pt-2.5 px-4 flex items-center justify-center gap-1.5">
+            <span className="text-base">💚</span>
+            This order supports {c.sellerGroups.length} local business{c.sellerGroups.length !== 1 ? 'es' : ''} in your community
+          </p>
+        )}
+        <p className="text-[10px] text-muted-foreground text-center pt-1 px-4">Payments are processed by third-party providers and are not covered by Apple. <Link to="/terms" className="underline">Refund & Cancellation Policy</Link></p>
         <div className="px-4 py-3 flex items-center gap-3">
           <div className="flex-1"><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold tabular-nums">{c.formatPrice(c.finalAmount)}</p></div>
           <Button className="px-8 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold" size="lg" onClick={() => c.setShowConfirmDialog(true)} disabled={c.isPlacingOrder}>{c.isPlacingOrder ? 'Placing...' : 'Place Order'}<ChevronRight size={18} className="ml-1" /></Button>

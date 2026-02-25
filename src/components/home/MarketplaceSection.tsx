@@ -66,6 +66,7 @@ export function MarketplaceSection() {
       society_name: (product as any).society_name || null,
       distance_km: (product as any).distance_km ?? null,
       is_same_society: (product as any).is_same_society ?? true,
+      last_active_at: (product as any).last_active_at ?? null,
       _catIcon: catConfig?.icon || '🛍️',
       _catName: catConfig?.displayName || product.category,
     });
