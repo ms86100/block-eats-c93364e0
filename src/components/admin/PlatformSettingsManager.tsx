@@ -71,17 +71,17 @@ const SETTING_FIELDS: SettingField[] = [
   { key: 'label_group_buy_join', label: 'Join Button', type: 'text', icon: Type, group: 'Group Buy Labels', description: 'e.g. "Join Group Buy"' },
   { key: 'label_group_buy_leave', label: 'Leave Button', type: 'text', icon: Type, group: 'Group Buy Labels', description: 'e.g. "Leave Group Buy"' },
   { key: 'label_group_buy_fulfilled', label: 'Fulfilled Badge', type: 'text', icon: Type, group: 'Group Buy Labels', description: 'e.g. "✓ Target Reached"' },
-  // Seller Intelligence
-  { key: 'label_demand_insights_title', label: 'Demand Insights Title', type: 'text', icon: Type, group: 'Seller Labels', description: 'Heading for demand insights section' },
-  { key: 'label_demand_insights_empty', label: 'Demand Insights Empty', type: 'text', icon: Type, group: 'Seller Labels', description: 'Shown when no demand data' },
-  { key: 'label_reputation_empty', label: 'Reputation Empty Title', type: 'text', icon: Type, group: 'Seller Labels', description: 'No reputation data heading' },
-  { key: 'label_reputation_empty_desc', label: 'Reputation Empty Desc', type: 'text', icon: Type, group: 'Seller Labels', description: 'No reputation data description' },
-  { key: 'label_analytics_intelligence_title', label: 'Intelligence Title', type: 'text', icon: Type, group: 'Seller Labels', description: 'e.g. "30-Day Intelligence"' },
-  { key: 'label_analytics_active_buyers', label: 'Active Buyers Label', type: 'text', icon: Type, group: 'Seller Labels', description: 'Stat label' },
-  { key: 'label_analytics_views', label: 'Views Label', type: 'text', icon: Type, group: 'Seller Labels', description: 'Stat label' },
-  { key: 'label_analytics_conversion', label: 'Conversion Label', type: 'text', icon: Type, group: 'Seller Labels', description: 'Stat label' },
-  { key: 'label_analytics_fee_format', label: 'Fee Format', type: 'text', icon: Type, group: 'Seller Labels', description: 'Format: {pct}% platform fee' },
-  { key: 'label_analytics_fee_desc', label: 'Fee Description', type: 'text', icon: Type, group: 'Seller Labels', description: 'e.g. "Applied on each completed order"' },
+  // Seller Dashboard Labels (Admin-controlled UX copy for seller-facing screens)
+  { key: 'label_demand_insights_title', label: 'Demand Insights Title', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'Heading for demand insights section' },
+  { key: 'label_demand_insights_empty', label: 'Demand Insights Empty', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'Shown when no demand data' },
+  { key: 'label_reputation_empty', label: 'Reputation Empty Title', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'No reputation data heading' },
+  { key: 'label_reputation_empty_desc', label: 'Reputation Empty Desc', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'No reputation data description' },
+  { key: 'label_analytics_intelligence_title', label: 'Intelligence Title', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'e.g. "30-Day Intelligence"' },
+  { key: 'label_analytics_active_buyers', label: 'Active Buyers Label', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'Stat label' },
+  { key: 'label_analytics_views', label: 'Views Label', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'Stat label' },
+  { key: 'label_analytics_conversion', label: 'Conversion Label', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'Stat label' },
+  { key: 'label_analytics_fee_format', label: 'Fee Format', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'Format: {pct}% platform fee' },
+  { key: 'label_analytics_fee_desc', label: 'Fee Description', type: 'text', icon: Type, group: 'Seller Dashboard Labels', description: 'e.g. "Applied on each completed order"' },
   // Discovery
   { key: 'label_discovery_popular', label: 'Popular Section Title', type: 'text', icon: Type, group: 'Discovery Labels', description: 'e.g. "Popular near you"' },
   { key: 'label_discovery_new', label: 'New Section Title', type: 'text', icon: Type, group: 'Discovery Labels', description: 'e.g. "New this week"' },
@@ -89,19 +89,15 @@ const SETTING_FIELDS: SettingField[] = [
   { key: 'label_reorder_prefix', label: 'Reorder Prefix', type: 'text', icon: Type, group: 'Discovery Labels', description: 'e.g. "Reorder from"' },
   { key: 'label_reorder_success', label: 'Reorder Success', type: 'text', icon: Type, group: 'Discovery Labels', description: 'Toast after reorder' },
   { key: 'label_reorder_unavailable', label: 'Reorder Unavailable', type: 'text', icon: Type, group: 'Discovery Labels', description: 'When items are gone' },
-  // Thresholds
-  { key: 'on_time_badge_min_orders', label: 'On-time Badge Min Orders', type: 'number', icon: Settings, group: 'Thresholds', description: 'Minimum orders to show on-time badge' },
-  { key: 'stable_price_days', label: 'Stable Price Days', type: 'number', icon: Settings, group: 'Thresholds', description: 'Days of price stability for badge' },
-  { key: 'new_this_week_days', label: 'New This Week Days', type: 'number', icon: Settings, group: 'Thresholds', description: 'Cutoff for "new this week" discovery' },
-  { key: 'discovery_min_products', label: 'Discovery Min Products', type: 'number', icon: Settings, group: 'Thresholds', description: 'Min products to show discovery row' },
-  { key: 'discovery_max_items', label: 'Discovery Max Items', type: 'number', icon: Settings, group: 'Thresholds', description: 'Max items per discovery row' },
-  { key: 'price_history_max_points', label: 'Price History Max Points', type: 'number', icon: Settings, group: 'Thresholds', description: 'Max data points in price chart' },
-  { key: 'demand_insights_max_items', label: 'Demand Insights Max Items', type: 'number', icon: Settings, group: 'Thresholds', description: 'Max items shown in demand insights' },
-  { key: 'dispute_sla_warning_hours', label: 'Dispute SLA Warning Hours', type: 'number', icon: Settings, group: 'Thresholds', description: 'Hours before SLA warning appears' },
-  // JSON Enums
-  { key: 'dispute_categories_json', label: 'Dispute Categories', type: 'textarea', icon: FileText, group: 'Configurable Enums', description: 'JSON array: [{"value":"noise","label":"Noise"}]' },
-  { key: 'reputation_event_labels_json', label: 'Reputation Event Labels', type: 'textarea', icon: FileText, group: 'Configurable Enums', description: 'JSON map: {"event_type":{"label":"Label","color":"text-success"}}' },
-  { key: 'dispute_status_options_json', label: 'Dispute Status Options', type: 'textarea', icon: FileText, group: 'Configurable Enums', description: 'JSON array: [{"value":"acknowledged","label":"Acknowledge"}]' },
+  // Visibility Thresholds (Admin-controlled — affect marketplace policy)
+  { key: 'on_time_badge_min_orders', label: 'On-time Badge Min Orders', type: 'number', icon: Settings, group: 'Visibility Thresholds', description: 'Minimum orders to show on-time badge' },
+  { key: 'new_this_week_days', label: 'New This Week Days', type: 'number', icon: Settings, group: 'Visibility Thresholds', description: 'Cutoff for "new this week" discovery' },
+  { key: 'discovery_min_products', label: 'Discovery Min Products', type: 'number', icon: Settings, group: 'Visibility Thresholds', description: 'Min products to show discovery row' },
+  { key: 'discovery_max_items', label: 'Discovery Max Items', type: 'number', icon: Settings, group: 'Visibility Thresholds', description: 'Max items per discovery row' },
+  { key: 'demand_insights_max_items', label: 'Demand Insights Max Items', type: 'number', icon: Settings, group: 'Visibility Thresholds', description: 'Max items shown in demand insights' },
+  { key: 'dispute_sla_warning_hours', label: 'Dispute SLA Warning Hours', type: 'number', icon: Settings, group: 'Visibility Thresholds', description: 'Hours before SLA warning appears' },
+  // Dispute Config (Admin-controlled — marketplace policy)
+  { key: 'dispute_categories_json', label: 'Dispute Categories', type: 'textarea', icon: FileText, group: 'Dispute Config', description: 'JSON array: [{"value":"noise","label":"Noise"}]' },
 ];
 
 export function PlatformSettingsManager() {

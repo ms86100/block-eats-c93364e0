@@ -17,6 +17,7 @@ import { GlobalHapticListener } from "@/components/haptics/GlobalHapticListener"
 import { initializeMedianBridge } from "@/lib/median";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
 import { useSecurityOfficer } from "@/hooks/useSecurityOfficer";
+import { useAppLifecycle } from "@/hooks/useAppLifecycle";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Lazy-loaded pages for code splitting
@@ -112,7 +113,7 @@ const queryClient = new QueryClient({
       staleTime: 10 * 60 * 1000, // 10 minutes — reduces refetches on page revisits
       gcTime: 60 * 60 * 1000,    // 60 minutes — keep cache alive much longer across navigation
       refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
+      refetchOnReconnect: true,
     },
     mutations: {
       retry: 0,
@@ -237,6 +238,9 @@ function NavigationHandler() {
   
   // Handle Capacitor deep links
   useDeepLinks();
+
+  // Invalidate critical queries on mobile app foreground resume
+  useAppLifecycle();
   
   return null;
 }

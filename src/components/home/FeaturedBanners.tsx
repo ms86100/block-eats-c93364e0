@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,6 +10,8 @@ export function FeaturedBanners() {
   const { effectiveSocietyId } = useAuth();
   const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const queryClient = useQueryClient();
 
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ['featured-banners', effectiveSocietyId],
@@ -30,6 +32,22 @@ export function FeaturedBanners() {
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  // Realtime subscription for featured_items — new banners appear immediately
+  useEffect(() => {
+    const channel = supabase
+      .channel('featured-items-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'featured_items' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['featured-banners'] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   // Auto-scroll
   useEffect(() => {
