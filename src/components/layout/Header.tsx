@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { ArrowLeft, Bell, Building, Building2, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Bell, Building, Building2, ChevronDown, ShieldCheck } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -121,6 +121,17 @@ function HeaderInner({
                     className="h-9 w-9 rounded-full bg-secondary text-foreground border border-border hover:bg-muted"
                   >
                     <Building2 size={16} />
+                  </Button>
+                </Link>
+              )}
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-9 w-9 rounded-full bg-secondary text-foreground border border-border hover:bg-muted"
+                  >
+                    <ShieldCheck size={16} />
                   </Button>
                 </Link>
               )}
