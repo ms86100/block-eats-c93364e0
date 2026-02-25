@@ -89,10 +89,6 @@ export function useSellerApplicationReview() {
         .select('*, profile:profiles!seller_profiles_user_id_fkey(name, phone, block, flat_number, phase), society:societies!seller_profiles_society_id_fkey(name, address)')
         .order('created_at', { ascending: false });
 
-      if (statusFilter === 'pending') {
-        sellerQuery = sellerQuery.eq('verification_status', 'pending');
-      }
-
       const [sellersRes, groupsRes] = await Promise.all([
         sellerQuery,
         supabase.from('parent_groups').select('id, name, slug, icon, requires_license, license_type_name, license_description, license_mandatory').order('sort_order'),
@@ -131,7 +127,15 @@ export function useSellerApplicationReview() {
         products: productsBySeller[s.id] || [],
       }));
 
-      setApplications(enriched);
+      const filtered = statusFilter === 'pending'
+        ? enriched.filter((s) =>
+            s.verification_status === 'pending' ||
+            s.licenses.some((l) => l.status === 'pending') ||
+            s.products.some((p) => p.approval_status === 'pending')
+          )
+        : enriched;
+
+      setApplications(filtered);
       setGroups((groupsRes.data as any) || []);
     } catch (error) {
       console.error('Error fetching seller applications:', error);
