@@ -3,6 +3,7 @@ import { Bell, BellOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 interface NotifyMeButtonProps {
   productId: string;
@@ -14,6 +15,7 @@ export function NotifyMeButton({ productId, className, compact = true }: NotifyM
   const { user } = useAuth();
   const [isWatching, setIsWatching] = useState(false);
   const [loading, setLoading] = useState(false);
+  const ml = useMarketplaceLabels();
 
   const handleNotifyMe = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -61,7 +63,7 @@ export function NotifyMeButton({ productId, className, compact = true }: NotifyM
           } ${className || ''}`}
         >
           {isWatching ? <BellOff size={10} /> : <Bell size={10} />}
-          {isWatching ? 'Watching' : 'Notify Me'}
+          {isWatching ? ml.label('label_notify_watching') : ml.label('label_notify_me')}
         </button>
       </div>
     );
@@ -78,7 +80,7 @@ export function NotifyMeButton({ productId, className, compact = true }: NotifyM
       } ${className || ''}`}
     >
       {isWatching ? <BellOff size={14} /> : <Bell size={14} />}
-      {isWatching ? 'Watching — We\'ll notify you' : 'Notify Me When Available'}
+      {isWatching ? ml.label('label_notify_watching_long') : ml.label('label_notify_me_long')}
     </button>
   );
 }

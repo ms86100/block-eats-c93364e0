@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { RefreshCw, Store, ChevronRight } from 'lucide-react';
+import { RefreshCw, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 interface LastOrder {
   id: string;
@@ -19,6 +20,7 @@ export function ReorderLastOrder() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { formatPrice } = useCurrency();
+  const ml = useMarketplaceLabels();
   const [lastOrder, setLastOrder] = useState<LastOrder | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -67,7 +69,7 @@ export function ReorderLastOrder() {
         .eq('is_available', true);
 
       if (!available?.length) {
-        toast.error('Items from this order are no longer available');
+        toast.error(ml.label('label_reorder_unavailable'));
         setIsLoading(false);
         return;
       }
@@ -75,7 +77,6 @@ export function ReorderLastOrder() {
       const availableSet = new Set(available.map(p => p.id));
       const unavailableCount = productIds.length - availableSet.size;
 
-      // Clear existing cart and add items
       await supabase.from('cart_items').delete().eq('user_id', user.id);
       const inserts = lastOrder.items
         .filter(i => availableSet.has(i.product_id))
@@ -87,7 +88,7 @@ export function ReorderLastOrder() {
       if (unavailableCount > 0) {
         toast.info(`${unavailableCount} item(s) were unavailable and skipped`);
       }
-      toast.success('Cart rebuilt! Review and checkout.');
+      toast.success(ml.label('label_reorder_success'));
       navigate('/cart');
     } catch {
       toast.error('Failed to reorder');
@@ -111,7 +112,7 @@ export function ReorderLastOrder() {
         </div>
         <div className="flex-1 min-w-0 text-left">
           <p className="text-sm font-semibold text-foreground truncate">
-            Reorder from {lastOrder.seller_name}
+            {ml.label('label_reorder_prefix')} {lastOrder.seller_name}
           </p>
           <p className="text-[11px] text-muted-foreground">
             {lastOrder.item_count} item{lastOrder.item_count !== 1 ? 's' : ''} · {formatPrice(lastOrder.total_amount)} · {timeLabel}

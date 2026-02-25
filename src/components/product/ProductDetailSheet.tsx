@@ -12,15 +12,16 @@ import { Plus, Minus, Store, MapPin, Home, Clock, Truck, Users, Zap, RotateCcw, 
 import { useProductDetail, ProductDetail } from '@/hooks/useProductDetail';
 import { hapticImpact } from '@/lib/haptics';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
-function formatSellerLastActive(lastActiveAt: string): string {
+function formatSellerLastActive(lastActiveAt: string, ml: ReturnType<typeof useMarketplaceLabels>): string {
   try {
     const d = new Date(lastActiveAt);
     const diffMs = Date.now() - d.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
-    if (diffHours < 1) return 'Active now';
-    if (diffHours < 24) return `Active ${Math.floor(diffHours)}h ago`;
-    if (diffHours < 48) return 'Active yesterday';
+    if (diffHours < 1) return ml.label('label_active_now');
+    if (diffHours < 24) return `${ml.label('label_active_now').split(' ')[0]} ${ml.label('label_active_hours_ago').replace('{hours}', String(Math.floor(diffHours)))}`;
+    if (diffHours < 48) return `Active ${ml.label('label_active_yesterday').toLowerCase()}`;
     return `Active ${formatDistanceToNowStrict(d, { addSuffix: true })}`;
   } catch {
     return '';
@@ -39,8 +40,15 @@ export { type ProductDetail };
 
 export function ProductDetailSheet({ product, open, onOpenChange, categoryIcon, categoryName }: ProductDetailSheetProps) {
   const d = useProductDetail(product, open);
+  const ml = useMarketplaceLabels();
 
   if (!product) return null;
+
+  const distanceText = product.distance_km != null
+    ? (product.distance_km < 1
+      ? ml.label('label_distance_m_format').replace('{distance}', String(Math.round(product.distance_km * 1000)))
+      : ml.label('label_distance_km_format').replace('{distance}', String(product.distance_km)))
+    : product.society_name;
 
   return (
     <>
@@ -55,7 +63,6 @@ export function ProductDetailSheet({ product, open, onOpenChange, categoryIcon, 
             ) : (
               <div className="w-full h-full flex items-center justify-center"><span className="text-6xl">{categoryIcon || '🛍️'}</span></div>
             )}
-            {/* Image pagination dots - only show if we have an image */}
             {product.image_url && (
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
                 <div className="w-5 h-1.5 rounded-full bg-foreground/80" />
@@ -98,7 +105,6 @@ export function ProductDetailSheet({ product, open, onOpenChange, categoryIcon, 
 
             {d.showDetails && (
               <div className="space-y-3 animate-fade-in">
-                {/* Fulfillment mode - consolidated, no duplicate */}
                 {product.fulfillment_mode && (
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-lg px-3 py-2">
                     <Truck size={14} className="text-accent shrink-0" />
@@ -134,14 +140,14 @@ export function ProductDetailSheet({ product, open, onOpenChange, categoryIcon, 
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   {d.isNewSeller ? <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">New Seller</Badge> : null}
                   {product.is_same_society ? (
-                    <span className="flex items-center gap-0.5 text-[10px] text-accent font-medium"><Home size={10} /> Your neighbor</span>
+                    <span className="flex items-center gap-0.5 text-[10px] text-accent font-medium"><Home size={10} /> {ml.label('label_your_neighbor')}</span>
                   ) : (
-                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><MapPin size={10} />{product.distance_km != null ? (product.distance_km < 1 ? `${Math.round(product.distance_km * 1000)}m away` : `${product.distance_km} km away`) : product.society_name}</span>
+                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><MapPin size={10} />{distanceText}</span>
                   )}
                   {(product as any).last_active_at && (
                     <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                       <Clock size={9} />
-                      {formatSellerLastActive((product as any).last_active_at)}
+                      {formatSellerLastActive((product as any).last_active_at, ml)}
                     </span>
                   )}
                 </div>

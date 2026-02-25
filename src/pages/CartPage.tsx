@@ -13,9 +13,11 @@ import { OrderProgressOverlay } from '@/components/checkout/OrderProgressOverlay
 import { useCartPage } from '@/hooks/useCartPage';
 import { hapticImpact } from '@/lib/haptics';
 import { toast } from 'sonner';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 export default function CartPage() {
   const c = useCartPage();
+  const ml = useMarketplaceLabels();
 
   if (c.items.length === 0) {
     return (
@@ -32,6 +34,10 @@ export default function CartPage() {
       </AppLayout>
     );
   }
+
+  const communityText = ml.label('label_checkout_community_support')
+    .replace('{count}', String(c.sellerGroups.length))
+    .replace('{suffix}', c.sellerGroups.length !== 1 ? 'es' : '');
 
   return (
     <AppLayout showHeader={false} showNav={false}>
@@ -182,8 +188,12 @@ export default function CartPage() {
 
         {/* Neighborhood Guarantee */}
         <div className="mx-4 mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
-          <span className="text-sm">🛡️</span>
-          <p className="text-[10px] text-muted-foreground">Protected by <span className="font-semibold text-foreground">Neighborhood Guarantee</span> — disputes resolved by your society committee</p>
+          <span className="text-sm">{ml.label('label_neighborhood_guarantee_emoji')}</span>
+          <p className="text-[10px] text-muted-foreground">{ml.label('label_neighborhood_guarantee_badge').replace('Neighborhood Guarantee', `<span class="font-semibold text-foreground">${ml.label('label_neighborhood_guarantee')}</span>`)
+            // Since we can't use dangerouslySetInnerHTML cleanly, we do a simpler approach:
+            .split(ml.label('label_neighborhood_guarantee'))
+            .reduce((acc, part, i) => i === 0 ? part : acc, ml.label('label_neighborhood_guarantee_badge'))
+          }</p>
         </div>
       </div>
 
@@ -191,8 +201,8 @@ export default function CartPage() {
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border pb-[env(safe-area-inset-bottom)]">
         {c.sellerGroups.length > 0 && (
           <p className="text-[11px] text-primary font-medium text-center pt-2.5 px-4 flex items-center justify-center gap-1.5">
-            <span className="text-base">💚</span>
-            This order supports {c.sellerGroups.length} local business{c.sellerGroups.length !== 1 ? 'es' : ''} in your community
+            <span className="text-base">{ml.label('label_checkout_community_emoji')}</span>
+            {communityText}
           </p>
         )}
         <p className="text-[10px] text-muted-foreground text-center pt-1 px-4">Payments are processed by third-party providers and are not covered by Apple. <Link to="/terms" className="underline">Refund & Cancellation Policy</Link></p>

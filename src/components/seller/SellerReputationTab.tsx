@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, XCircle, ShieldCheck, Clock, TrendingUp } from 'lucide-react';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 interface SellerReputationTabProps {
   sellerId: string;
@@ -22,7 +21,19 @@ interface ReputationSummary {
   }[];
 }
 
+const ICON_MAP: Record<string, typeof CheckCircle> = {
+  order_completed: CheckCircle,
+  order_cancelled: XCircle,
+  dispute_resolved: ShieldCheck,
+  dispute_lost: XCircle,
+  response_fast: Clock,
+  response_slow: Clock,
+};
+
 export function SellerReputationTab({ sellerId }: SellerReputationTabProps) {
+  const ml = useMarketplaceLabels();
+  const eventLabelsMap = ml.reputationEventLabels();
+
   const { data, isLoading } = useQuery({
     queryKey: ['seller-reputation', sellerId],
     queryFn: async (): Promise<ReputationSummary> => {
@@ -59,20 +70,11 @@ export function SellerReputationTab({ sellerId }: SellerReputationTabProps) {
     return (
       <div className="text-center py-8">
         <ShieldCheck className="mx-auto text-muted-foreground mb-2" size={28} />
-        <p className="text-sm text-muted-foreground">No reputation history yet</p>
-        <p className="text-xs text-muted-foreground mt-1">Events will appear as orders are completed</p>
+        <p className="text-sm text-muted-foreground">{ml.label('label_reputation_empty')}</p>
+        <p className="text-xs text-muted-foreground mt-1">{ml.label('label_reputation_empty_desc')}</p>
       </div>
     );
   }
-
-  const eventLabels: Record<string, { label: string; icon: typeof CheckCircle; color: string }> = {
-    order_completed: { label: 'Order Completed', icon: CheckCircle, color: 'text-success' },
-    order_cancelled: { label: 'Order Cancelled', icon: XCircle, color: 'text-destructive' },
-    dispute_resolved: { label: 'Dispute Resolved', icon: ShieldCheck, color: 'text-success' },
-    dispute_lost: { label: 'Dispute Lost', icon: XCircle, color: 'text-destructive' },
-    response_fast: { label: 'Fast Response', icon: Clock, color: 'text-primary' },
-    response_slow: { label: 'Slow Response', icon: Clock, color: 'text-warning' },
-  };
 
   return (
     <div className="space-y-4 p-4">
@@ -107,8 +109,8 @@ export function SellerReputationTab({ sellerId }: SellerReputationTabProps) {
           <p className="text-xs font-semibold text-muted-foreground mb-2">Recent Activity</p>
           <div className="space-y-2">
             {data.recent_events.map((event, i) => {
-              const config = eventLabels[event.event_type] || { label: event.event_type, icon: Clock, color: 'text-muted-foreground' };
-              const Icon = config.icon;
+              const config = eventLabelsMap[event.event_type] || { label: event.event_type, color: 'text-muted-foreground' };
+              const Icon = ICON_MAP[event.event_type] || Clock;
               const timeAgo = new Date(event.occurred_at);
               const diffHours = (Date.now() - timeAgo.getTime()) / (1000 * 60 * 60);
               const timeLabel = diffHours < 1 ? 'Just now' : diffHours < 24 ? `${Math.floor(diffHours)}h ago` : `${Math.floor(diffHours / 24)}d ago`;

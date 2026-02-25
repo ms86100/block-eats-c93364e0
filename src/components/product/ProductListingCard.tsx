@@ -14,6 +14,7 @@ import type { BadgeConfigRow } from '@/hooks/useBadgeConfig';
 import type { CategoryConfig } from '@/types/categories';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 /* ━━━ Types ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
@@ -95,6 +96,7 @@ function ProductListingCardInner({
   const { items, addItem, updateQuantity } = useCart();
   const { impact, selectionChanged } = useHaptics();
   const { formatPrice } = useCurrency();
+  const ml = useMarketplaceLabels();
 
   const mc = marketplaceConfig || MARKETPLACE_FALLBACKS;
 
@@ -197,6 +199,26 @@ function ProductListingCardInner({
   const deliveryText = product.delivery_time_text || (product.prep_time_minutes ? mc.labels.prepTimeFormat.replace('{value}', String(product.prep_time_minutes)) : null);
   const variantText = product.unit_type ? (product.price_per_unit || product.unit_type) : (product.serving_size || null);
 
+  /* ── Format distance from DB labels ── */
+  const distanceLabel = useMemo(() => {
+    const distKm = (product as any).distance_km;
+    if (distKm != null) {
+      return distKm < 1
+        ? ml.label('label_distance_m_format').replace('{distance}', String(Math.round(distKm * 1000)))
+        : ml.label('label_distance_km_format').replace('{distance}', String(distKm));
+    }
+    return null;
+  }, [(product as any).distance_km, ml]);
+
+  /* ── Format activity from DB labels ── */
+  const activityLabel = useMemo(() => {
+    if (!(product as any).last_active_at) return '';
+    return formatSellerActivity((product as any).last_active_at, ml);
+  }, [(product as any).last_active_at, ml]);
+
+  /* ── On-time threshold ── */
+  const onTimeBadgeMinOrders = ml.threshold('on_time_badge_min_orders');
+
   return (
     <div
       ref={cardRef}
@@ -263,17 +285,15 @@ function ProductListingCardInner({
 
           {/* Distance badge — visible for ALL products */}
           <div className="absolute bottom-1 left-1">
-            {(product as any).distance_km != null ? (
+            {distanceLabel ? (
               <span className="inline-flex items-center gap-0.5 bg-background/90 backdrop-blur-sm text-[7px] font-bold text-primary px-1 py-0.5 rounded-full shadow-sm border border-border">
                 <MapPin size={7} className="shrink-0" />
-                {(product as any).distance_km < 1
-                  ? `${Math.round((product as any).distance_km * 1000)}m away`
-                  : `${(product as any).distance_km} km away`}
+                {distanceLabel}
               </span>
             ) : (product as any).is_same_society !== false ? (
               <span className="inline-flex items-center gap-0.5 bg-background/90 backdrop-blur-sm text-[7px] font-bold text-accent-foreground px-1 py-0.5 rounded-full shadow-sm border border-border">
                 <MapPin size={7} className="shrink-0" />
-                In your society
+                {ml.label('label_in_your_society')}
               </span>
             ) : null}
           </div>
@@ -319,25 +339,27 @@ function ProductListingCardInner({
         {product.seller_name && (
           <p className="text-[10px] text-muted-foreground leading-tight line-clamp-1 mb-0.5">
             by {product.seller_name}
-            {(product as any).last_active_at && (
+            {activityLabel && (
               <span className="ml-1 text-[8px] opacity-70">
-                · {formatSellerActivity((product as any).last_active_at)}
+                · {activityLabel}
               </span>
             )}
           </p>
         )}
 
         {/* On-time delivery badge */}
-        {(product as any).on_time_delivery_pct != null && (product as any).completed_order_count > 5 && (
+        {(product as any).on_time_delivery_pct != null && (product as any).completed_order_count > onTimeBadgeMinOrders && (
           <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-primary bg-primary/10 rounded-full px-1.5 py-0.5 w-fit mb-0.5">
-            ✓ On-time: {(product as any).on_time_delivery_pct}%
+            {ml.label('label_on_time_format').replace('{pct}', String((product as any).on_time_delivery_pct))}
           </span>
         )}
 
         {/* Social proof badge */}
         {socialProofCount != null && socialProofCount > 0 && (
           <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-accent-foreground bg-accent/15 rounded-full px-1.5 py-0.5 w-fit mb-0.5">
-            👥 {socialProofCount} {socialProofCount === 1 ? 'family' : 'families'} ordered this week
+            {ml.label('label_social_proof_format')
+              .replace('{count}', String(socialProofCount))
+              .replace('{unit}', socialProofCount === 1 ? ml.label('label_social_proof_singular') : ml.label('label_social_proof_plural'))}
           </span>
         )}
 
@@ -403,14 +425,14 @@ function ProductListingCardInner({
 }
 
 /* ── Helper: format seller last-active into human-friendly text ── */
-function formatSellerActivity(lastActiveAt: string): string {
+function formatSellerActivity(lastActiveAt: string, ml: ReturnType<typeof useMarketplaceLabels>): string {
   try {
     const d = new Date(lastActiveAt);
     const diffMs = Date.now() - d.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
-    if (diffHours < 1) return 'Active now';
-    if (diffHours < 24) return `${Math.floor(diffHours)}h ago`;
-    if (diffHours < 48) return 'Yesterday';
+    if (diffHours < 1) return ml.label('label_active_now');
+    if (diffHours < 24) return ml.label('label_active_hours_ago').replace('{hours}', String(Math.floor(diffHours)));
+    if (diffHours < 48) return ml.label('label_active_yesterday');
     return formatDistanceToNowStrict(d, { addSuffix: true });
   } catch {
     return '';

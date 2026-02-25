@@ -4,12 +4,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, Search } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 interface DemandInsightsProps {
   societyId: string;
 }
 
 export function DemandInsights({ societyId }: DemandInsightsProps) {
+  const ml = useMarketplaceLabels();
+  const maxItems = ml.threshold('demand_insights_max_items');
+
   const { data, isLoading } = useQuery({
     queryKey: ['unmet-demand', societyId],
     queryFn: async () => {
@@ -35,10 +39,10 @@ export function DemandInsights({ societyId }: DemandInsightsProps) {
     <Card>
       <CardContent className="p-3">
         <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-          <TrendingUp size={12} className="text-primary" /> What buyers are searching for
+          <TrendingUp size={12} className="text-primary" /> {ml.label('label_demand_insights_title')}
         </p>
         <div className="space-y-2">
-          {data.slice(0, 5).map((item) => (
+          {data.slice(0, maxItems || 5).map((item) => (
             <div key={item.search_term} className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 truncate">
                 <Search size={12} className="text-muted-foreground shrink-0" />
@@ -54,7 +58,7 @@ export function DemandInsights({ societyId }: DemandInsightsProps) {
           ))}
         </div>
         <p className="text-[10px] text-muted-foreground mt-2 italic">
-          No seller in your society offers these items yet — opportunity!
+          {ml.label('label_demand_insights_empty')}
         </p>
       </CardContent>
     </Card>

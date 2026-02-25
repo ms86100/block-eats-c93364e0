@@ -16,10 +16,12 @@ import { motion } from 'framer-motion';
 import { useCategoryConfigs } from '@/hooks/useCategoryBehavior';
 import { useMarketplaceConfig } from '@/hooks/useMarketplaceConfig';
 import { useBadgeConfig } from '@/hooks/useBadgeConfig';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 export function MarketplaceSection() {
   const navigate = useNavigate();
   const { user, profile, effectiveSocietyId } = useAuth();
+  const ml = useMarketplaceLabels();
 
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -31,25 +33,26 @@ export function MarketplaceSection() {
   const { data: localCategories = [], isLoading: loadingLocal } = useProductsByCategory(80);
   const { parentGroupInfos } = useParentGroups();
 
-  // Collect all product IDs for social proof
   const allProducts = useMemo(() => localCategories.flatMap(c => c.products), [localCategories]);
   const allProductIds = useMemo(() => allProducts.map(p => p.id), [allProducts]);
   const { data: socialProofMap } = useSocialProof(allProductIds);
 
-  // Task 14: Discovery sections
+  const newThisWeekDays = ml.threshold('new_this_week_days');
+  const discoveryMinProducts = ml.threshold('discovery_min_products');
+  const discoveryMaxItems = ml.threshold('discovery_max_items');
+
   const newThisWeek = useMemo(() => {
-    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - (newThisWeekDays || 7) * 24 * 60 * 60 * 1000;
     return allProducts
-      .filter(p => new Date(p.created_at).getTime() >= weekAgo)
-      .slice(0, 10);
-  }, [allProducts]);
+      .filter(p => new Date(p.created_at).getTime() >= cutoff)
+      .slice(0, discoveryMaxItems || 10);
+  }, [allProducts, newThisWeekDays, discoveryMaxItems]);
 
   const popularNearYou = useMemo(() => {
-    // Sort by completed_order_count descending (proxy for popularity)
     return [...allProducts]
       .sort((a, b) => ((b as any).completed_order_count || 0) - ((a as any).completed_order_count || 0))
-      .slice(0, 10);
-  }, [allProducts]);
+      .slice(0, discoveryMaxItems || 10);
+  }, [allProducts, discoveryMaxItems]);
 
   const filteredCategories = activeGroup
     ? localCategories.filter(cat => cat.parentGroup === activeGroup)
@@ -94,12 +97,10 @@ export function MarketplaceSection() {
 
   return (
     <div className="pb-2">
-      {/* ━━━ Parent Group Pill Tabs ━━━ */}
       <div className="pt-3 pb-4">
         <ParentGroupTabs activeGroup={activeGroup} onGroupChange={setActiveGroup} activeParentGroups={activeParentGroupSet} />
       </div>
 
-      {/* ━━━ Category Image Sections ━━━ */}
       {activeParentGroups.slice(0, 4).map((group) => (
         <CategoryImageGrid
           key={group.value}
@@ -109,13 +110,11 @@ export function MarketplaceSection() {
         />
       ))}
 
-      {/* ━━━ Featured Banners ━━━ */}
       <FeaturedBanners />
 
-      {/* ━━━ Discovery: Popular Near You ━━━ */}
-      {!activeGroup && popularNearYou.length > 3 && (
+      {!activeGroup && popularNearYou.length > (discoveryMinProducts || 3) && (
         <DiscoveryRow
-          title="Popular near you"
+          title={ml.label('label_discovery_popular')}
           icon={<Flame size={14} className="text-destructive" />}
           products={popularNearYou}
           onProductTap={handleProductTap}
@@ -127,10 +126,9 @@ export function MarketplaceSection() {
         />
       )}
 
-      {/* ━━━ Discovery: New This Week ━━━ */}
       {!activeGroup && newThisWeek.length > 0 && (
         <DiscoveryRow
-          title="New this week"
+          title={ml.label('label_discovery_new')}
           icon={<Sparkles size={14} className="text-primary" />}
           products={newThisWeek}
           onProductTap={handleProductTap}
@@ -142,7 +140,6 @@ export function MarketplaceSection() {
         />
       )}
 
-      {/* ━━━ Product Listings ━━━ */}
       <ProductListings
         categories={filteredCategories}
         isLoading={loadingLocal}
@@ -154,10 +151,8 @@ export function MarketplaceSection() {
         socialProofMap={socialProofMap}
       />
 
-      {/* ━━━ Shop by Store Discovery ━━━ */}
       <ShopByStoreDiscovery />
 
-      {/* ━━━ Product Detail Sheet ━━━ */}
       <ProductDetailSheet
         product={selectedProduct}
         open={detailOpen}
@@ -169,7 +164,7 @@ export function MarketplaceSection() {
   );
 }
 
-// ── Discovery Row (New This Week / Popular Near You) ──
+// ── Discovery Row ──
 function DiscoveryRow({
   title, icon, products, onProductTap, onNavigate, categoryConfigs, marketplaceConfig, badgeConfigs, socialProofMap,
 }: {

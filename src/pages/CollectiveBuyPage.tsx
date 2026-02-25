@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -8,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
-import { Users, ShoppingBag, Clock, Plus, ArrowLeft } from 'lucide-react';
+import { Users, ShoppingBag, Clock, Plus } from 'lucide-react';
 import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 interface CollectiveBuy {
   id: string;
@@ -31,6 +30,7 @@ interface CollectiveBuy {
 export default function CollectiveBuyPage() {
   const { user, effectiveSocietyId } = useAuth();
   const { formatPrice } = useCurrency();
+  const ml = useMarketplaceLabels();
   const [buys, setBuys] = useState<CollectiveBuy[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
@@ -51,7 +51,6 @@ export default function CollectiveBuyPage() {
 
     const items = (data || []) as any[];
 
-    // Check user participation
     if (user && items.length > 0) {
       const { data: participations } = await supabase
         .from('collective_buy_participants')
@@ -107,8 +106,8 @@ export default function CollectiveBuyPage() {
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold">Community Group Buys</h2>
-            <p className="text-xs text-muted-foreground">Pool orders with neighbors for better deals</p>
+            <h2 className="text-lg font-bold">{ml.label('label_group_buy_title')}</h2>
+            <p className="text-xs text-muted-foreground">{ml.label('label_group_buy_subtitle')}</p>
           </div>
         </div>
 
@@ -119,8 +118,8 @@ export default function CollectiveBuyPage() {
         ) : buys.length === 0 ? (
           <div className="text-center py-16">
             <Users className="mx-auto text-muted-foreground mb-3" size={36} />
-            <p className="font-semibold">No active group buys</p>
-            <p className="text-sm text-muted-foreground mt-1">Group buys from your community will appear here</p>
+            <p className="font-semibold">{ml.label('label_group_buy_empty')}</p>
+            <p className="text-sm text-muted-foreground mt-1">{ml.label('label_group_buy_empty_desc')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -145,7 +144,7 @@ export default function CollectiveBuyPage() {
                         <p className="text-xs text-muted-foreground">{formatPrice(buy.product?.price || 0)} each</p>
                         <div className="flex items-center gap-2 mt-1">
                           {isFulfilled ? (
-                            <Badge className="bg-success/10 text-success text-[10px]">✓ Target Reached</Badge>
+                            <Badge className="bg-success/10 text-success text-[10px]">{ml.label('label_group_buy_fulfilled')}</Badge>
                           ) : isExpired ? (
                             <Badge variant="secondary" className="text-[10px]">Expired</Badge>
                           ) : (
@@ -176,7 +175,7 @@ export default function CollectiveBuyPage() {
                             onClick={() => handleLeave(buy.id)}
                             disabled={joining === buy.id}
                           >
-                            Leave Group Buy
+                            {ml.label('label_group_buy_leave')}
                           </Button>
                         ) : (
                           <Button
@@ -185,7 +184,7 @@ export default function CollectiveBuyPage() {
                             onClick={() => handleJoin(buy.id)}
                             disabled={joining === buy.id}
                           >
-                            <Plus size={14} className="mr-1" /> Join Group Buy
+                            <Plus size={14} className="mr-1" /> {ml.label('label_group_buy_join')}
                           </Button>
                         )}
                       </div>

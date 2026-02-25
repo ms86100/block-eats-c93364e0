@@ -3,6 +3,7 @@ import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart3, Users, TrendingUp, XCircle, Clock, Eye, ArrowRightLeft, Percent } from 'lucide-react';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 interface SellerAnalyticsProps {
   sellerId: string;
@@ -12,6 +13,7 @@ export function SellerAnalytics({ sellerId }: SellerAnalyticsProps) {
   const { data, isLoading } = useSellerAnalytics(sellerId);
   const { data: demandStats, isLoading: demandLoading } = useSellerDemandStats(sellerId);
   const settings = useSystemSettings();
+  const ml = useMarketplaceLabels();
 
   if (isLoading) {
     return (
@@ -76,22 +78,22 @@ export function SellerAnalytics({ sellerId }: SellerAnalyticsProps) {
       {demandStats && !demandLoading && (
         <Card>
           <CardContent className="p-3">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">30-Day Intelligence</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">{ml.label('label_analytics_intelligence_title')}</p>
             <div className="grid grid-cols-3 gap-2">
               <div className="text-center">
                 <Users size={14} className="mx-auto text-primary mb-1" />
                 <p className="text-sm font-bold">{demandStats.active_buyers_in_society}</p>
-                <p className="text-[9px] text-muted-foreground">Active Buyers</p>
+                <p className="text-[9px] text-muted-foreground">{ml.label('label_analytics_active_buyers')}</p>
               </div>
               <div className="text-center">
                 <Eye size={14} className="mx-auto text-muted-foreground mb-1" />
                 <p className="text-sm font-bold">{demandStats.view_count}</p>
-                <p className="text-[9px] text-muted-foreground">Views</p>
+                <p className="text-[9px] text-muted-foreground">{ml.label('label_analytics_views')}</p>
               </div>
               <div className="text-center">
                 <ArrowRightLeft size={14} className="mx-auto text-accent mb-1" />
                 <p className="text-sm font-bold">{demandStats.conversion_rate}%</p>
-                <p className="text-[9px] text-muted-foreground">Conversion</p>
+                <p className="text-[9px] text-muted-foreground">{ml.label('label_analytics_conversion')}</p>
               </div>
             </div>
           </CardContent>
@@ -104,8 +106,8 @@ export function SellerAnalytics({ sellerId }: SellerAnalyticsProps) {
           <CardContent className="p-3 flex items-center gap-3">
             <Percent size={16} className="text-primary shrink-0" />
             <div>
-              <p className="text-sm font-semibold">{settings.platformFeePercent}% platform fee</p>
-              <p className="text-[10px] text-muted-foreground">Applied on each completed order</p>
+              <p className="text-sm font-semibold">{ml.label('label_analytics_fee_format').replace('{pct}', String(settings.platformFeePercent))}</p>
+              <p className="text-[10px] text-muted-foreground">{ml.label('label_analytics_fee_desc')}</p>
             </div>
           </CardContent>
         </Card>

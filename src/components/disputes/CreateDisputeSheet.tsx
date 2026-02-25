@@ -13,14 +13,7 @@ import { Loader2, ShieldAlert } from 'lucide-react';
 import { notifySocietyAdmins } from '@/lib/society-notifications';
 import { disputeSchema, validateForm } from '@/lib/validation-schemas';
 import { useSubmitGuard } from '@/hooks/useSubmitGuard';
-
-const CATEGORIES = [
-  { value: 'noise', label: 'Noise' },
-  { value: 'parking', label: 'Parking' },
-  { value: 'pet', label: 'Pet Related' },
-  { value: 'maintenance', label: 'Maintenance' },
-  { value: 'other', label: 'Other' },
-];
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 interface Props {
   open: boolean;
@@ -30,7 +23,9 @@ interface Props {
 
 export function CreateDisputeSheet({ open, onOpenChange, onCreated }: Props) {
   const { user, profile, viewAsSocietyId } = useAuth();
-  const [category, setCategory] = useState('other');
+  const ml = useMarketplaceLabels();
+  const categories = ml.disputeCategories();
+  const [category, setCategory] = useState(categories[0]?.value || 'other');
   const [description, setDescription] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,15 +54,15 @@ export function CreateDisputeSheet({ open, onOpenChange, onCreated }: Props) {
       if (profile?.society_id) {
         notifySocietyAdmins(
           profile.society_id,
-          '⚖️ New Dispute Filed',
+          `⚖️ New Dispute Filed`,
           `${category} concern: ${validation.data.description.substring(0, 80)}`,
           { type: 'dispute' }
         );
       }
 
-      toast({ title: 'Concern submitted', description: 'The committee will review within 48 hours.' });
+      toast({ title: 'Concern submitted', description: ml.label('label_dispute_sla_notice') });
       setDescription('');
-      setCategory('other');
+      setCategory(categories[0]?.value || 'other');
       setIsAnonymous(false);
       onOpenChange(false);
       onCreated();
@@ -86,10 +81,10 @@ export function CreateDisputeSheet({ open, onOpenChange, onCreated }: Props) {
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <ShieldAlert size={18} />
-            Neighborhood Guarantee
+            {ml.label('label_neighborhood_guarantee')}
           </SheetTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            Your society committee will review this as a neutral party
+            {ml.label('label_neighborhood_guarantee_desc')}
           </p>
         </SheetHeader>
         <div className="space-y-4 mt-4">
@@ -98,7 +93,7 @@ export function CreateDisputeSheet({ open, onOpenChange, onCreated }: Props) {
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map(c => (
+                {categories.map(c => (
                   <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                 ))}
               </SelectContent>

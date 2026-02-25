@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { friendlyError } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Loader2, Send } from 'lucide-react';
+import { useMarketplaceLabels } from '@/hooks/useMarketplaceLabels';
 
 interface Comment {
   id: string;
@@ -45,6 +46,9 @@ interface Props {
 
 export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAdmin }: Props) {
   const { user } = useAuth();
+  const ml = useMarketplaceLabels();
+  const statusOptions = ml.disputeStatusOptions();
+  const slaWarningHours = ml.threshold('dispute_sla_warning_hours');
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [sending, setSending] = useState(false);
@@ -121,8 +125,8 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl h-[85vh] flex flex-col">
         <SheetHeader>
-          <SheetTitle className="text-left">Neighborhood Guarantee</SheetTitle>
-          <p className="text-xs text-muted-foreground">Your society committee reviews this as a neutral party</p>
+          <SheetTitle className="text-left">{ml.label('label_neighborhood_guarantee')}</SheetTitle>
+          <p className="text-xs text-muted-foreground">{ml.label('label_neighborhood_guarantee_desc')}</p>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 mt-4">
@@ -154,7 +158,7 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
             ) : (
               (() => {
                 const hoursSince = (Date.now() - new Date(ticket.created_at).getTime()) / 3600000;
-                return hoursSince > 48 ? (
+                return hoursSince > slaWarningHours ? (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20">
                     <span className="text-xs text-warning font-medium">
                       ⚠ Awaiting review — submitted {Math.floor(hoursSince / 24)} days ago
@@ -190,11 +194,9 @@ export function DisputeDetailSheet({ ticket, open, onOpenChange, onUpdated, isAd
                   <SelectValue placeholder="Update Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="acknowledged">Acknowledge</SelectItem>
-                  <SelectItem value="under_review">Under Review</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="escalated">Escalated</SelectItem>
-                  <SelectItem value="closed">Close</SelectItem>
+                  {statusOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
