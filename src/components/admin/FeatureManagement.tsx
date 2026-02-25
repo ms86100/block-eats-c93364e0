@@ -132,9 +132,9 @@ export function FeatureManagement() {
               </div>
               {pkg.description && <p className="text-xs text-muted-foreground mb-2">{pkg.description}</p>}
               {f.editingPkg === pkg.id && (
-                <div className="border-t border-border/30 pt-3 mt-3 space-y-2 max-h-64 overflow-y-auto">
+                <div className="border-t border-border/30 pt-3 mt-3 divide-y divide-border/20 max-h-64 overflow-y-auto">
                   {f.features.map(feat => (
-                    <div key={feat.id} className="flex items-center justify-between">
+                    <div key={feat.id} className="flex items-center justify-between py-2.5">
                       <div className="flex items-center gap-1.5"><span className="text-xs font-medium">{feat.feature_name}</span>{feat.is_core && <Badge variant="secondary" className="text-[8px] h-3 rounded-md">Core</Badge>}</div>
                       <Switch checked={!!f.pkgItems[feat.id]} onCheckedChange={v => f.togglePkgItem(feat.id, v)} className="scale-75" />
                     </div>
