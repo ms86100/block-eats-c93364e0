@@ -23,7 +23,6 @@ import { AdminDisputesTab } from '@/components/admin/AdminDisputesTab';
 import { EmergencyBroadcastSheet } from '@/components/admin/EmergencyBroadcastSheet';
 import { SocietySwitcher } from '@/components/admin/SocietySwitcher';
 import { FeatureManagement } from '@/components/admin/FeatureManagement';
-import { AdminProductApprovals } from '@/components/admin/AdminProductApprovals';
 import { PlatformSettingsManager } from '@/components/admin/PlatformSettingsManager';
 import { AdminCatalogManager } from '@/components/admin/AdminCatalogManager';
 import { AdminBannerManager } from '@/components/admin/AdminBannerManager';
@@ -75,7 +74,6 @@ function SectionHeader({ icon: Icon, title, count, action, color = 'bg-primary/1
 
 const TAB_CONFIG = [
   { value: 'sellers', label: 'Sellers', icon: Store },
-  { value: 'products', label: 'Products', icon: Package },
   { value: 'users', label: 'Users', icon: Users },
   { value: 'societies', label: 'Societies', icon: Building2 },
   { value: 'disputes', label: 'Disputes', icon: AlertCircle },
@@ -163,10 +161,6 @@ export default function AdminPage() {
               <SellerApplicationReview />
             </TabsContent>
 
-            {/* ── PRODUCTS ── */}
-            <TabsContent value="products" className="mt-5">
-              <AdminProductApprovals />
-            </TabsContent>
 
             {/* ── USERS ── */}
             <TabsContent value="users" className="mt-5 space-y-3">

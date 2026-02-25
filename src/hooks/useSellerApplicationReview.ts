@@ -212,14 +212,38 @@ export function useSellerApplicationReview() {
   };
 
   const pendingCount = applications.filter(a => a.verification_status === 'pending').length;
+  const pendingProductCount = applications.reduce((sum, a) => sum + a.products.filter(p => p.approval_status === 'pending').length, 0);
+
+  const [productActionId, setProductActionId] = useState<string | null>(null);
+  const [productRejectingId, setProductRejectingId] = useState<string | null>(null);
+  const [productRejectionNote, setProductRejectionNote] = useState('');
+
+  const updateProductStatus = async (productId: string, status: 'approved' | 'rejected') => {
+    setProductActionId(productId);
+    try {
+      const { error } = await supabase.from('products').update({ approval_status: status } as any).eq('id', productId);
+      if (error) { toast.error(`Failed to ${status} product`); return; }
+      await logAudit(`product_${status}`, 'product', productId, '', { reason: productRejectionNote || undefined });
+      toast.success(`Product ${status}`);
+      setProductRejectingId(null);
+      setProductRejectionNote('');
+      fetchData();
+    } catch {
+      toast.error('Failed to update product');
+    } finally {
+      setProductActionId(null);
+    }
+  };
 
   return {
     applications, groups, isLoading, expandedId, setExpandedId,
     actionId, rejectionNote, setRejectionNote, rejectingId, setRejectingId,
     licenseAdminNotes, setLicenseAdminNotes, previewUrl, setPreviewUrl,
     statusFilter, setStatusFilter, editingGroup, setEditingGroup,
-    editForm, setEditForm, pendingCount, formatPrice,
+    editForm, setEditForm, pendingCount, pendingProductCount, formatPrice,
     updateSellerStatus, updateLicenseStatus, toggleRequiresLicense,
     toggleMandatory, saveGroupConfig,
+    productActionId, productRejectingId, setProductRejectingId,
+    productRejectionNote, setProductRejectionNote, updateProductStatus,
   };
 }

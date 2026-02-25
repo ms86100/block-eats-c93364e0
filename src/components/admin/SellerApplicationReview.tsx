@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Check, X, Loader2, Store, Package, FileText, Eye, Clock, Shield,
   ChevronDown, ChevronUp, MapPin, Phone, Calendar, CreditCard, Truck, User,
@@ -194,23 +195,58 @@ export function SellerApplicationReview() {
                       {/* Products */}
                       {seller.products.length > 0 && (
                         <div className="space-y-2.5">
-                          <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5"><Package size={12} /> Products ({seller.products.length})</h4>
-                          <div className="grid grid-cols-1 gap-2">
-                            {seller.products.slice(0, 6).map((prod) => (
-                              <div key={prod.id} className="flex items-center gap-2.5 bg-muted/40 rounded-xl p-2.5">
-                                {prod.image_url ? <img src={prod.image_url} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" /> : <div className="w-9 h-9 rounded-lg bg-background flex items-center justify-center shrink-0"><Package size={13} className="text-muted-foreground/50" /></div>}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-semibold truncate">{prod.name}</p>
-                                  <div className="flex items-center gap-1.5">
-                                    {prod.price > 0 && <span className="text-[10px] text-primary font-bold">{s.formatPrice(prod.price)}</span>}
-                                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 rounded-md">{prod.category.replace(/_/g, ' ')}</Badge>
+                          <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                            <Package size={12} /> Products ({seller.products.length})
+                            {seller.products.filter(p => p.approval_status === 'pending').length > 0 && (
+                              <Badge variant="outline" className="text-[8px] text-warning border-warning rounded-md ml-1">
+                                {seller.products.filter(p => p.approval_status === 'pending').length} pending
+                              </Badge>
+                            )}
+                          </h4>
+                          <ScrollArea className="max-h-[320px]">
+                            <div className="grid grid-cols-1 gap-2 pr-2">
+                              {seller.products.map((prod) => (
+                                <div key={prod.id} className="bg-muted/40 rounded-xl p-2.5 space-y-2">
+                                  <div className="flex items-center gap-2.5">
+                                    {prod.image_url ? <img src={prod.image_url} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" /> : <div className="w-9 h-9 rounded-lg bg-background flex items-center justify-center shrink-0"><Package size={13} className="text-muted-foreground/50" /></div>}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-semibold truncate">{prod.name}</p>
+                                      <div className="flex items-center gap-1.5">
+                                        {prod.price > 0 && <span className="text-[10px] text-primary font-bold">{s.formatPrice(prod.price)}</span>}
+                                        <Badge variant="outline" className="text-[8px] px-1.5 py-0 rounded-md">{prod.category.replace(/_/g, ' ')}</Badge>
+                                      </div>
+                                    </div>
+                                    {statusBadge(prod.approval_status)}
                                   </div>
+                                  {prod.approval_status === 'pending' && (
+                                    <>
+                                      {s.productRejectingId === prod.id ? (
+                                        <div className="space-y-2 pt-1.5 border-t border-border/30">
+                                          <Textarea placeholder="Rejection reason (optional)..." value={s.productRejectionNote} onChange={(e) => s.setProductRejectionNote(e.target.value)} rows={2} className="text-xs rounded-xl" onClick={(e) => e.stopPropagation()} />
+                                          <div className="flex gap-2">
+                                            <Button size="sm" variant="outline" className="flex-1 h-7 text-[10px] rounded-xl" onClick={(e) => { e.stopPropagation(); s.setProductRejectingId(null); s.setProductRejectionNote(''); }}>Cancel</Button>
+                                            <Button size="sm" variant="destructive" className="flex-1 h-7 text-[10px] rounded-xl font-semibold" disabled={s.productActionId === prod.id} onClick={(e) => { e.stopPropagation(); s.updateProductStatus(prod.id, 'rejected'); }}>
+                                              {s.productActionId === prod.id && <Loader2 size={10} className="animate-spin mr-1" />}Confirm Reject
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="flex gap-2 pt-1.5 border-t border-border/30">
+                                          <Button size="sm" variant="outline" className="text-destructive flex-1 h-7 text-[10px] rounded-xl font-semibold" onClick={(e) => { e.stopPropagation(); s.setProductRejectingId(prod.id); }} disabled={!!s.productActionId}>
+                                            <X size={10} className="mr-1" /> Reject
+                                          </Button>
+                                          <Button size="sm" className="flex-1 h-7 text-[10px] rounded-xl font-semibold shadow-sm" onClick={(e) => { e.stopPropagation(); s.updateProductStatus(prod.id, 'approved'); }} disabled={!!s.productActionId}>
+                                            {s.productActionId === prod.id && <Loader2 size={10} className="animate-spin mr-1" />}
+                                            <Check size={10} className="mr-1" /> Approve
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
                                 </div>
-                                {statusBadge(prod.approval_status)}
-                              </div>
-                            ))}
-                            {seller.products.length > 6 && <p className="text-[10px] text-muted-foreground text-center font-medium">+{seller.products.length - 6} more products</p>}
-                          </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
                         </div>
                       )}
 
