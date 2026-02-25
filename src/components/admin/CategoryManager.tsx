@@ -6,7 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Grid3X3, GripVertical, Edit2, Plus, Trash2, Sparkles, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -122,10 +126,10 @@ function SortableCategoryItem({ cat, groupIsActive, onToggle, onEdit, onDelete }
         {!cat.image_url && <span className="text-[10px] text-amber-500 font-semibold">No image</span>}
       </div>
       <div className="flex items-center gap-1.5">
-        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" onClick={() => onEdit(cat)}>
+        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => onEdit(cat)}>
           <Edit2 size={13} />
         </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive rounded-lg" onClick={() => onDelete(cat)}>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive rounded-lg" onClick={() => onDelete(cat)}>
           <Trash2 size={13} />
         </Button>
         <Switch checked={cat.is_active} onCheckedChange={(checked) => onToggle(cat.id, checked)} disabled={!groupIsActive} />
@@ -205,10 +209,13 @@ export function CategoryManager() {
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
+      {/* ── Edit Category Dialog ── */}
       <Dialog open={!!cm.editingCategory} onOpenChange={(open) => !open && cm.setEditingCategory(null)}>
         <DialogContent className="rounded-2xl">
-          <DialogHeader><DialogTitle className="font-bold">Edit Category</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="font-bold">Edit Category</DialogTitle>
+            <DialogDescription className="text-xs">Update display name, icon, color and seller form hints.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto">
             <div className="space-y-2">
               <Label htmlFor="display_name" className="text-xs font-semibold">Display Name</Label>
@@ -288,25 +295,135 @@ export function CategoryManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Dialog */}
+      {/* ── Add Category Dialog ── */}
       <Dialog open={cm.isAddDialogOpen} onOpenChange={cm.setIsAddDialogOpen}>
         <DialogContent className="rounded-2xl">
-          <DialogHeader><DialogTitle className="font-bold">Add Category to {cm.addingToGroup}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="font-bold">Add Category to {cm.addingToGroup}</DialogTitle>
+            <DialogDescription className="text-xs">Create a new category under this group.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs font-semibold">Display Name</Label>
               <Input value={cm.addForm.display_name} onChange={(e) => cm.setAddForm({ ...cm.addForm, display_name: e.target.value })} className="rounded-xl" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-semibold">Icon</Label>
+              <Label className="text-xs font-semibold">Icon (Emoji)</Label>
               <Input value={cm.addForm.icon} onChange={(e) => cm.setAddForm({ ...cm.addForm, icon: e.target.value })} className="text-2xl rounded-xl" />
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {EMOJI_PRESETS.slice(0, 24).map((emoji) => (
+                  <button key={emoji} type="button" onClick={() => cm.setAddForm({ ...cm.addForm, icon: emoji })} className={cn('w-8 h-8 rounded-lg text-lg flex items-center justify-center hover:bg-muted transition-colors', cm.addForm.icon === emoji && 'bg-primary/15 ring-1 ring-primary')}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Color</Label>
+              <Select value={cm.addForm.color} onValueChange={(value) => cm.setAddForm({ ...cm.addForm, color: value })}>
+                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {COLOR_PRESETS.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2"><div className={cn('w-4 h-4 rounded', color.value)} />{color.label}</div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={cm.saveNewCategory} disabled={cm.isSaving} className="w-full rounded-xl h-11 font-semibold">
-              {cm.isSaving ? 'Saving...' : 'Add Category'}
+              {cm.isSaving ? <><Loader2 className="animate-spin mr-2" size={16} />Saving...</> : 'Add Category'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── Delete Category Confirmation ── */}
+      <AlertDialog open={!!cm.deleteCategory} onOpenChange={(open) => !open && cm.setDeleteCategory(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-bold">Delete "{cm.deleteCategory?.display_name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              If sellers are using this category, it will be disabled instead of deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={cm.confirmDeleteCategory} disabled={cm.isDeleting} className="bg-destructive text-destructive-foreground rounded-xl">
+              {cm.isDeleting ? <Loader2 className="animate-spin mr-1" size={14} /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Group Add/Edit Dialog ── */}
+      <Dialog open={cm.isGroupDialogOpen} onOpenChange={(open) => { if (!open) { cm.setIsGroupDialogOpen(false); cm.setEditingGroup(null); } }}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-bold">{cm.editingGroup ? 'Edit Group' : 'Add Group'}</DialogTitle>
+            <DialogDescription className="text-xs">
+              {cm.editingGroup ? 'Update this category group.' : 'Create a new top-level category group.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Group Name *</Label>
+              <Input value={cm.groupForm.name} onChange={(e) => cm.setGroupForm({ ...cm.groupForm, name: e.target.value })} placeholder="e.g. Pet Services" className="rounded-xl" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Icon (Emoji) *</Label>
+              <Input value={cm.groupForm.icon} onChange={(e) => cm.setGroupForm({ ...cm.groupForm, icon: e.target.value })} className="text-2xl rounded-xl" />
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {EMOJI_PRESETS.slice(0, 24).map((emoji) => (
+                  <button key={emoji} type="button" onClick={() => cm.setGroupForm({ ...cm.groupForm, icon: emoji })} className={cn('w-8 h-8 rounded-lg text-lg flex items-center justify-center hover:bg-muted transition-colors', cm.groupForm.icon === emoji && 'bg-primary/15 ring-1 ring-primary')}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Color</Label>
+              <Select value={cm.groupForm.color} onValueChange={(value) => cm.setGroupForm({ ...cm.groupForm, color: value })}>
+                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {COLOR_PRESETS.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2"><div className={cn('w-4 h-4 rounded', color.value)} />{color.label}</div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Description</Label>
+              <Input value={cm.groupForm.description} onChange={(e) => cm.setGroupForm({ ...cm.groupForm, description: e.target.value })} placeholder="Short description" className="rounded-xl" />
+            </div>
+            <Button onClick={cm.saveGroup} disabled={cm.isSaving} className="w-full rounded-xl h-11 font-semibold">
+              {cm.isSaving ? <><Loader2 className="animate-spin mr-2" size={16} />Saving...</> : cm.editingGroup ? 'Save Group' : 'Create Group'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Group Confirmation ── */}
+      <AlertDialog open={!!cm.deleteGroup} onOpenChange={(open) => !open && cm.setDeleteGroup(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-bold">Delete group "{cm.deleteGroup?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will also remove all categories under this group. If sellers are using it, the group will be disabled instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={cm.confirmDeleteGroup} disabled={cm.isDeletingGroup} className="bg-destructive text-destructive-foreground rounded-xl">
+              {cm.isDeletingGroup ? <Loader2 className="animate-spin mr-1" size={14} /> : null}
+              Delete Group
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

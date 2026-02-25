@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -37,6 +37,7 @@ export function SubcategoryManager() {
   const { configs } = useCategoryConfigs();
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Empty string means "all categories" — never sent as a DB filter
   const [selectedConfigId, setSelectedConfigId] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subcategory | null>(null);
@@ -49,12 +50,15 @@ export function SubcategoryManager() {
     display_order: '0',
     is_active: true,
   });
+  // Separate state for the parent category in the create dialog
+  const [createConfigId, setCreateConfigId] = useState<string>('');
 
   const fetchSubcategories = useCallback(async () => {
     setIsLoading(true);
-    const q = supabase.from('subcategories').select('*').order('display_order', { ascending: true });
+    let q = supabase.from('subcategories').select('*').order('display_order', { ascending: true });
+    // Only apply filter when a real config id is selected (not empty = all)
     if (selectedConfigId) {
-      q.eq('category_config_id', selectedConfigId);
+      q = q.eq('category_config_id', selectedConfigId);
     }
     const { data } = await q;
     setSubcategories((data || []) as Subcategory[]);
@@ -71,6 +75,14 @@ export function SubcategoryManager() {
   const resetForm = () => {
     setFormData({ display_name: '', slug: '', icon: '', display_order: '0', is_active: true });
     setEditingSub(null);
+    setCreateConfigId('');
+  };
+
+  const openCreate = () => {
+    resetForm();
+    // Pre-select the currently filtered category if one is selected
+    setCreateConfigId(selectedConfigId || '');
+    setIsDialogOpen(true);
   };
 
   const openEdit = (sub: Subcategory) => {
@@ -82,6 +94,7 @@ export function SubcategoryManager() {
       display_order: (sub.display_order ?? 0).toString(),
       is_active: sub.is_active,
     });
+    setCreateConfigId(sub.category_config_id);
     setIsDialogOpen(true);
   };
 
@@ -90,9 +103,9 @@ export function SubcategoryManager() {
       toast.error('Name and slug are required');
       return;
     }
-    const configId = editingSub ? editingSub.category_config_id : selectedConfigId;
+    const configId = editingSub ? editingSub.category_config_id : createConfigId;
     if (!configId) {
-      toast.error('Please select a category first');
+      toast.error('Please select a parent category');
       return;
     }
     setIsSaving(true);
@@ -138,6 +151,11 @@ export function SubcategoryManager() {
     }
   };
 
+  const handleFilterChange = (value: string) => {
+    // "all" maps to empty string internally
+    setSelectedConfigId(value === 'all' ? '' : value);
+  };
+
   return (
     <Card className="border-0 shadow-[var(--shadow-card)] rounded-2xl">
       <CardContent className="p-5 space-y-4">
@@ -153,7 +171,7 @@ export function SubcategoryManager() {
 
         {/* Filter by category */}
         <div className="flex items-center gap-3">
-          <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
+          <Select value={selectedConfigId || 'all'} onValueChange={handleFilterChange}>
             <SelectTrigger className="flex-1 rounded-xl">
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
@@ -164,7 +182,7 @@ export function SubcategoryManager() {
               ))}
             </SelectContent>
           </Select>
-          <Button size="sm" onClick={() => { resetForm(); setIsDialogOpen(true); }} className="rounded-xl font-semibold gap-1.5">
+          <Button size="sm" onClick={openCreate} className="rounded-xl font-semibold gap-1.5">
             <Plus size={13} /> Add
           </Button>
         </div>
@@ -194,10 +212,10 @@ export function SubcategoryManager() {
                   {!sub.is_active && (
                     <Badge variant="secondary" className="text-[10px] rounded-md">Inactive</Badge>
                   )}
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => openEdit(sub)}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-xl" onClick={() => openEdit(sub)}>
                     <Edit2 size={13} />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-xl text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setDeleteTarget(sub)}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-xl text-destructive" onClick={() => setDeleteTarget(sub)}>
                     <Trash2 size={13} />
                   </Button>
                 </div>
@@ -211,12 +229,15 @@ export function SubcategoryManager() {
           <DialogContent className="rounded-2xl">
             <DialogHeader>
               <DialogTitle className="font-bold">{editingSub ? 'Edit Subcategory' : 'Add Subcategory'}</DialogTitle>
+              <DialogDescription className="text-xs">
+                {editingSub ? 'Update this subcategory.' : 'Create a new subcategory under a parent category.'}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               {!editingSub && (
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold">Parent Category *</Label>
-                  <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
+                  <Select value={createConfigId} onValueChange={setCreateConfigId}>
                     <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
                       {configs.map(c => (
