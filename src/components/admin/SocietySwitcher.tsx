@@ -43,20 +43,21 @@ export function SocietySwitcher() {
   if (societies.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-2">
-      <Building2 size={16} className="text-muted-foreground shrink-0" />
+    <div className="flex items-center gap-2.5 p-2.5 bg-muted/40 rounded-xl">
+      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <Building2 size={14} className="text-primary" />
+      </div>
       <Select
         value={effectiveSocietyId || 'all'}
         onValueChange={(val) => {
           const targetId = val === 'my' || val === 'all' ? null : val;
           const currentId = effectiveSocietyId === profile?.society_id ? null : effectiveSocietyId;
-          // If switching to a different society, show confirmation
           if (targetId !== currentId) {
             setPendingSwitch(val);
           }
         }}
       >
-        <SelectTrigger className="h-8 text-xs w-[200px]">
+        <SelectTrigger className="h-8 text-xs flex-1 border-0 bg-background shadow-sm rounded-lg">
           <SelectValue placeholder="Select society" />
         </SelectTrigger>
         <SelectContent>
@@ -73,9 +74,8 @@ export function SocietySwitcher() {
         </SelectContent>
       </Select>
 
-      {/* C3: Confirmation dialog for society switching */}
       <AlertDialog open={!!pendingSwitch} onOpenChange={(open) => { if (!open) setPendingSwitch(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Switch Society View?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -89,8 +89,8 @@ export function SocietySwitcher() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="rounded-xl" onClick={() => {
               if (pendingSwitch === 'my' || pendingSwitch === 'all') {
                 setViewAsSociety(null);
               } else {

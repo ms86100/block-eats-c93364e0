@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
@@ -114,19 +115,25 @@ export function PlatformSettingsManager() {
   }
 
   return (
-    <Card>
+    <Card className="border-0 shadow-sm">
       <CardContent className="p-4 space-y-5">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm flex items-center gap-2">
-            <Settings size={16} className="text-primary" /> Platform Settings
-          </h3>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={fetchSettings}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Settings size={16} className="text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">Platform Settings</h3>
+              <p className="text-[10px] text-muted-foreground">Configure global platform behavior</p>
+            </div>
+          </div>
+          <div className="flex gap-1.5">
+            <Button variant="ghost" size="sm" className="h-8 text-xs rounded-lg" onClick={fetchSettings}>
               <RefreshCw size={12} className="mr-1" /> Refresh
             </Button>
             <Button
               size="sm"
-              className="h-7 text-xs"
+              className="h-8 text-xs rounded-lg"
               disabled={!hasChanges || saving}
               onClick={handleSave}
             >
@@ -138,24 +145,31 @@ export function PlatformSettingsManager() {
 
         {groups.map((group, gi) => (
           <div key={group}>
-            {gi > 0 && <Separator className="my-3" />}
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{group}</p>
-            <div className="space-y-3">
+            {gi > 0 && <Separator className="my-4" />}
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              {group}
+            </p>
+            <div className="space-y-4">
               {SETTING_FIELDS.filter(f => f.group === group).map(field => {
                 const Icon = field.icon;
                 const isChanged = values[field.key] !== original[field.key];
                 return (
-                  <div key={field.key}>
-                    <Label className="text-xs flex items-center gap-1.5 mb-1">
+                  <div key={field.key} className="space-y-1.5">
+                    <Label className="text-xs flex items-center gap-1.5">
                       <Icon size={12} className="text-muted-foreground" />
                       {field.label}
-                      {isChanged && <span className="text-[9px] text-warning font-medium ml-1">• modified</span>}
+                      {isChanged && (
+                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20">
+                          modified
+                        </Badge>
+                      )}
                     </Label>
                     {field.type === 'textarea' ? (
                       <Textarea
                         value={values[field.key] ?? ''}
                         onChange={(e) => setValues(prev => ({ ...prev, [field.key]: e.target.value }))}
-                        className="text-sm min-h-[80px]"
+                        className="text-sm min-h-[80px] rounded-xl"
                         placeholder={field.description}
                         rows={4}
                       />
@@ -164,11 +178,11 @@ export function PlatformSettingsManager() {
                         type={field.type}
                         value={values[field.key] ?? ''}
                         onChange={(e) => setValues(prev => ({ ...prev, [field.key]: e.target.value }))}
-                        className="h-8 text-sm"
+                        className="h-9 text-sm rounded-xl"
                         placeholder={field.description}
                       />
                     )}
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{field.description}</p>
+                    <p className="text-[10px] text-muted-foreground">{field.description}</p>
                   </div>
                 );
               })}

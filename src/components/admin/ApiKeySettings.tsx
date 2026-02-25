@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff, Key, Check, X } from 'lucide-react';
 
@@ -152,40 +153,40 @@ export function ApiKeySettings() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Key size={20} />
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2.5 text-base">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
+            <Key size={16} className="text-amber-600" />
+          </div>
           API Configuration
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs">
           Configure third-party API keys for enhanced features
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5">
         {API_KEY_CONFIGS.map((config) => {
           const setting = settings.find((s) => s.key === config.key);
           const hasValue = !!setting?.value;
           const isActive = setting?.is_active ?? false;
 
           return (
-            <div key={config.key} className="space-y-2">
+            <div key={config.key} className="space-y-2.5 p-3.5 rounded-xl bg-muted/30 border border-border/40">
               <div className="flex items-center justify-between">
-                <Label htmlFor={config.key} className="font-medium">
+                <Label htmlFor={config.key} className="font-semibold text-sm">
                   {config.label}
                 </Label>
                 {hasValue && (
                   <div className="flex items-center gap-2">
                     {isActive ? (
-                      <span className="text-xs text-success flex items-center gap-1">
-                        <Check size={12} />
-                        Active
-                      </span>
+                      <Badge variant="secondary" className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 gap-0.5">
+                        <Check size={10} /> Active
+                      </Badge>
                     ) : (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <X size={12} />
-                        Inactive
-                      </span>
+                      <Badge variant="outline" className="text-[10px] gap-0.5">
+                        <X size={10} /> Inactive
+                      </Badge>
                     )}
                     <Switch
                       checked={isActive}
@@ -194,7 +195,7 @@ export function ApiKeySettings() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">{config.description}</p>
+              <p className="text-[11px] text-muted-foreground">{config.description}</p>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Input
@@ -205,21 +206,23 @@ export function ApiKeySettings() {
                     onChange={(e) =>
                       setEditValues({ ...editValues, [config.key]: e.target.value })
                     }
+                    className="rounded-lg pr-9"
                   />
                   <button
                     type="button"
                     onClick={() =>
                       setShowValues({ ...showValues, [config.key]: !showValues[config.key] })
                     }
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showValues[config.key] ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showValues[config.key] ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
                 <Button
                   onClick={() => handleSave(config.key)}
                   disabled={isSaving === config.key}
                   size="sm"
+                  className="rounded-lg"
                 >
                   {isSaving === config.key ? (
                     <Loader2 className="animate-spin" size={14} />
@@ -232,8 +235,8 @@ export function ApiKeySettings() {
           );
         })}
 
-        <div className="pt-4 border-t">
-          <p className="text-xs text-muted-foreground">
+        <div className="pt-3 border-t border-border/40">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
             🔒 API keys are encrypted and stored securely. They are only used for the specified features.
           </p>
         </div>
