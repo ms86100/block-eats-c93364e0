@@ -36,11 +36,13 @@ export default function CreateJobRequestPage() {
       const { data, error } = await supabase
         .from('society_worker_categories')
         .select('name')
+        .eq('society_id', effectiveSocietyId!)
         .eq('is_active', true)
         .order('display_order');
       if (error || !data) return [];
       return data.map((c: any) => ({ value: c.name.toLowerCase(), label: c.name }));
     },
+    enabled: !!effectiveSocietyId,
     staleTime: 10 * 60 * 1000,
   });
 
