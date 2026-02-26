@@ -50,6 +50,11 @@ export default function CategoryGroupPage() {
       seller_name: product.seller_name || 'Seller',
       seller_rating: product.seller_rating || 0,
       seller_reviews: product.seller_reviews || 0,
+      action_type: product.action_type,
+      contact_phone: product.contact_phone,
+      prep_time_minutes: product.prep_time_minutes,
+      fulfillment_mode: product.fulfillment_mode,
+      delivery_note: product.delivery_note,
       _catIcon: catConfig?.icon || '🛍️',
       _catName: catConfig?.displayName || product.category,
     });
@@ -339,6 +344,7 @@ export default function CategoryGroupPage() {
             seller_name: sp.seller?.business_name || 'Seller',
             seller_rating: 0,
             seller_reviews: 0,
+            action_type: sp.action_type,
             _catIcon: catConfig?.icon || '🛍️',
             _catName: catConfig?.displayName || sp.category,
           });

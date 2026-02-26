@@ -172,6 +172,7 @@ export function MarketplaceSection() {
             seller_name: sp.seller?.business_name || 'Seller',
             seller_rating: 0,
             seller_reviews: 0,
+            action_type: sp.action_type,
             _catIcon: catConfig?.icon || '🛍️',
             _catName: catConfig?.displayName || sp.category,
           });
