@@ -50,15 +50,16 @@ export function FeaturedBanners() {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  // Auto-scroll with pause on user interaction (#9)
+  // Auto-scroll with pause on user interaction — uses per-banner interval or default 4s
   const [userInteracting, setUserInteracting] = useState(false);
+  const autoRotateMs = ((banners[activeIndex] as any)?.auto_rotate_seconds || 4) * 1000;
   useEffect(() => {
     if (banners.length <= 1 || userInteracting) return;
     const interval = setInterval(() => {
       setActiveIndex(prev => (prev + 1) % banners.length);
-    }, 4000);
+    }, autoRotateMs);
     return () => clearInterval(interval);
-  }, [banners.length, userInteracting]);
+  }, [banners.length, userInteracting, autoRotateMs]);
 
   useEffect(() => {
     const container = document.getElementById('banner-carousel');

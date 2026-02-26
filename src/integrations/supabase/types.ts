@@ -2017,6 +2017,7 @@ export type Database = {
       }
       featured_items: {
         Row: {
+          auto_rotate_seconds: number
           bg_color: string | null
           button_text: string | null
           created_at: string | null
@@ -2034,6 +2035,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          auto_rotate_seconds?: number
           bg_color?: string | null
           button_text?: string | null
           created_at?: string | null
@@ -2051,6 +2053,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          auto_rotate_seconds?: number
           bg_color?: string | null
           button_text?: string | null
           created_at?: string | null

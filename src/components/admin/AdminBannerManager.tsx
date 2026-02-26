@@ -7,10 +7,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, GripVertical, Eye, Megaphone } from 'lucide-react';
+import { Plus, Pencil, Trash2, GripVertical, Eye, Megaphone, Globe, Building2, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -40,11 +41,14 @@ interface BannerForm {
   template: BannerTemplate;
   is_active: boolean;
   display_order: number;
+  is_global: boolean;
+  auto_rotate_seconds: number;
 }
 
 const emptyForm: BannerForm = {
   title: '', subtitle: '', image_url: '', link_url: '', button_text: '',
   bg_color: '#16a34a', template: 'image_only', is_active: true, display_order: 0,
+  is_global: true, auto_rotate_seconds: 4,
 };
 
 export function AdminBannerManager() {
@@ -81,7 +85,8 @@ export function AdminBannerManager() {
         display_order: f.display_order,
         type: 'banner',
         reference_id: 'banner',
-        society_id: effectiveSocietyId || null,
+        society_id: f.is_global ? null : (effectiveSocietyId || null),
+        auto_rotate_seconds: f.auto_rotate_seconds,
       };
 
       if (editingId) {
@@ -132,6 +137,8 @@ export function AdminBannerManager() {
       template: banner.template || 'image_only',
       is_active: banner.is_active ?? true,
       display_order: banner.display_order ?? 0,
+      is_global: !banner.society_id,
+      auto_rotate_seconds: banner.auto_rotate_seconds ?? 4,
     });
     setPreviewTemplate(banner.template || 'image_only');
     setSheetOpen(true);
@@ -191,9 +198,12 @@ export function AdminBannerManager() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{b.title || 'Untitled'}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold truncate">{b.title || 'Untitled'}</p>
+                    {!b.society_id && <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-primary/30 text-primary shrink-0">Global</Badge>}
+                  </div>
                   <p className="text-[10px] text-muted-foreground">
-                    {TEMPLATES.find(t => t.value === b.template)?.label || 'Image Only'} · Order: {b.display_order}
+                    {TEMPLATES.find(t => t.value === b.template)?.label || 'Image Only'} · {b.auto_rotate_seconds || 4}s · Order: {b.display_order}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -307,6 +317,40 @@ export function AdminBannerManager() {
                   </div>
                 </div>
               )}
+
+              {/* Visibility & Carousel Config */}
+              <div className="space-y-3 p-3 bg-muted/40 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {form.is_global ? <Globe size={14} className="text-primary" /> : <Building2 size={14} className="text-muted-foreground" />}
+                    <div>
+                      <Label className="text-xs font-semibold">Global Visibility</Label>
+                      <p className="text-[10px] text-muted-foreground">
+                        {form.is_global ? 'Visible to all users across all societies' : 'Only visible to your society'}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch checked={form.is_global} onCheckedChange={v => updateField('is_global', v)} />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center gap-3">
+                  <Timer size={14} className="text-muted-foreground shrink-0" />
+                  <div className="flex-1">
+                    <Label className="text-xs font-semibold">Auto-rotate (seconds)</Label>
+                    <p className="text-[10px] text-muted-foreground">How long each slide stays before advancing</p>
+                  </div>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={15}
+                    value={form.auto_rotate_seconds}
+                    onChange={e => updateField('auto_rotate_seconds', Math.max(2, Math.min(15, parseInt(e.target.value) || 4)))}
+                    className="w-16 rounded-xl text-center"
+                  />
+                </div>
+              </div>
 
               <div className="flex items-center gap-4 p-3 bg-muted/40 rounded-xl">
                 <div>
