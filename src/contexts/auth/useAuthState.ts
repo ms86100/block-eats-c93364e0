@@ -179,6 +179,34 @@ export function useAuthState() {
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Proactive session refresh: check session health every 5 minutes
+  // This prevents the "idle for a long time then click" crash
+  useEffect(() => {
+    const INTERVAL = 5 * 60 * 1000; // 5 minutes
+    const interval = setInterval(async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error || !session) {
+          console.warn('[Auth] Session expired during idle, clearing state');
+          clearAuthState();
+          return;
+        }
+        // If session exists but is close to expiry (< 10 min), proactively refresh
+        const expiresAt = session.expires_at;
+        if (expiresAt) {
+          const expiresIn = expiresAt * 1000 - Date.now();
+          if (expiresIn < 10 * 60 * 1000) {
+            console.log('[Auth] Proactively refreshing session');
+            await supabase.auth.refreshSession();
+          }
+        }
+      } catch (e) {
+        console.error('[Auth] Session health check failed:', e);
+      }
+    }, INTERVAL);
+    return () => clearInterval(interval);
+  }, [clearAuthState]);
+
   // Fix #18: Consolidated realtime — single channel with debounced refetch
   useEffect(() => {
     const userId = state.user?.id;

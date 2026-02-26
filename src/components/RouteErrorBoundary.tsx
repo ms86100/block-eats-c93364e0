@@ -31,6 +31,12 @@ export class RouteErrorBoundary extends Component<Props, State> {
     console.error(`[RouteErrorBoundary:${this.props.sectionName || 'unknown'}]`, error, errorInfo);
   }
 
+  private isAuthError(): boolean {
+    const msg = this.state.error?.message || '';
+    const patterns = ['JWT expired', 'jwt expired', 'not authenticated', 'Auth session missing', 'session_not_found', 'Invalid Refresh Token'];
+    return patterns.some(p => msg.toLowerCase().includes(p.toLowerCase()));
+  }
+
   private handleRetry = () => {
     this.setState({ hasError: false, error: null });
   };
@@ -39,9 +45,16 @@ export class RouteErrorBoundary extends Component<Props, State> {
     window.history.back();
   };
 
+  private handleLogin = () => {
+    window.location.hash = '#/auth';
+    window.location.reload();
+  };
+
   public render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
+
+      const isAuth = this.isAuthError();
 
       return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center p-6">
@@ -50,24 +63,36 @@ export class RouteErrorBoundary extends Component<Props, State> {
           </div>
 
           <h2 className="text-lg font-semibold text-center mb-1">
-            {this.props.sectionName
+            {isAuth
+              ? 'Session Expired'
+              : this.props.sectionName
               ? `Error loading ${this.props.sectionName}`
               : 'Something went wrong'}
           </h2>
 
           <p className="text-sm text-muted-foreground text-center mb-6 max-w-xs">
-            This section encountered an error. You can try again or go back.
+            {isAuth
+              ? 'Your session has expired. Please log in again to continue.'
+              : 'This section encountered an error. You can try again or go back.'}
           </p>
 
           <div className="flex gap-3">
-            <Button variant="outline" size="sm" onClick={this.handleGoBack}>
-              <ArrowLeft size={14} className="mr-1.5" />
-              Go Back
-            </Button>
-            <Button size="sm" onClick={this.handleRetry}>
-              <RefreshCw size={14} className="mr-1.5" />
-              Retry
-            </Button>
+            {isAuth ? (
+              <Button size="sm" onClick={this.handleLogin}>
+                Log In Again
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={this.handleGoBack}>
+                  <ArrowLeft size={14} className="mr-1.5" />
+                  Go Back
+                </Button>
+                <Button size="sm" onClick={this.handleRetry}>
+                  <RefreshCw size={14} className="mr-1.5" />
+                  Retry
+                </Button>
+              </>
+            )}
           </div>
 
           {import.meta.env.DEV && this.state.error && (

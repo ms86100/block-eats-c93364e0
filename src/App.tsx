@@ -1,4 +1,5 @@
 import { useEffect, lazy, Suspense } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 import { ThemeProvider } from "next-themes";
 import { toast } from "sonner";
@@ -93,24 +94,67 @@ const BuilderInspectionsPage = lazy(() => import("./pages/BuilderInspectionsPage
 const TestResultsPage = lazy(() => import("./pages/TestResultsPage"));
 const CollectiveBuyPage = lazy(() => import("./pages/CollectiveBuyPage"));
 
+/**
+ * Detect if an error is caused by an expired/invalid auth session.
+ * Covers Supabase JWT errors, PostgREST 401s, and common auth error messages.
+ */
+function isAuthSessionError(error: unknown): boolean {
+  if (!error) return false;
+  const msg = error instanceof Error ? error.message : String(error);
+  const authPatterns = [
+    'JWT expired', 'jwt expired', 'invalid claim', 'token is expired',
+    'not authenticated', 'Invalid Refresh Token', 'Refresh Token Not Found',
+    'Auth session missing', 'session_not_found',
+  ];
+  if (authPatterns.some(p => msg.toLowerCase().includes(p.toLowerCase()))) return true;
+  // PostgREST / Supabase HTTP errors
+  if ((error as any)?.code === 'PGRST301') return true;
+  if ((error as any)?.status === 401 || (error as any)?.status === 403) return true;
+  return false;
+}
+
+let authRedirectScheduled = false;
+function handleAuthError() {
+  if (authRedirectScheduled) return; // prevent flood
+  authRedirectScheduled = true;
+  toast.error('Your session has expired. Please log in again.');
+  // Sign out and redirect after a brief delay to let toast render
+  supabase.auth.signOut().finally(() => {
+    window.location.hash = '#/auth';
+    // Reset flag after navigation
+    setTimeout(() => { authRedirectScheduled = false; }, 3000);
+  });
+}
+
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error) => {
       console.error('[Query Error]', error);
+      if (isAuthSessionError(error)) {
+        handleAuthError();
+      }
     },
   }),
   mutationCache: new MutationCache({
     onError: (error) => {
+      console.error('[Mutation Error]', error);
+      if (isAuthSessionError(error)) {
+        handleAuthError();
+        return;
+      }
       const message = error instanceof Error ? error.message : 'Something went wrong';
       toast.error(message);
-      console.error('[Mutation Error]', error);
     },
   }),
   defaultOptions: {
     queries: {
-      retry: 1,
-      staleTime: 10 * 60 * 1000, // 10 minutes — reduces refetches on page revisits
-      gcTime: 60 * 60 * 1000,    // 60 minutes — keep cache alive much longer across navigation
+      retry: (failureCount, error) => {
+        // Don't retry auth errors — they won't self-heal
+        if (isAuthSessionError(error)) return false;
+        return failureCount < 1;
+      },
+      staleTime: 10 * 60 * 1000,
+      gcTime: 60 * 60 * 1000,
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
     },
