@@ -1,67 +1,103 @@
 
 
-# Audit: Login Persistence & Haptic Feedback on Native (iOS/TestFlight)
+# Audit: Login Persistence & Haptic Feedback — Residual Issues
 
-Two user-reported issues on the native iOS build. Both are correctness bugs, not feature requests.
-
----
-
-## Issue A — Login Session Not Persisted Across App Restarts (iOS)
-
-**Scenario:** User installs via TestFlight, logs in, closes the app, reopens it — they are logged out.
-
-**Root Cause:** The Supabase auth client is configured with `storage: localStorage` (in `src/integrations/supabase/client.ts`). On iOS, Capacitor apps run inside WKWebView. Apple treats WKWebView `localStorage` as **non-persistent** — the OS can (and does) purge it when the app is suspended, the device is low on storage, or after a period of inactivity. This means the auth session token stored in `localStorage` is silently deleted, causing the user to appear logged out on next launch.
-
-**Proposed Fix:** Install `@capacitor/preferences` (which uses `UserDefaults` on iOS and `SharedPreferences` on Android — both fully persistent). Create a thin adapter that implements the Supabase `SupportedStorage` interface (`getItem`, `setItem`, `removeItem`) backed by the Preferences plugin. On web, fall back to `localStorage`. Pass this adapter as the `storage` option in the Supabase client constructor.
-
-**Important constraint:** The `src/integrations/supabase/client.ts` file is auto-generated and must NOT be edited. Instead, the persistent storage adapter will be created in a separate file (`src/lib/capacitor-storage.ts`), and the Supabase client initialization will be wrapped in `src/lib/supabase-client-init.ts` which patches the auth storage at app startup before any auth calls are made. Alternatively, since the client file cannot be touched, the adapter can be applied at runtime via `supabase.auth.setSession()` pattern — but the cleanest approach is to create the storage adapter and configure it in a startup hook that runs before auth state is read.
-
-**Correction:** After re-reading the constraint — we truly cannot edit `client.ts`. However, we CAN create a startup function in `src/lib/capacitor.ts` (which we control) that swaps the storage adapter on the existing client instance before auth kicks in. The Supabase JS v2 client exposes `supabase.auth` which internally references the storage. We can use `supabase.auth.storage` or reconfigure via the client's internal auth instance. The most reliable approach is:
-
-1. Install `@capacitor/preferences`
-2. Create `src/lib/capacitor-storage.ts` — a `SupportedStorage`-compatible adapter
-3. In `src/lib/capacitor.ts` (`initializeCapacitorPlugins`), call a setup function that patches the supabase client's auth storage before `getSession()` is invoked
-4. The auth state listener in `useAuthState.ts` runs inside `useEffect` (after mount), so the storage swap in `initializeCapacitorPlugins()` (called synchronously in `main.tsx`) will execute first
-
-**Files changed:**
-- `package.json` — add `@capacitor/preferences`
-- New file: `src/lib/capacitor-storage.ts` — persistent storage adapter
-- `src/lib/capacitor.ts` — call storage setup during initialization
+Both fixes were previously implemented but contain critical defects that prevent them from working correctly on native iOS. This audit identifies the root causes without changing any business logic.
 
 ---
 
-## Issue B — Haptic Feedback Missing on BottomNav Tab Switches
+## Issue A — Login Persistence: Race Condition Defeats Storage Swap
 
-**Scenario:** User taps bottom navigation tabs (Home → Cart, Categories → Profile, etc.) — no haptic feedback. Haptics work correctly inside the cart page (buttons, quantity controls).
+**Current state of the fix:** The code in `src/lib/capacitor-storage.ts` and `src/lib/capacitor.ts` is correct in intent. However, there is a critical race condition in `src/main.tsx`:
 
-**Root Cause:** The `GlobalHapticListener` in `src/components/haptics/GlobalHapticListener.tsx` attaches a `click` event listener in capture phase on `document`. The selector includes `a` tags, and `NavLink` renders as `<a>`. However, on iOS native (WKWebView), there is a known behavior where programmatic navigation via React Router's `NavLink` can suppress or delay the native DOM `click` event in certain timing scenarios. Additionally, when the user taps on the Lucide SVG icon inside the `<a>`, the `e.target` is an SVG element (`<svg>`, `<path>`, `<line>`). While `Element.prototype.closest()` does work on SVG elements in modern WebKit, the traversal from SVG child → SVG root → HTML parent can be unreliable in some WKWebView builds, causing `target.closest('a')` to return `null`.
+```typescript
+initializeCapacitorPlugins(); // async — returns a Promise
+createRoot(document.getElementById("root")!).render(<App />); // runs IMMEDIATELY
+```
 
-The cart works because cart buttons are `<button>` elements with direct click handlers, and the haptic calls are made explicitly in component code (e.g., `useHaptics` hook calls in cart interaction handlers).
+`initializeCapacitorPlugins()` is `async` and contains `await migrateLocalStorageToPreferences()`. The function returns a Promise, but **it is not awaited**. This means `createRoot` and `<App />` mount immediately, `useAuthState` fires `supabase.auth.getSession()` **before** the storage swap completes. The auth client still reads from `localStorage` (which is empty on iOS after a cold start), finds no session, and reports the user as logged out.
 
-**Proposed Fix:** Add an explicit `onClick` handler to each `NavLink` in `BottomNav.tsx` that directly calls `hapticSelection()`. This is a one-line addition per NavLink (or a single wrapper callback) and does not change any navigation behavior or business logic. The `GlobalHapticListener` remains as a catch-all for other interactive elements.
+Additionally, the storage patch at line 15 of `capacitor.ts`:
+```typescript
+(supabase.auth as any).storage = capacitorStorage;
+```
+This patches the `.storage` property on the auth instance. However, in Supabase JS v2, the GoTrueClient stores the `storage` reference internally during construction (in `client.ts` line 12: `storage: localStorage`). Simply reassigning `.storage` after construction may not propagate to the internal lock manager and session persistence layer, depending on the Supabase JS version.
 
-**Files changed:**
-- `src/components/layout/BottomNav.tsx` — import `hapticSelection` and call it in NavLink's `onClick`
+**Root cause:** The init function is fire-and-forget. React mounts before the storage adapter is applied, so `getSession()` reads from unpopulated `localStorage`.
+
+**Proposed fix (2 changes, no business logic change):**
+
+1. **`src/main.tsx`** — Await the initialization before mounting React:
+```typescript
+import { initializeCapacitorPlugins } from "./lib/capacitor";
+
+async function bootstrap() {
+  await initializeCapacitorPlugins();
+  const { createRoot } = await import("react-dom/client");
+  const { default: App } = await import("./App");
+  createRoot(document.getElementById("root")!).render(<App />);
+}
+bootstrap();
+```
+
+2. **`src/lib/capacitor.ts`** — Move the storage patch to happen **before** the Supabase client is constructed. Since `client.ts` is auto-generated and cannot be edited, and the client is constructed at import time, the patch must be applied as early as possible. The current approach of patching `(supabase.auth as any).storage` is the only option, but it must complete before any auth call. Awaiting `initializeCapacitorPlugins()` in `main.tsx` guarantees this ordering.
+
+Additionally, ensure the migration runs to completion so any session tokens already in `localStorage` (from before the fix was deployed) are copied to Preferences before the first `getSession()` call.
+
+**Files to change:**
+- `src/main.tsx` — await init before `createRoot`
 
 ---
 
-## Implementation Details
+## Issue B — Haptic Feedback on BottomNav: Already Fixed, Verify Build
 
-### File 1: `src/lib/capacitor-storage.ts` (new)
-Creates a class implementing `getItem(key)`, `setItem(key, value)`, `removeItem(key)` using `@capacitor/preferences` on native and `localStorage` on web. All methods are async (which Supabase auth supports).
+The `BottomNav.tsx` already has `onClick={() => hapticSelection()}` on every `NavLink` (line 67). This fix is correct and should work on native.
 
-### File 2: `src/lib/capacitor.ts` (edit)
-Import the storage adapter. In `initializeCapacitorPlugins()`, before any other logic, reconfigure the supabase client's auth instance to use the persistent storage. Since `initializeCapacitorPlugins()` runs in `main.tsx` before `createRoot`, the storage is swapped before any React component reads auth state.
+**However**, if the user's TestFlight build was created **before** this fix was deployed, the build would not include the change. The user needs to:
+1. Pull the latest code
+2. Run `npx cap sync`
+3. Rebuild and redeploy to TestFlight
 
-### File 3: `src/components/layout/BottomNav.tsx` (edit)
-Add `import { hapticSelection } from '@/lib/haptics'` and add `onClick={() => hapticSelection()}` to the `NavLink` element. Since `hapticSelection` is a no-op on web and the module is pre-loaded at startup, there is zero overhead.
+If the user confirms haptics still don't work after a fresh build, a deeper investigation is needed into whether `hapticSelection()` fires but the Haptics plugin isn't loaded yet (because `preloadHaptics()` is also async and not awaited before React mounts — same race condition as Issue A).
 
-### File 4: `package.json` (edit)
-Add `"@capacitor/preferences": "^8.0.0"` to dependencies.
+**Proposed fix (covered by Issue A):** Awaiting `initializeCapacitorPlugins()` in `main.tsx` also ensures `preloadHaptics()` completes before the app renders, so the haptics module (`_mod`) is populated before any user interaction occurs.
+
+**Files to change:** Same as Issue A — `src/main.tsx`
 
 ---
 
-## Risk Assessment
-- **Login fix:** Zero risk to web users (falls back to `localStorage`). Native users get persistent sessions via OS-level storage. No business logic change.
-- **Haptic fix:** Additive — explicit haptic call on tab tap. No navigation or rendering behavior changed. The `GlobalHapticListener` continues to work as a fallback for all other elements.
+## Summary of Changes
+
+| File | Change | Risk |
+|------|--------|------|
+| `src/main.tsx` | Await `initializeCapacitorPlugins()` before `createRoot` | Zero — only changes startup ordering on native; web init is a no-op that resolves instantly |
+
+This is a single-file, 6-line change that fixes both reported issues by ensuring all native plugin initialization (storage swap, haptics preload, status bar config) completes before React mounts and any auth/UI code runs.
+
+---
+
+## Technical Detail
+
+The current `main.tsx` call sequence:
+
+```text
+initializeCapacitorPlugins()  →  returns Promise (not awaited)
+createRoot().render(<App />)  →  runs immediately
+  └─ useAuthState()
+       └─ supabase.auth.getSession()  →  reads localStorage (empty on iOS)
+       └─ supabase.auth.onAuthStateChange()  →  fires SIGNED_OUT
+```
+
+After fix:
+
+```text
+await initializeCapacitorPlugins()
+  ├─ patch supabase.auth.storage = capacitorStorage  ✓
+  ├─ await migrateLocalStorageToPreferences()         ✓
+  ├─ preloadHaptics()                                 ✓
+  └─ StatusBar / SplashScreen config                  ✓
+createRoot().render(<App />)
+  └─ useAuthState()
+       └─ supabase.auth.getSession()  →  reads from Preferences (has session)  ✓
+```
 
