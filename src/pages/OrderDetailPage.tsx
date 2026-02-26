@@ -33,7 +33,9 @@ export default function OrderDetailPage() {
   const hasItemsField = 'items' in (order as any);
   const statusInfo = o.getOrderStatus(order.status);
   const paymentStatusInfo = o.getPaymentStatus((order.payment_status as PaymentStatus) || 'pending');
-  const displayStatuses = ['placed', 'accepted', 'preparing', 'ready'];
+  const displayStatuses = o.isEnquiryOrder
+    ? ['enquired', 'accepted', 'preparing', 'ready']
+    : ['placed', 'accepted', 'preparing', 'ready'];
 
   return (
     <AppLayout showHeader={false} showNav={!o.isSellerView || order.status === 'completed' || order.status === 'cancelled'}>
@@ -88,6 +90,7 @@ export default function OrderDetailPage() {
             )}
             {order.status !== 'cancelled' && o.isBuyerView && (
               <p className="text-xs text-muted-foreground mt-3 bg-muted/50 rounded-lg px-3 py-2">
+                {order.status === 'enquired' && '📋 Booking request sent. Awaiting response.'}
                 {order.status === 'placed' && '⏳ Waiting for seller to accept.'}
                 {order.status === 'accepted' && '✅ Your order has been confirmed.'}
                 {order.status === 'preparing' && '👨‍🍳 Your order is being prepared.'}
@@ -183,7 +186,7 @@ export default function OrderDetailPage() {
       {o.isSellerView && order.status !== 'completed' && order.status !== 'cancelled' && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border pb-[env(safe-area-inset-bottom)]">
           <div className="px-4 py-3 flex gap-3">
-            {order.status === 'placed' && <Button variant="outline" className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground h-12" onClick={() => o.setIsRejectionDialogOpen(true)} disabled={o.isUpdating}><XCircle size={16} className="mr-1.5" />Reject</Button>}
+            {(order.status === 'placed' || order.status === 'enquired') && <Button variant="outline" className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground h-12" onClick={() => o.setIsRejectionDialogOpen(true)} disabled={o.isUpdating}><XCircle size={16} className="mr-1.5" />Reject</Button>}
             {o.orderFulfillmentType === 'delivery' && order.status === 'ready' ? (
               <div className="flex-1 flex items-center justify-center gap-2 h-12 text-sm text-muted-foreground"><Truck size={16} className="text-primary" /><span>Awaiting delivery pickup</span></div>
             ) : o.nextStatus ? (
