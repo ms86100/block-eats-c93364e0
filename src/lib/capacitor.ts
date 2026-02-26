@@ -2,8 +2,24 @@ import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { preloadHaptics } from '@/lib/haptics';
+import { capacitorStorage, migrateLocalStorageToPreferences } from '@/lib/capacitor-storage';
+import { supabase } from '@/integrations/supabase/client';
 
 export async function initializeCapacitorPlugins() {
+  // Swap Supabase auth storage to persistent native storage before any auth calls.
+  // On web this is a no-op (adapter falls back to localStorage).
+  // Must happen before React mounts so useAuthState reads from the right storage.
+  if (Capacitor.isNativePlatform()) {
+    try {
+      // Patch the internal auth storage on the existing client instance
+      (supabase.auth as any).storage = capacitorStorage;
+      // Migrate any existing localStorage tokens so users aren't logged out
+      await migrateLocalStorageToPreferences();
+    } catch (e) {
+      console.warn('[Capacitor] Failed to set persistent auth storage:', e);
+    }
+  }
+
   // Pre-load haptics module (no-op on web, instant on native after this)
   preloadHaptics();
 
