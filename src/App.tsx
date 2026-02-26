@@ -301,6 +301,17 @@ function GlobalSellerAlert() {
   return <NewOrderAlertOverlay order={pendingAlert} onDismiss={dismiss} />;
 }
 
+/** Error boundary that silently swallows GlobalSellerAlert crashes */
+class SafeSellerAlert extends React.Component<
+  { children: React.ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(e: Error) { console.error('[SafeSellerAlert] Contained crash:', e); }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
 function AppRoutes() {
   const { user, profile } = useAuth();
 
@@ -425,7 +436,7 @@ function App() {
                 <NavigationHandler />
                 <CartProvider>
                   <PushNotificationProvider>
-                    <GlobalSellerAlert />
+                    <SafeSellerAlert><GlobalSellerAlert /></SafeSellerAlert>
                     <AppRoutes />
                   </PushNotificationProvider>
                 </CartProvider>

@@ -45,11 +45,14 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReload = () => {
+    // Clear auth tokens before reload to break crash loops
+    try { localStorage.removeItem('sb-rvvctaikytfeyzkwoqxg-auth-token'); } catch {}
     window.location.reload();
   };
 
   private handleGoHome = () => {
-    window.location.hash = '#/';
+    // Navigate to auth page instead of / to avoid re-entering a crashing ProtectedRoute
+    window.location.hash = '#/auth';
     window.location.reload();
   };
 
