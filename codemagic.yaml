@@ -54,16 +54,16 @@ workflows:
           # Add Push Notifications entitlement
           ENTITLEMENTS_FILE="App/App.entitlements"
           if [ ! -f "$ENTITLEMENTS_FILE" ]; then
-            cat > "$ENTITLEMENTS_FILE" << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>aps-environment</key>
-            <string>production</string>
-          </dict>
-          </plist>
-          EOF
+            cat > "$ENTITLEMENTS_FILE" <<'ENTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>aps-environment</key>
+  <string>production</string>
+</dict>
+</plist>
+ENTEOF
             echo "Created entitlements file with Push Notifications"
           else
             # Add aps-environment if not already present
@@ -218,16 +218,16 @@ workflows:
           cd ios/App
           ENTITLEMENTS_FILE="App/App.entitlements"
           if [ ! -f "$ENTITLEMENTS_FILE" ]; then
-            cat > "$ENTITLEMENTS_FILE" << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>aps-environment</key>
-            <string>production</string>
-          </dict>
-          </plist>
-          EOF
+            cat > "$ENTITLEMENTS_FILE" <<'ENTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>aps-environment</key>
+  <string>production</string>
+</dict>
+</plist>
+ENTEOF
             echo "Created entitlements file with Push Notifications"
           else
             /usr/libexec/PlistBuddy -c "Add :aps-environment string production" "$ENTITLEMENTS_FILE" 2>/dev/null || \
