@@ -1,5 +1,6 @@
-import { useEffect, lazy, Suspense } from "react";
+import React, { useEffect, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { IdentityContext as IdentityCtx, SellerContext as SellerCtx } from "@/contexts/auth/contexts";
 
 import { ThemeProvider } from "next-themes";
 import { toast } from "sonner";
@@ -289,18 +290,19 @@ function NavigationHandler() {
 }
 
 function GlobalSellerAlert() {
-  const { isSeller, currentSellerId } = useAuth();
+  // Use raw useContext with null-safety to avoid fatal crash if AuthProvider
+  // hasn't fully initialized yet (HMR / startup race condition).
+  const identity = React.useContext(IdentityCtx);
+  const seller = React.useContext(SellerCtx);
+  const isSeller = seller?.isSeller ?? false;
+  const currentSellerId = seller?.currentSellerId ?? null;
   const { pendingAlert, dismiss } = useNewOrderAlert(isSeller ? currentSellerId : null);
+  if (!identity) return null;
   return <NewOrderAlertOverlay order={pendingAlert} onDismiss={dismiss} />;
 }
 
 function AppRoutes() {
   const { user, profile } = useAuth();
-
-  // Signal to main.tsx that React has successfully mounted
-  useEffect(() => {
-    document.getElementById('root')?.setAttribute('data-app-mounted', 'true');
-  }, []);
 
   // Real-time buyer order status alerts (toast + haptic)
   useBuyerOrderAlerts();

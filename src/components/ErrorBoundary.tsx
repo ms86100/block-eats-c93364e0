@@ -27,6 +27,15 @@ export class ErrorBoundary extends Component<Props, State> {
     error: null,
   };
 
+  constructor(props: Props) {
+    super(props);
+    // Signal EARLY that React has begun processing — before any child
+    // render errors can fire. This prevents the 10-second safety net
+    // in main.tsx from showing the raw HTML fallback while ErrorBoundary
+    // is handling the error with its own UI.
+    document.getElementById('root')?.setAttribute('data-app-mounted', 'true');
+  }
+
   public static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
@@ -56,10 +65,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   };
 
-  // Signal to main.tsx that the app DID render (even if into an error state)
-  public componentDidMount() {
-    document.getElementById('root')?.setAttribute('data-app-mounted', 'true');
-  }
+  // data-app-mounted is now set in the constructor (earlier signal)
 
   public render() {
     if (this.state.hasError) {

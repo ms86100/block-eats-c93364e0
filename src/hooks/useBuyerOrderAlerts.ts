@@ -1,14 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { IdentityContext } from '@/contexts/auth/contexts';
 import { toast } from 'sonner';
 import { hapticNotification } from '@/lib/haptics';
 import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * Real-time listener for buyer order status updates.
- * Shows an instant in-app toast + haptic when order status changes
- * (e.g., seller accepts, starts preparing, marks ready, etc.)
+ * Uses raw useContext with null-safety to avoid fatal crashes
+ * if AuthProvider hasn't mounted yet (HMR / startup race).
  */
 
 const STATUS_MESSAGES: Record<string, { icon: string; title: string; description: string; haptic: 'success' | 'warning' | 'error' }> = {
@@ -24,7 +24,8 @@ const STATUS_MESSAGES: Record<string, { icon: string; title: string; description
 };
 
 export function useBuyerOrderAlerts() {
-  const { user } = useAuth();
+  const identity = useContext(IdentityContext);
+  const user = identity?.user ?? null;
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -44,16 +45,13 @@ export function useBuyerOrderAlerts() {
           const newStatus = (payload.new as any)?.status;
           const oldStatus = (payload.old as any)?.status;
 
-          // Only fire on actual status changes
           if (!newStatus || newStatus === oldStatus) return;
 
           const msg = STATUS_MESSAGES[newStatus];
           if (!msg) return;
 
-          // Haptic feedback
           hapticNotification(msg.haptic);
 
-          // In-app toast
           toast(msg.title, {
             description: msg.description,
             icon: msg.icon,
@@ -66,7 +64,6 @@ export function useBuyerOrderAlerts() {
             },
           });
 
-          // Refresh buyer's order list
           queryClient.invalidateQueries({ queryKey: ['orders'] });
         }
       )

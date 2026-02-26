@@ -3,7 +3,6 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { preloadHaptics } from '@/lib/haptics';
 import { capacitorStorage, migrateLocalStorageToPreferences } from '@/lib/capacitor-storage';
-import { supabase } from '@/integrations/supabase/client';
 import { restoreAppPreferences } from '@/lib/persistent-kv';
 
 export async function initializeCapacitorPlugins() {
@@ -18,23 +17,10 @@ export async function initializeCapacitorPlugins() {
       console.warn('[Capacitor] Failed to initialize native storage:', e);
     }
 
-    // Manual session restore — isolated so a failure here doesn't block the app
-    try {
-      const storageKey = `sb-${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
-      const raw = await capacitorStorage.getItem(storageKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const session = parsed?.currentSession || parsed;
-        if (session?.access_token && session?.refresh_token) {
-          await supabase.auth.setSession({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-          });
-        }
-      }
-    } catch (sessionErr) {
-      console.warn('[Capacitor] Manual session restore skipped:', sessionErr);
-    }
+    // Session restore is handled automatically by the Supabase client
+    // via capacitorStorage (configured at client creation time).
+    // No manual setSession() needed — it caused a race condition where
+    // onAuthStateChange fired before React mounted.
   }
 
   // Pre-load haptics module (no-op on web, instant on native after this)
