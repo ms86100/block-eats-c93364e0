@@ -25,7 +25,9 @@ import { SellerOrderCard } from '@/components/seller/SellerOrderCard';
 import { CouponManager } from '@/components/seller/CouponManager';
 import { SellerAnalytics } from '@/components/seller/SellerAnalytics';
 import { DemandInsights } from '@/components/seller/DemandInsights';
+import { NewOrderAlertOverlay } from '@/components/seller/NewOrderAlertOverlay';
 import { useSellerOrderStats, useSellerOrdersInfinite, useSellerOrderFilterCounts } from '@/hooks/queries/useSellerOrders';
+import { useNewOrderAlert } from '@/hooks/useNewOrderAlert';
 
 export default function SellerDashboardPage() {
   const { user, sellerProfiles, currentSellerId } = useAuth();
@@ -35,6 +37,7 @@ export default function SellerDashboardPage() {
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('all');
 
   const activeSellerId = currentSellerId || (sellerProfiles.length > 0 ? sellerProfiles[0].id : null);
+  const { pendingAlert, dismiss: dismissAlert } = useNewOrderAlert(activeSellerId);
 
   // Fetch seller profile
   useEffect(() => {
@@ -140,8 +143,8 @@ export default function SellerDashboardPage() {
 
   return (
     <AppLayout headerTitle="Seller Dashboard" showLocation={false}>
+      <NewOrderAlertOverlay order={pendingAlert} onDismiss={dismissAlert} />
       <div className="p-4 space-y-5">
-        {/* ── Store Overview ── */}
         <StoreStatusCard
           sellerProfile={sellerProfile}
           sellerProfiles={sellerProfiles}
