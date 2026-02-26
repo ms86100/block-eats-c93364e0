@@ -3,32 +3,30 @@ import type { CapacitorConfig } from '@capacitor/cli';
 /**
  * Capacitor Configuration for Sociva App
  * 
- * Environment-aware: automatically switches between dev and production modes.
+ * SAFE DEFAULT: Production mode (bundled assets) unless explicitly opted into dev.
  * 
- * DEVELOPMENT (default in Lovable / local dev):
+ * DEVELOPMENT (set CAPACITOR_ENV=development before `npx cap sync`):
  *   - Live reload from sandbox URL
  *   - Mixed content allowed for local testing
  * 
- * PRODUCTION (set CAPACITOR_ENV=production before `npx cap sync`):
+ * PRODUCTION (default — no env var needed):
  *   - Loads from bundled local assets (no server block)
- *   - Mixed content blocked
+ *   - No allowNavigation restrictions (prevents silent iOS blocks)
  *   - WebView debugging disabled
- * 
- * DEEP LINKING:
- *   - iOS: Replace TEAM_ID in public/.well-known/apple-app-site-association
- *   - Android: Replace SHA256_FINGERPRINT_PLACEHOLDER in public/.well-known/assetlinks.json
+ *   - Splash stays until app explicitly hides it
  */
 
-const isProduction = process.env.CAPACITOR_ENV === 'production';
+// Safe default: production unless explicitly development.
+// This prevents white-screen on device if env var is missing.
+const isDevelopment = process.env.CAPACITOR_ENV === 'development';
 
 const config: CapacitorConfig = {
   appId: 'app.sociva.community',
   appName: 'Sociva',
   webDir: 'dist',
 
-  // Development: live reload from Lovable sandbox
-  // Production: omitted — loads from bundled assets
-  ...(!isProduction && {
+  // Only inject dev server when explicitly in development mode
+  ...(isDevelopment && {
     server: {
       url: 'https://b3f6efce-9b8e-4071-b39d-b038b9b1adf4.lovableproject.com?forceHideBadge=true',
       cleartext: true,
@@ -37,21 +35,18 @@ const config: CapacitorConfig = {
     },
   }),
 
-  // Restrict WebView navigation in production
-  ...(isProduction && {
+  // Production: minimal server config, NO allowNavigation
+  // Capacitor loads from bundled dist/ assets by default
+  ...(!isDevelopment && {
     server: {
       androidScheme: 'https',
-      allowNavigation: [
-        'rvvctaikytfeyzkwoqxg.supabase.co',
-        'sociva.app',
-      ],
     },
   }),
 
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
-      launchAutoHide: true,
+      launchAutoHide: false, // App controls hide via capacitor.ts
       backgroundColor: '#ffffff',
       androidSplashResourceName: 'splash',
       iosSplashResourceName: 'LaunchScreen',
@@ -85,9 +80,9 @@ const config: CapacitorConfig = {
 
   // Android-specific configuration
   android: {
-    allowMixedContent: !isProduction,
+    allowMixedContent: isDevelopment,
     captureInput: true,
-    webContentsDebuggingEnabled: !isProduction,
+    webContentsDebuggingEnabled: isDevelopment,
   },
 };
 
