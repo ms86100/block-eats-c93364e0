@@ -41,18 +41,19 @@ export function MarketplaceSection() {
   const discoveryMinProducts = ml.threshold('discovery_min_products');
   const discoveryMaxItems = ml.threshold('discovery_max_items');
 
-  const newThisWeek = useMemo(() => {
-    const cutoff = Date.now() - (newThisWeekDays || 7) * 24 * 60 * 60 * 1000;
-    return allProducts
-      .filter(p => new Date(p.created_at).getTime() >= cutoff)
-      .slice(0, discoveryMaxItems || 10);
-  }, [allProducts, newThisWeekDays, discoveryMaxItems]);
-
   const popularNearYou = useMemo(() => {
     return [...allProducts]
       .sort((a, b) => ((b as any).completed_order_count || 0) - ((a as any).completed_order_count || 0))
       .slice(0, discoveryMaxItems || 10);
   }, [allProducts, discoveryMaxItems]);
+
+  const newThisWeek = useMemo(() => {
+    const cutoff = Date.now() - (newThisWeekDays || 7) * 24 * 60 * 60 * 1000;
+    const popularIds = new Set(popularNearYou.map(p => p.id));
+    return allProducts
+      .filter(p => new Date(p.created_at).getTime() >= cutoff && !popularIds.has(p.id))
+      .slice(0, discoveryMaxItems || 10);
+  }, [allProducts, newThisWeekDays, discoveryMaxItems, popularNearYou]);
 
   const filteredCategories = activeGroup
     ? localCategories.filter(cat => cat.parentGroup === activeGroup)
