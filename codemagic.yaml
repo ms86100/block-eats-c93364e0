@@ -38,6 +38,11 @@ workflows:
           npx cap add ios || true
           npx cap sync ios
           
+      - name: Copy Firebase config
+        script: |
+          cp ios-config/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
+          echo "GoogleService-Info.plist copied to iOS project"
+
       - name: Update iOS project settings
         script: |
           cd ios/App
@@ -159,6 +164,11 @@ workflows:
         script: |
           npx cap add ios || true
           npx cap sync ios
+
+      - name: Copy Firebase config (iOS)
+        script: |
+          cp ios-config/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
+          echo "GoogleService-Info.plist copied to iOS project"
           
       - name: Update iOS project settings
         script: |
