@@ -42,7 +42,7 @@ function BottomNavInner() {
       ? workerNavItems
       : residentNavItems;
 
-  const hasAnyFeature = features.some(f => f.is_enabled);
+  const hasAnyFeature = features.some(f => f.is_enabled && f.society_configurable);
 
   const visibleItems = isLoading
     ? navItems
