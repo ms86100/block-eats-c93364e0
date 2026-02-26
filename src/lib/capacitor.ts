@@ -8,40 +8,31 @@ import { restoreAppPreferences } from '@/lib/persistent-kv';
 
 export async function initializeCapacitorPlugins() {
   // Swap Supabase auth storage to persistent native storage before any auth calls.
-  // On web this is a no-op (adapter falls back to localStorage).
-  // Must happen before React mounts so useAuthState reads from the right storage.
   if (Capacitor.isNativePlatform()) {
     try {
-      // Patch the internal auth storage on the existing client instance.
-      // In Supabase JS v2, GoTrueClient accesses `this.storage` dynamically,
-      // so reassigning the property propagates to all internal reads/writes.
       (supabase.auth as any).storage = capacitorStorage;
-      // Migrate any existing localStorage tokens so users aren't logged out
       await migrateLocalStorageToPreferences();
-      // Restore app-level preferences (onboarding flags, font prefs, etc.)
-      // from Preferences → localStorage so sync reads work after mount.
       await restoreAppPreferences();
-
-      // Safety net: if the storage patch didn't propagate to internal session
-      // recovery, manually restore the session from Preferences.
-      try {
-        const storageKey = `sb-${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
-        const raw = await capacitorStorage.getItem(storageKey);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const session = parsed?.currentSession || parsed;
-          if (session?.access_token && session?.refresh_token) {
-            await supabase.auth.setSession({
-              access_token: session.access_token,
-              refresh_token: session.refresh_token,
-            });
-          }
-        }
-      } catch (sessionErr) {
-        console.warn('[Capacitor] Manual session restore skipped:', sessionErr);
-      }
     } catch (e) {
       console.warn('[Capacitor] Failed to set persistent auth storage:', e);
+    }
+
+    // Manual session restore — isolated so a failure here doesn't block the app
+    try {
+      const storageKey = `sb-${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
+      const raw = await capacitorStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const session = parsed?.currentSession || parsed;
+        if (session?.access_token && session?.refresh_token) {
+          await supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+          });
+        }
+      }
+    } catch (sessionErr) {
+      console.warn('[Capacitor] Manual session restore skipped:', sessionErr);
     }
   }
 

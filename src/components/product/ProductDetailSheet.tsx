@@ -94,7 +94,7 @@ export function ProductDetailSheet({ product, open, onOpenChange, onSelectProduc
             </div>
 
             <button onClick={() => d.setShowDetails(!d.showDetails)} className="flex items-center gap-1 text-xs font-medium text-primary">
-              View product details
+              {d.showDetails ? 'Hide product details' : 'View product details'}
               <ChevronDown size={14} className={`transition-transform ${d.showDetails ? 'rotate-180' : ''}`} />
             </button>
 

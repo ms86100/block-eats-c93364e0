@@ -89,9 +89,11 @@ export function useProductDetail(product: ProductDetail | null, open: boolean, o
       is_bestseller: false, is_recommended: false, is_urgent: false,
       created_at: '', updated_at: '',
     });
-    // Close sheet and navigate to cart
-    onOpenChange?.(false);
-    navigate('/cart');
+    // Only navigate to cart for buy_now; add_to_cart stays on sheet with stepper
+    if (actionType === 'buy_now') {
+      onOpenChange?.(false);
+      navigate('/cart');
+    }
   }, [product, actionType, isCartAction, addItem, onOpenChange, navigate]);
 
   const isNewSeller = (product?.seller_reviews === 0) || (product?.seller_rating === 0);

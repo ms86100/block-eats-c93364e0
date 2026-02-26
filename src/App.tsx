@@ -332,6 +332,17 @@ function App() {
     return () => window.removeEventListener('app:clear-cache', handler);
   }, []);
 
+  // Global safety net for unhandled promise rejections (prevents blank screens)
+  useEffect(() => {
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      console.error('[Unhandled Rejection]', event.reason);
+      toast.error('An unexpected error occurred. Please try again.');
+      event.preventDefault();
+    };
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => window.removeEventListener('unhandledrejection', handleRejection);
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
