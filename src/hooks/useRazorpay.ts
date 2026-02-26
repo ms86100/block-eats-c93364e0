@@ -19,6 +19,7 @@ interface RazorpayOptions {
   businessName: string;
   onSuccess: (paymentId: string, razorpayOrderId?: string) => void;
   onFailure: (error: any) => void;
+  onDismiss?: () => void;
 }
 
 export function useRazorpay() {
@@ -103,6 +104,7 @@ export function useRazorpay() {
           ondismiss: function () {
             console.log('Payment modal closed');
             setIsLoading(false);
+            options.onDismiss?.();
           },
         },
       };

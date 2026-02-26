@@ -69,6 +69,10 @@ export function RazorpayCheckout({
       onFailure: () => {
         setStatus('failed');
       },
+      onDismiss: () => {
+        // Razorpay popup closed without completing — let user retry
+        setStatus('pending');
+      },
     });
   };
 
@@ -77,7 +81,8 @@ export function RazorpayCheckout({
   };
 
   const handleClose = () => {
-    if (status === 'failed') {
+    // Any close that isn't a success means payment wasn't completed
+    if (status !== 'success') {
       onPaymentFailed();
     }
     setStatus('pending');

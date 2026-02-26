@@ -248,7 +248,7 @@ export default function CartPage() {
       <OrderProgressOverlay isVisible={c.isPlacingOrder} step={c.orderStep} onCancel={() => { c.cancelPlacingOrder(); }} />
 
       {c.pendingOrderIds.length > 0 && (
-        <RazorpayCheckout isOpen={c.showRazorpayCheckout} onClose={() => c.handleRazorpayFailed()} orderId={c.pendingOrderIds[0]} amount={c.finalAmount} sellerId={c.sellerGroups[0]?.sellerId || ''} sellerName={c.sellerGroups[0]?.sellerName || 'Seller'} customerName={c.profile?.name || ''} customerEmail={c.user?.email || ''} customerPhone={c.profile?.phone || ''} onPaymentSuccess={c.handleRazorpaySuccess} onPaymentFailed={c.handleRazorpayFailed} />
+        <RazorpayCheckout isOpen={c.showRazorpayCheckout} onClose={() => { /* neutral close — do nothing, let success/fail handlers drive */ }} orderId={c.pendingOrderIds[0]} amount={c.finalAmount} sellerId={c.sellerGroups[0]?.sellerId || ''} sellerName={c.sellerGroups[0]?.sellerName || 'Seller'} customerName={c.profile?.name || ''} customerEmail={c.user?.email || ''} customerPhone={c.profile?.phone || ''} onPaymentSuccess={c.handleRazorpaySuccess} onPaymentFailed={c.handleRazorpayFailed} />
       )}
     </AppLayout>
   );
