@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { ArrowLeft, Bell, Building, Building2, ShieldCheck } from 'lucide-react';
-import socivaLogo from '@/assets/sociva-logo.png';
+
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -61,8 +61,13 @@ function HeaderInner({
           {/* Top row: always show branding + actions */}
           <div className="flex items-start justify-between">
             <div className="min-w-0 flex-1">
-              <img src={socivaLogo} alt="Sociva" className="h-8 w-auto object-contain" />
-              <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase mt-0.5">
+              <h1 className="text-[22px] font-extrabold tracking-tight leading-tight">
+                <span className="text-[hsl(var(--primary))]">S</span>
+                <span className="text-foreground">oci</span>
+                <span className="text-[hsl(100,60%,45%)]">v</span>
+                <span className="text-foreground">a</span>
+              </h1>
+              <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
                 {settings.headerTagline}
               </p>
               {displaySociety && (
