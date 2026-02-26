@@ -420,9 +420,8 @@ function App() {
       const isBenign = benign.some(p => msg.includes(p));
 
       console.error('[Unhandled Rejection]', reason);
-      if (!isBenign) {
-        toast.error('An unexpected error occurred. Please try again.');
-      }
+      // Never show a generic toast — it's not actionable for users.
+      // Specific error handling belongs in the components that trigger the action.
       event.preventDefault();
     };
 
