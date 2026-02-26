@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { jitteredStaleTime } from '@/lib/query-utils';
@@ -10,6 +11,26 @@ import { cn } from '@/lib/utils';
 export function ShopByStore() {
   const { effectiveSocietyId } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Realtime subscription for seller_profiles changes (e.g. is_featured toggle)
+  useEffect(() => {
+    if (!effectiveSocietyId) return;
+    const channel = supabase
+      .channel('seller-profiles-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'seller_profiles', filter: `society_id=eq.${effectiveSocietyId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['shop-by-store'] });
+          queryClient.invalidateQueries({ queryKey: ['local-sellers'] });
+          queryClient.invalidateQueries({ queryKey: ['nearby-sellers'] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [effectiveSocietyId, queryClient]);
 
   const { data: sellers = [], isLoading } = useQuery({
     queryKey: ['shop-by-store', effectiveSocietyId],

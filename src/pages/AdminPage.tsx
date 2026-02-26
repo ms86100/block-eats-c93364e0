@@ -27,6 +27,7 @@ import { PlatformSettingsManager } from '@/components/admin/PlatformSettingsMana
 import { AdminCatalogManager } from '@/components/admin/AdminCatalogManager';
 import { AdminBannerManager } from '@/components/admin/AdminBannerManager';
 import { ResetAndSeedButton } from '@/components/admin/ResetAndSeedButton';
+import { NotificationDiagnostics } from '@/components/admin/NotificationDiagnostics';
 import { useAdminData } from '@/hooks/useAdminData';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -453,6 +454,7 @@ export default function AdminPage() {
 
             {/* ── SETTINGS ── */}
             <TabsContent value="settings" className="mt-5 space-y-5">
+              <NotificationDiagnostics />
               <PlatformSettingsManager />
               <ApiKeySettings />
               <ResetAndSeedButton />

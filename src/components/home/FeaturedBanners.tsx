@@ -30,7 +30,8 @@ export function FeaturedBanners() {
       if (error) throw error;
       return data || [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60_000,
+    refetchOnMount: true,
   });
 
   // Realtime subscription for featured_items — new banners appear immediately
