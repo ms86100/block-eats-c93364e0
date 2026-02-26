@@ -1,31 +1,49 @@
 
 
-## Root Cause
+## Add Deep Search to Catalog Manager
 
-The database trigger works correctly — products DO have `action_type: book` in the database. The bug is in the **frontend**: when building the `selectedProduct` object to pass to the `ProductDetailSheet`, several pages **omit** `action_type`. Without it, `useProductDetail` defaults to `add_to_cart`, which triggers the cart validation error in the database.
+Add a search bar at the top of `AdminCatalogManager` that filters across all three levels (sections, categories, subcategories) plus attribute blocks in real-time.
 
-## Affected Locations (6 total)
+### Implementation
 
-| File | Context | `action_type` present? |
-|---|---|---|
-| `CategoryGroupPage.tsx` line 41-56 | `handleProductTap` | **MISSING** |
-| `CategoryGroupPage.tsx` line 330-344 | `onSelectProduct` callback | **MISSING** |
-| `SearchPage.tsx` line 41-62 | `handleProductTap` | Present |
-| `SearchPage.tsx` line 153-165 | `onSelectProduct` callback | **MISSING** |
-| `SellerDetailPage.tsx` line 498-519 | `handleProductTap` | Present |
-| `SellerDetailPage.tsx` line 551-565 | `onSelectProduct` callback | **MISSING** |
-| `MarketplaceSection.tsx` line 69-97 | `handleProductTap` | Present |
-| `MarketplaceSection.tsx` line 163-177 | `onSelectProduct` callback | **MISSING** |
+**File: `src/components/admin/AdminCatalogManager.tsx`**
 
-## Fix
+1. Add a `searchQuery` state and a search input with the `Search` icon at the top, below the tab list.
 
-Add `action_type` to all 5 missing locations:
+2. Create a `filterBySearch` function that matches the query (case-insensitive) against:
+   - Parent group names (sections)
+   - Category `display_name`, `category` slug
+   - Subcategory `display_name`, `slug`
+   - Attribute block `display_name`, `block_type`, `description`
 
-1. **CategoryGroupPage.tsx `handleProductTap`** — add `action_type: product.action_type`, `contact_phone: product.contact_phone`, `prep_time_minutes`, `fulfillment_mode`, `delivery_note`
-2. **CategoryGroupPage.tsx `onSelectProduct`** — add `action_type: sp.action_type`
-3. **SearchPage.tsx `onSelectProduct`** — add `action_type: sp.action_type`
-4. **SellerDetailPage.tsx `onSelectProduct`** — add `action_type: sp.action_type`
-5. **MarketplaceSection.tsx `onSelectProduct`** — add `action_type: sp.action_type`
+3. **Overview tab**: Filter the categories list — show only categories whose name matches OR that have a matching subcategory or matching linked attribute block. Highlight matches.
 
-This ensures the `ProductDetailSheet` always knows the correct action type and routes to the right flow (book, enquiry, or cart) instead of defaulting to `add_to_cart`.
+4. **Taxonomy tree**: Filter the tree to only show branches containing a match at any level.
+
+5. When search is active, auto-expand matching categories in the overview and show a result count badge next to the search bar (e.g., "3 results").
+
+6. Clear button (X) to reset search.
+
+### Search matching logic
+```text
+query = searchQuery.toLowerCase()
+
+match(item) = item.name includes query
+           OR item.slug includes query
+           OR item.description includes query
+
+filteredCategories = categories where:
+  - category itself matches, OR
+  - any subcategory under it matches, OR
+  - any linked attribute block matches
+
+filteredTaxonomy = groups where:
+  - group name matches, OR
+  - any child category/subcategory matches
+```
+
+### UI placement
+- Search bar sits between the tab list and the taxonomy collapsible
+- Sticky position so it stays visible while scrolling
+- Small, consistent with existing design (rounded-xl, bg-muted, 9px height input)
 
