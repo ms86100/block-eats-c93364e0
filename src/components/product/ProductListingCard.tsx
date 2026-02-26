@@ -289,7 +289,7 @@ function ProductListingCardInner({
           )}
 
           {/* Distance badge — visible for ALL products */}
-          <div className="absolute top-1.5 left-1.5">
+          <div className="absolute bottom-1.5 left-1.5">
             {distanceLabel ? (
               <span className="inline-flex items-center gap-0.5 bg-primary/90 backdrop-blur-sm text-[7px] font-bold text-primary-foreground px-1.5 py-0.5 rounded-full shadow-sm">
                 <MapPin size={7} className="shrink-0" />
