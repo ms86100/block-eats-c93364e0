@@ -243,15 +243,14 @@ function NavigationHandler() {
   // Invalidate critical queries on mobile app foreground resume
   useAppLifecycle();
 
-  // Real-time buyer order status alerts (toast + haptic)
-  useBuyerOrderAlerts();
-  
   return null;
 }
 
 function AppRoutes() {
   const { user, profile } = useAuth();
-  
+
+  // Real-time buyer order status alerts (toast + haptic)
+  useBuyerOrderAlerts();
   return (
     <Suspense fallback={<PageLoadingFallback />}>
       <Routes>
