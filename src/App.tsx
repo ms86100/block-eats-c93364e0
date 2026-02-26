@@ -401,17 +401,35 @@ function App() {
     return () => window.removeEventListener('app:clear-cache', handler);
   }, []);
 
-  // Global safety net for unhandled runtime failures
+  // Global safety net — only log, don't toast for every rejection.
+  // Auth init, realtime, and network retries produce benign rejections
+  // that should not alarm users.
   useEffect(() => {
     const handleRejection = (event: PromiseRejectionEvent) => {
-      console.error('[Unhandled Rejection]', event.reason);
-      toast.error('An unexpected error occurred. Please try again.');
+      const reason = event.reason;
+      const msg = reason?.message || String(reason || '');
+
+      // Suppress known benign rejections (auth, network, realtime)
+      const benign = [
+        'Failed to fetch', 'NetworkError', 'Load failed',
+        'JWT expired', 'Auth session missing', 'session_not_found',
+        'Invalid Refresh Token', 'AbortError', 'REALTIME',
+        'not authenticated', 'AuthRetryableFetchError',
+        'AuthSessionMissingError', 'AuthApiError',
+      ];
+      const isBenign = benign.some(p => msg.includes(p));
+
+      console.error('[Unhandled Rejection]', reason);
+      if (!isBenign) {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
       event.preventDefault();
     };
 
     const handleError = (event: ErrorEvent) => {
       console.error('[Unhandled Error]', event.error || event.message);
-      toast.error('The app hit an unexpected error.');
+      // Don't toast — ErrorBoundary handles render errors,
+      // and network/script errors shouldn't alarm users.
     };
 
     window.addEventListener('unhandledrejection', handleRejection);
