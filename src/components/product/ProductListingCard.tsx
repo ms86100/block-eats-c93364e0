@@ -291,12 +291,12 @@ function ProductListingCardInner({
           {/* Distance badge — visible for ALL products */}
           <div className="absolute bottom-1 left-1">
             {distanceLabel ? (
-              <span className="inline-flex items-center gap-0.5 bg-background/90 backdrop-blur-sm text-[7px] font-bold text-primary px-1 py-0.5 rounded-full shadow-sm border border-border">
+              <span className="inline-flex items-center gap-0.5 bg-primary/90 backdrop-blur-sm text-[7px] font-bold text-primary-foreground px-1 py-0.5 rounded-full shadow-sm">
                 <MapPin size={7} className="shrink-0" />
                 {distanceLabel}
               </span>
             ) : (product as any).is_same_society !== false ? (
-              <span className="inline-flex items-center gap-0.5 bg-background/90 backdrop-blur-sm text-[7px] font-bold text-accent-foreground px-1 py-0.5 rounded-full shadow-sm border border-border">
+              <span className="inline-flex items-center gap-0.5 bg-primary/90 backdrop-blur-sm text-[7px] font-bold text-primary-foreground px-1 py-0.5 rounded-full shadow-sm">
                 <MapPin size={7} className="shrink-0" />
                 {ml.label('label_in_your_society')}
               </span>
