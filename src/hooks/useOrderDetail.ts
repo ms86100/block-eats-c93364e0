@@ -94,14 +94,19 @@ export function useOrderDetail(id: string | undefined) {
   const handleReject = async (reason: string) => { await updateOrderStatus('cancelled', reason); };
   const handleTimeout = () => { fetchOrder(); toast.error('Order was auto-cancelled due to timeout'); };
 
-  const statusOrder: OrderStatus[] = ['placed', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered', 'completed'];
-  const currentStatusIndex = statusOrder.indexOf(order?.status || 'placed');
   const orderFulfillmentType = (order as any)?.fulfillment_type || 'self_pickup';
+  const isEnquiryOrder = (order as any)?.order_type === 'enquiry';
+
+  const statusOrder: OrderStatus[] = isEnquiryOrder
+    ? ['enquired', 'accepted', 'preparing', 'ready', 'completed']
+    : ['placed', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered', 'completed'];
+
+  const currentStatusIndex = statusOrder.indexOf(order?.status || (isEnquiryOrder ? 'enquired' : 'placed'));
 
   const getNextStatus = (): OrderStatus | null => {
     if (!order || order.status === 'cancelled' || order.status === 'completed') return null;
-    if (orderFulfillmentType === 'delivery' && order.status === 'ready') return null;
-    if (orderFulfillmentType !== 'delivery' && order.status === 'ready') return 'completed';
+    if (!isEnquiryOrder && orderFulfillmentType === 'delivery' && order.status === 'ready') return null;
+    if (!isEnquiryOrder && orderFulfillmentType !== 'delivery' && order.status === 'ready') return 'completed';
     const nextIndex = currentStatusIndex + 1;
     return nextIndex < statusOrder.length ? statusOrder[nextIndex] : null;
   };
@@ -124,7 +129,7 @@ export function useOrderDetail(id: string | undefined) {
     order, setOrder, isLoading, isUpdating, hasReview, setHasReview,
     isChatOpen, setIsChatOpen, unreadMessages, fetchUnreadCount,
     isRejectionDialogOpen, setIsRejectionDialogOpen,
-    seller, isSellerView, isUrgentOrder, isBuyerView,
+    seller, isSellerView, isUrgentOrder, isBuyerView, isEnquiryOrder,
     nextStatus, canReview, canChat, canReorder,
     chatRecipientId, chatRecipientName,
     orderFulfillmentType, currentStatusIndex, statusOrder,
