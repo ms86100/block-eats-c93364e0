@@ -560,6 +560,7 @@ export default function SellerDetailPage() {
             seller_name: sp.seller?.business_name || seller!.business_name,
             seller_rating: seller!.rating,
             seller_reviews: seller!.total_reviews,
+            action_type: sp.action_type,
             _catIcon: catConfig?.icon || '🛍️',
             _catName: catConfig?.displayName || sp.category,
           });
