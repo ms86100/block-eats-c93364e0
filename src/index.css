@@ -455,3 +455,9 @@ html.large-font a {
 .category-collage.items-3 > :first-child {
   grid-row: 1 / -1;
 }
+
+/* Sonner close button — move to right side */
+[data-sonner-toast] [data-close-button] {
+  left: auto !important;
+  right: 0 !important;
+}
