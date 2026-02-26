@@ -289,14 +289,14 @@ function ProductListingCardInner({
           )}
 
           {/* Distance badge — visible for ALL products */}
-          <div className="absolute bottom-1 left-1">
+          <div className="absolute top-1.5 left-1.5">
             {distanceLabel ? (
-              <span className="inline-flex items-center gap-0.5 bg-primary/90 backdrop-blur-sm text-[7px] font-bold text-primary-foreground px-1 py-0.5 rounded-full shadow-sm">
+              <span className="inline-flex items-center gap-0.5 bg-primary/90 backdrop-blur-sm text-[7px] font-bold text-primary-foreground px-1.5 py-0.5 rounded-full shadow-sm">
                 <MapPin size={7} className="shrink-0" />
                 {distanceLabel}
               </span>
             ) : (product as any).is_same_society !== false ? (
-              <span className="inline-flex items-center gap-0.5 bg-primary/90 backdrop-blur-sm text-[7px] font-bold text-primary-foreground px-1 py-0.5 rounded-full shadow-sm">
+              <span className="inline-flex items-center gap-0.5 bg-primary/90 backdrop-blur-sm text-[7px] font-bold text-primary-foreground px-1.5 py-0.5 rounded-full shadow-sm">
                 <MapPin size={7} className="shrink-0" />
                 {ml.label('label_in_your_society')}
               </span>
@@ -320,7 +320,7 @@ function ProductListingCardInner({
             ) : (
               <button
                 onClick={handleAdd}
-                className="bg-primary text-primary-foreground font-bold text-[11px] px-5 py-1.5 rounded-lg shadow-cta hover:opacity-90 transition-all duration-150 uppercase tracking-wide active:scale-95"
+                className="bg-primary text-primary-foreground font-bold text-[10px] px-4 py-1 rounded-md shadow-cta hover:opacity-90 transition-all duration-150 uppercase tracking-wide active:scale-95"
               >
                 {actionConfig.shortLabel}
               </button>
@@ -361,7 +361,7 @@ function ProductListingCardInner({
 
         {/* Social proof badge */}
         {socialProofCount != null && socialProofCount > 0 && (
-          <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-accent-foreground bg-accent/15 rounded-full px-1.5 py-0.5 w-fit mb-0.5">
+          <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-primary-foreground bg-primary/80 rounded-full px-1.5 py-0.5 w-fit mb-0.5">
             {ml.label('label_social_proof_format')
               .replace('{count}', String(socialProofCount))
               .replace('{unit}', socialProofCount === 1 ? ml.label('label_social_proof_singular') : ml.label('label_social_proof_plural'))}
