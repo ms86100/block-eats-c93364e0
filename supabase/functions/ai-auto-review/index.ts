@@ -233,20 +233,8 @@ async function processItem(
       finalConfidence = aiResult.confidence;
       finalReason = aiResult.reason;
     } catch (err) {
-      // AI failed — skip, leave item as pending
+      // AI failed — do NOT log, so item will be retried next cron run
       console.error(`AI evaluation failed for ${type} ${item.id}:`, err);
-      // Log the failure but don't change status
-      await db.from("ai_review_log").insert({
-        target_type: type,
-        target_id: item.id,
-        decision: "flagged",
-        confidence: 0,
-        reason: `AI evaluation failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-        rule_hits: ruleHits,
-        input_snapshot: snapshot,
-        model_used: "error",
-        society_id: societyId,
-      });
       return;
     }
   }
@@ -308,74 +296,50 @@ serve(async (req) => {
   try {
     const db = serviceClient();
 
-    // Fetch pending sellers not yet reviewed
-    const { data: sellers } = await db
-      .from("seller_profiles")
-      .select("*")
-      .eq("verification_status", "pending")
-      .not(
-        "id",
-        "in",
-        db
-          .from("ai_review_log")
-          .select("target_id")
-          .eq("target_type", "seller")
-      )
-      .limit(BATCH_SELLERS);
-
-    // Fetch pending/draft products not yet reviewed
-    const { data: products } = await db
-      .from("products")
-      .select("*")
-      .in("approval_status", ["pending", "draft"])
-      .not(
-        "id",
-        "in",
-        db
-          .from("ai_review_log")
-          .select("target_id")
-          .eq("target_type", "product")
-      )
-      .limit(BATCH_PRODUCTS);
-
-    // Use a simpler approach: fetch already-reviewed IDs first
-    const { data: reviewedSellers } = await db
-      .from("ai_review_log")
-      .select("target_id")
-      .eq("target_type", "seller");
-    const reviewedSellerIds = new Set(
-      (reviewedSellers || []).map((r: any) => r.target_id)
-    );
-
-    const { data: reviewedProducts } = await db
-      .from("ai_review_log")
-      .select("target_id")
-      .eq("target_type", "product");
-    const reviewedProductIds = new Set(
-      (reviewedProducts || []).map((r: any) => r.target_id)
-    );
-
-    // Fetch pending sellers
+    // Fetch pending sellers — status-based filtering is sufficient.
+    // Once AI approves/rejects, status changes so they won't be re-fetched.
+    // For "flagged" items (status stays pending), use LEFT JOIN exclusion.
     const { data: pendingSellers } = await db
       .from("seller_profiles")
       .select("*")
       .eq("verification_status", "pending")
       .limit(BATCH_SELLERS);
 
+    // Filter out sellers already in ai_review_log (handles "flagged" items that remain pending)
+    const sellerIds = (pendingSellers || []).map((s: any) => s.id);
+    let reviewedSellerIds = new Set<string>();
+    if (sellerIds.length > 0) {
+      const { data: reviewed } = await db
+        .from("ai_review_log")
+        .select("target_id")
+        .eq("target_type", "seller")
+        .in("target_id", sellerIds);
+      reviewedSellerIds = new Set((reviewed || []).map((r: any) => r.target_id));
+    }
     const unreviewed_sellers = (pendingSellers || []).filter(
       (s: any) => !reviewedSellerIds.has(s.id)
-    ).slice(0, BATCH_SELLERS);
+    );
 
     // Fetch pending/draft products
     const { data: pendingProducts } = await db
       .from("products")
       .select("*")
       .in("approval_status", ["pending", "draft"])
-      .limit(BATCH_PRODUCTS + 50); // fetch extra to filter
+      .limit(BATCH_PRODUCTS);
 
+    const productIds = (pendingProducts || []).map((p: any) => p.id);
+    let reviewedProductIds = new Set<string>();
+    if (productIds.length > 0) {
+      const { data: reviewed } = await db
+        .from("ai_review_log")
+        .select("target_id")
+        .eq("target_type", "product")
+        .in("target_id", productIds);
+      reviewedProductIds = new Set((reviewed || []).map((r: any) => r.target_id));
+    }
     const unreviewed_products = (pendingProducts || []).filter(
       (p: any) => !reviewedProductIds.has(p.id)
-    ).slice(0, BATCH_PRODUCTS);
+    );
 
     let processed = 0;
 
