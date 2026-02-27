@@ -43,23 +43,22 @@ workflows:
           APPDELEGATE="ios/App/App/AppDelegate.swift"
           if ! grep -q "didRegisterForRemoteNotificationsWithDeviceToken" "$APPDELEGATE"; then
             sed -i '' '$ d' "$APPDELEGATE"
-            cat >> "$APPDELEGATE" << 'SWIFT'
-
-              func application(_ application: UIApplication,
-                               didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-                  NotificationCenter.default.post(
-                      name: .capacitorDidRegisterForRemoteNotifications,
-                      object: deviceToken)
-              }
-
-              func application(_ application: UIApplication,
-                               didFailToRegisterForRemoteNotificationsWithError error: Error) {
-                  NotificationCenter.default.post(
-                      name: .capacitorDidFailToRegisterForRemoteNotifications,
-                      object: error)
-              }
-          }
-          SWIFT
+            printf '%s\n' \
+              '' \
+              '    func application(_ application: UIApplication,' \
+              '                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {' \
+              '        NotificationCenter.default.post(' \
+              '            name: .capacitorDidRegisterForRemoteNotifications,' \
+              '            object: deviceToken)' \
+              '    }' \
+              '' \
+              '    func application(_ application: UIApplication,' \
+              '                     didFailToRegisterForRemoteNotificationsWithError error: Error) {' \
+              '        NotificationCenter.default.post(' \
+              '            name: .capacitorDidFailToRegisterForRemoteNotifications,' \
+              '            object: error)' \
+              '    }' \
+              '}' >> "$APPDELEGATE"
             echo "✅ AppDelegate patched with push notification forwarding methods"
           else
             echo "ℹ️ AppDelegate already contains push notification methods — skipping"
@@ -229,23 +228,22 @@ workflows:
           APPDELEGATE="ios/App/App/AppDelegate.swift"
           if ! grep -q "didRegisterForRemoteNotificationsWithDeviceToken" "$APPDELEGATE"; then
             sed -i '' '$ d' "$APPDELEGATE"
-            cat >> "$APPDELEGATE" << 'SWIFT'
-
-              func application(_ application: UIApplication,
-                               didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-                  NotificationCenter.default.post(
-                      name: .capacitorDidRegisterForRemoteNotifications,
-                      object: deviceToken)
-              }
-
-              func application(_ application: UIApplication,
-                               didFailToRegisterForRemoteNotificationsWithError error: Error) {
-                  NotificationCenter.default.post(
-                      name: .capacitorDidFailToRegisterForRemoteNotifications,
-                      object: error)
-              }
-          }
-          SWIFT
+            printf '%s\n' \
+              '' \
+              '    func application(_ application: UIApplication,' \
+              '                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {' \
+              '        NotificationCenter.default.post(' \
+              '            name: .capacitorDidRegisterForRemoteNotifications,' \
+              '            object: deviceToken)' \
+              '    }' \
+              '' \
+              '    func application(_ application: UIApplication,' \
+              '                     didFailToRegisterForRemoteNotificationsWithError error: Error) {' \
+              '        NotificationCenter.default.post(' \
+              '            name: .capacitorDidFailToRegisterForRemoteNotifications,' \
+              '            object: error)' \
+              '    }' \
+              '}' >> "$APPDELEGATE"
             echo "✅ AppDelegate patched with push notification forwarding methods"
           else
             echo "ℹ️ AppDelegate already contains push notification methods — skipping"
