@@ -40,11 +40,22 @@ async function verifySignature(body: string, signature: string, secret: string):
       encoder.encode(body)
     );
     
-    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    const expectedBytes = new Uint8Array(signatureBuffer);
     
-    return expectedSignature === signature;
+    // Convert incoming hex signature to Uint8Array for constant-time comparison
+    const sigBytes = new Uint8Array(signature.length / 2);
+    for (let i = 0; i < signature.length; i += 2) {
+      sigBytes[i / 2] = parseInt(signature.substring(i, i + 2), 16);
+    }
+    
+    if (expectedBytes.length !== sigBytes.length) return false;
+    
+    // Constant-time comparison to prevent timing attacks
+    let diff = 0;
+    for (let i = 0; i < expectedBytes.length; i++) {
+      diff |= expectedBytes[i] ^ sigBytes[i];
+    }
+    return diff === 0;
   } catch (error) {
     console.error('Signature verification error:', error);
     return false;
@@ -75,16 +86,22 @@ serve(async (req) => {
       );
     }
 
-    // Verify webhook signature
-    if (signature) {
-      const isValid = await verifySignature(body, signature, razorpaySecret);
-      if (!isValid) {
-        console.error('Invalid webhook signature');
-        return new Response(
-          JSON.stringify({ error: 'Invalid signature' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    // Verify webhook signature — MANDATORY
+    if (!signature) {
+      console.error('Missing x-razorpay-signature header');
+      return new Response(
+        JSON.stringify({ error: 'Missing signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const isValid = await verifySignature(body, signature, razorpaySecret);
+    if (!isValid) {
+      console.error('Invalid webhook signature');
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const payload = JSON.parse(body);
