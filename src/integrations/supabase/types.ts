@@ -6888,18 +6888,18 @@ export type Database = {
       create_multi_vendor_orders: {
         Args: {
           _buyer_id: string
-          _cart_total?: number
-          _coupon_code?: string
-          _coupon_discount?: number
-          _coupon_id?: string
+          _cart_total: number
+          _coupon_code: string
+          _coupon_discount: number
+          _coupon_id: string
           _delivery_address: string
           _delivery_fee?: number
           _fulfillment_type?: string
-          _has_urgent?: boolean
-          _notes?: string
-          _payment_method?: string
-          _payment_status?: string
-          _seller_groups?: Json
+          _has_urgent: boolean
+          _notes: string
+          _payment_method: string
+          _payment_status: string
+          _seller_groups: Json
         }
         Returns: Json
       }

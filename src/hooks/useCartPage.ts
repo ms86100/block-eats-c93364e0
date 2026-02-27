@@ -215,7 +215,7 @@ export function useCartPage() {
     try {
       const orderIds = await createOrdersForAllSellers('pending');
       if (orderIds.length === 0) throw new Error('Failed to create orders');
-      await clearCart();
+      // DEFECT 9 FIX: RPC already clears cart atomically, just refresh UI
       await refresh();
       hapticNotification('success');
       // Trigger immediate push notification to seller (fire-and-forget)

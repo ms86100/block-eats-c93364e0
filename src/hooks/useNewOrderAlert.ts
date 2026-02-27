@@ -33,14 +33,14 @@ const MIN_POLL_MS = 3000;
 const MAX_POLL_MS = 30000;
 const BACKOFF_FACTOR = 1.5;
 const SNOOZE_MS = 60000;
-const LOOKBACK_MS = 5 * 60 * 1000; // 5 minutes
+const LOOKBACK_MS = 5 * 60 * 1000; // 5 minutes (used for subsequent polls only)
 
 export function useNewOrderAlert(sellerId: string | null) {
   const queryClient = useQueryClient();
   const [pendingAlerts, setPendingAlerts] = useState<NewOrder[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastSeenAtRef = useRef<string>(new Date(Date.now() - LOOKBACK_MS).toISOString());
+  const lastSeenAtRef = useRef<string | null>(null); // null = first poll fetches ALL actionable
   const pollDelayRef = useRef(MIN_POLL_MS);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
@@ -54,7 +54,7 @@ export function useNewOrderAlert(sellerId: string | null) {
     const snoozedUntil = snoozedUntilRef.current[order.id];
     if (snoozedUntil && Date.now() < snoozedUntil) return;
     seenIdsRef.current.add(order.id);
-    if (order.created_at > lastSeenAtRef.current) {
+    if (!lastSeenAtRef.current || order.created_at > lastSeenAtRef.current) {
       lastSeenAtRef.current = order.created_at;
     }
     pollDelayRef.current = MIN_POLL_MS;
@@ -77,6 +77,8 @@ export function useNewOrderAlert(sellerId: string | null) {
   }, []);
 
   const startBuzzing = useCallback(() => {
+    // DEFECT 8 FIX: Prevent overlapping buzzing intervals
+    if (intervalRef.current) return;
     hapticNotification('warning');
     try {
       if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
@@ -159,13 +161,19 @@ export function useNewOrderAlert(sellerId: string | null) {
     const poll = async () => {
       if (cancelled) return;
       try {
-        const { data } = await supabase
+        // DEFECT 6 FIX: On first poll (lastSeenAtRef.current is null), fetch ALL actionable orders
+        let query = supabase
           .from('orders')
           .select('id, status, total_amount, created_at')
           .eq('seller_id', sellerId)
-          .gt('created_at', lastSeenAtRef.current)
           .in('status', ACTIONABLE_STATUSES)
           .order('created_at', { ascending: true });
+
+        if (lastSeenAtRef.current) {
+          query = query.gt('created_at', lastSeenAtRef.current);
+        }
+
+        const { data } = await query;
 
         if (data && data.length > 0) {
           data.forEach(order => handleNewOrder(order as NewOrder));

@@ -62,16 +62,35 @@ Deno.serve(async (req) => {
     const errors: { id: string; error: string }[] = [];
 
     for (const settlement of eligibleSettlements) {
-      // 3. Verify delivery is confirmed
-      const { data: delivery } = await supabase
-        .from("delivery_assignments")
-        .select("status")
-        .eq("order_id", settlement.order_id)
+      // 3. Verify delivery/completion is confirmed
+      // DEFECT 5 FIX: For self-pickup or seller-delivery orders, check order status instead of delivery_assignments
+      const { data: orderData } = await supabase
+        .from("orders")
+        .select("status, fulfillment_type, delivery_handled_by")
+        .eq("id", settlement.order_id)
         .single();
 
-      if (delivery?.status !== "delivered") {
-        errors.push({ id: settlement.id, error: "Delivery not confirmed" });
-        continue;
+      const isNonPlatformDelivery = orderData?.fulfillment_type === 'self_pickup' ||
+        (orderData?.delivery_handled_by !== 'platform');
+
+      if (isNonPlatformDelivery) {
+        // For self-pickup / seller-delivery: order must be completed or delivered
+        if (!orderData || !['delivered', 'completed'].includes(orderData.status)) {
+          errors.push({ id: settlement.id, error: "Order not completed" });
+          continue;
+        }
+      } else {
+        // For platform delivery: check delivery_assignments
+        const { data: delivery } = await supabase
+          .from("delivery_assignments")
+          .select("status")
+          .eq("order_id", settlement.order_id)
+          .single();
+
+        if (delivery?.status !== "delivered") {
+          errors.push({ id: settlement.id, error: "Delivery not confirmed" });
+          continue;
+        }
       }
 
       // 4. Verify payment is confirmed

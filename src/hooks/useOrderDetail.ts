@@ -80,6 +80,8 @@ export function useOrderDetail(id: string | undefined) {
       if (error) throw error;
       setOrder({ ...order, ...updateData });
       toast.success(`Order ${getOrderStatus(newStatus).label.toLowerCase()}`);
+      // DEFECT 4 FIX: Flush notification queue immediately on seller status change
+      supabase.functions.invoke('process-notification-queue').catch(() => {});
       if (order.society_id) {
         logAudit(`order_${newStatus}`, 'order', order.id, order.society_id, { old_status: order.status, new_status: newStatus, rejection_reason: rejectionReason });
       }
