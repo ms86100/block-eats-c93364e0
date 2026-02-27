@@ -51,7 +51,7 @@ const DEFAULT_FORM: SellerSettingsFormData = {
   bank_account_holder: '',
   sell_beyond_community: false,
   delivery_radius_km: 5,
-  fulfillment_mode: 'self_pickup',
+  fulfillment_mode: 'self_pickup' as string,
   delivery_note: '',
   minimum_order_amount: '',
 };

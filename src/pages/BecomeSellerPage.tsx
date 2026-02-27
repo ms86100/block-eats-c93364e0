@@ -60,8 +60,10 @@ const STEP_META = [
 ];
 const FULFILLMENT_OPTIONS = [
   { value: 'self_pickup', label: 'Self Pickup Only', description: 'Customers pick up from your location', icon: Store },
-  { value: 'delivery', label: 'I Deliver', description: 'You deliver to customers', icon: Truck },
-  { value: 'both', label: 'Both', description: 'Pickup and delivery available', icon: Truck },
+  { value: 'seller_delivery', label: 'I Deliver', description: 'You deliver to customers', icon: Truck },
+  { value: 'platform_delivery', label: 'Delivery Partner', description: 'Platform delivery partner delivers', icon: Truck },
+  { value: 'pickup_and_seller_delivery', label: 'Pickup + I Deliver', description: 'Buyer can choose pickup or you deliver', icon: Truck },
+  { value: 'pickup_and_platform_delivery', label: 'Pickup + Delivery Partner', description: 'Buyer can choose pickup or delivery partner', icon: Truck },
 ];
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
@@ -270,7 +272,13 @@ export default function BecomeSellerPage() {
                   </label>
                 ); })}
               </RadioGroup>
-              {(formData.fulfillment_mode === 'delivery' || formData.fulfillment_mode === 'both') && <div className="space-y-2 pt-2 border-t"><Label htmlFor="delivery_note" className="text-xs text-muted-foreground">Delivery Note (optional)</Label><Input id="delivery_note" placeholder="e.g., Delivery available within 2 km, after 5 PM only" value={formData.delivery_note} onChange={(e) => setFormData({ ...formData, delivery_note: e.target.value })} /></div>}
+              {formData.fulfillment_mode !== 'self_pickup' && (
+                <p className="text-xs text-primary/80 bg-primary/5 rounded-lg p-2">💡 Delivery fee is managed by the platform admin</p>
+              )}
+              {(formData.fulfillment_mode === 'platform_delivery' || formData.fulfillment_mode === 'pickup_and_platform_delivery') && (
+                <p className="text-xs text-muted-foreground bg-muted rounded-lg p-2">🚴 A delivery partner will be auto-assigned when the order is ready</p>
+              )}
+              {(formData.fulfillment_mode === 'seller_delivery' || formData.fulfillment_mode === 'pickup_and_seller_delivery') && <div className="space-y-2 pt-2 border-t"><Label htmlFor="delivery_note" className="text-xs text-muted-foreground">Delivery Note (optional)</Label><Input id="delivery_note" placeholder="e.g., Delivery available within 2 km, after 5 PM only" value={formData.delivery_note} onChange={(e) => setFormData({ ...formData, delivery_note: e.target.value })} /></div>}
             </div>
             <div className="border rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2"><Banknote size={16} className="text-primary" /><h3 className="font-semibold text-sm">Payment Methods</h3></div>

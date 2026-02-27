@@ -2805,6 +2805,7 @@ export type Database = {
           created_at: string | null
           delivery_address: string | null
           delivery_fee: number
+          delivery_handled_by: string | null
           deposit_paid: boolean | null
           deposit_refunded: boolean | null
           discount_amount: number | null
@@ -2840,6 +2841,7 @@ export type Database = {
           created_at?: string | null
           delivery_address?: string | null
           delivery_fee?: number
+          delivery_handled_by?: string | null
           deposit_paid?: boolean | null
           deposit_refunded?: boolean | null
           discount_amount?: number | null
@@ -2875,6 +2877,7 @@ export type Database = {
           created_at?: string | null
           delivery_address?: string | null
           delivery_fee?: number
+          delivery_handled_by?: string | null
           deposit_paid?: boolean | null
           deposit_refunded?: boolean | null
           discount_amount?: number | null
@@ -4520,6 +4523,7 @@ export type Database = {
           completed_order_count: number | null
           cover_image_url: string | null
           created_at: string | null
+          delivery_handled_by: string | null
           delivery_note: string | null
           delivery_radius_km: number
           description: string | null
@@ -4566,6 +4570,7 @@ export type Database = {
           completed_order_count?: number | null
           cover_image_url?: string | null
           created_at?: string | null
+          delivery_handled_by?: string | null
           delivery_note?: string | null
           delivery_radius_km?: number
           description?: string | null
@@ -4612,6 +4617,7 @@ export type Database = {
           completed_order_count?: number | null
           cover_image_url?: string | null
           created_at?: string | null
+          delivery_handled_by?: string | null
           delivery_note?: string | null
           delivery_radius_km?: number
           description?: string | null

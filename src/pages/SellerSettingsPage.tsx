@@ -199,13 +199,21 @@ export default function SellerSettingsPage() {
           <div className="space-y-3">
             <div className="flex items-center gap-2"><Truck size={16} className="text-muted-foreground" /><Label>Fulfillment Mode</Label></div>
             <div className="p-4 bg-muted rounded-lg space-y-3">
-              <RadioGroup value={formData.fulfillment_mode} onValueChange={(value) => setFormData({ ...formData, fulfillment_mode: value })} className="space-y-2">
+            <RadioGroup value={formData.fulfillment_mode} onValueChange={(value) => setFormData({ ...formData, fulfillment_mode: value })} className="space-y-2">
                 <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 cursor-pointer"><RadioGroupItem value="self_pickup" /><div><p className="text-sm font-medium">Self Pickup Only</p><p className="text-xs text-muted-foreground">Buyer picks up from your location</p></div></label>
-                <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 cursor-pointer"><RadioGroupItem value="delivery" /><div><p className="text-sm font-medium">I Deliver</p><p className="text-xs text-muted-foreground">You deliver to buyer's location</p></div></label>
-                <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 cursor-pointer"><RadioGroupItem value="both" /><div><p className="text-sm font-medium">Both</p><p className="text-xs text-muted-foreground">Buyer can choose pickup or delivery</p></div></label>
+                <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 cursor-pointer"><RadioGroupItem value="seller_delivery" /><div><p className="text-sm font-medium">I Deliver</p><p className="text-xs text-muted-foreground">You deliver to buyer's location</p></div></label>
+                <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 cursor-pointer"><RadioGroupItem value="platform_delivery" /><div><p className="text-sm font-medium">Delivery Partner</p><p className="text-xs text-muted-foreground">A platform delivery partner will deliver</p></div></label>
+                <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 cursor-pointer"><RadioGroupItem value="pickup_and_seller_delivery" /><div><p className="text-sm font-medium">Pickup + I Deliver</p><p className="text-xs text-muted-foreground">Buyer can choose pickup or you deliver</p></div></label>
+                <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 cursor-pointer"><RadioGroupItem value="pickup_and_platform_delivery" /><div><p className="text-sm font-medium">Pickup + Delivery Partner</p><p className="text-xs text-muted-foreground">Buyer can choose pickup or delivery partner delivers</p></div></label>
               </RadioGroup>
-              {(formData.fulfillment_mode === 'delivery' || formData.fulfillment_mode === 'both') && (
-                <div className="space-y-2 pt-2 border-t"><Label htmlFor="delivery_note" className="text-xs">Delivery Instructions</Label><Input id="delivery_note" placeholder="e.g. Pickup from Gate 2 or Will deliver within 1 hour" value={formData.delivery_note} onChange={(e) => setFormData({ ...formData, delivery_note: e.target.value })} /></div>
+              {formData.fulfillment_mode !== 'self_pickup' && (
+                <p className="text-xs text-primary/80 bg-primary/5 rounded-lg p-2">💡 Delivery fee is managed by the platform admin</p>
+              )}
+              {(formData.fulfillment_mode === 'platform_delivery' || formData.fulfillment_mode === 'pickup_and_platform_delivery') && (
+                <p className="text-xs text-muted-foreground bg-muted rounded-lg p-2">🚴 A delivery partner will be auto-assigned when the order is ready</p>
+              )}
+              {(formData.fulfillment_mode === 'seller_delivery' || formData.fulfillment_mode === 'pickup_and_seller_delivery') && (
+                <div className="space-y-2 pt-2 border-t"><Label htmlFor="delivery_note" className="text-xs">Delivery Instructions</Label><Input id="delivery_note" placeholder="e.g. Will deliver within 1 hour" value={formData.delivery_note} onChange={(e) => setFormData({ ...formData, delivery_note: e.target.value })} /></div>
               )}
             </div>
           </div>

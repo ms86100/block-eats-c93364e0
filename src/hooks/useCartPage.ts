@@ -43,7 +43,7 @@ export function useCartPage() {
   const finalAmount = (appliedCoupon ? Math.max(0, totalAmount - effectiveCouponDiscount) : totalAmount) + effectiveDeliveryFee;
 
   const firstSeller = sellerGroups[0]?.items[0]?.product?.seller;
-  const firstSellerFulfillmentMode = (firstSeller as any)?.fulfillment_mode as 'self_pickup' | 'delivery' | 'both' | undefined;
+  const firstSellerFulfillmentMode = (firstSeller as any)?.fulfillment_mode as 'self_pickup' | 'seller_delivery' | 'platform_delivery' | 'pickup_and_seller_delivery' | 'pickup_and_platform_delivery' | undefined;
   // #11: For multi-seller carts, ALL sellers must accept COD
   const acceptsCod = sellerGroups.length > 1
     ? sellerGroups.every(g => g.items[0]?.product?.seller?.accepts_cod ?? true)
@@ -53,7 +53,7 @@ export function useCartPage() {
   // #3: Check for multi-seller fulfillment mode conflicts
   const hasFulfillmentConflict = sellerGroups.length > 1 && sellerGroups.some(g => {
     const mode = (g.items[0]?.product?.seller as any)?.fulfillment_mode;
-    return mode && mode !== 'both' && mode !== fulfillmentType;
+    return mode && mode !== 'self_pickup' && !mode.startsWith('pickup_and_') && mode !== fulfillmentType;
   });
   // #9: Check for below-minimum-order sellers
   const hasBelowMinimumOrder = sellerGroups.some(g => {
@@ -72,8 +72,8 @@ export function useCartPage() {
   useEffect(() => {
     if (sellerGroups.length === 0) return;
     const firstMode = (firstSeller as any)?.fulfillment_mode;
-    if (firstMode === 'delivery') setFulfillmentType('delivery');
-    else if (firstMode === 'both') setFulfillmentType('delivery');
+    if (firstMode === 'seller_delivery' || firstMode === 'platform_delivery') setFulfillmentType('delivery');
+    else if (firstMode?.startsWith('pickup_and_')) setFulfillmentType('delivery');
     else setFulfillmentType('self_pickup');
   }, [sellerGroups.length, firstSeller]);
 

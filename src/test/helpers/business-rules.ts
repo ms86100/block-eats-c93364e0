@@ -594,7 +594,7 @@ export function isProductVisible(approvalStatus: string, isAvailable: boolean): 
 }
 
 // ── Fulfillment Mode ────────────────────────────────────────────────────────
-export const VALID_FULFILLMENT_MODES = ['self_pickup', 'delivery', 'both'] as const;
+export const VALID_FULFILLMENT_MODES = ['self_pickup', 'seller_delivery', 'platform_delivery', 'pickup_and_seller_delivery', 'pickup_and_platform_delivery'] as const;
 
 export function isValidFulfillmentMode(mode: string): boolean {
   return (VALID_FULFILLMENT_MODES as readonly string[]).includes(mode);
