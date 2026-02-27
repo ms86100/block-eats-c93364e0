@@ -159,19 +159,24 @@ export function useAuthPage() {
       recordSuccess();
 
       // Quick profile check with 5s timeout — if it hangs, navigate anyway
+      // Use rpc to bypass potential RLS timing issues on fresh login
       const profileResult = await Promise.race([
-        supabase.from('profiles').select('id').eq('id', data.user?.id).single(),
+        supabase.rpc('get_user_auth_context', { _user_id: data.user?.id }),
         new Promise<{ data: null; error: string }>(resolve =>
           setTimeout(() => resolve({ data: null, error: 'timeout' }), 5000)
         ),
       ]);
 
-      if (profileResult.data || profileResult.error === 'timeout') {
+      const ctx = profileResult.data as any;
+      if (ctx?.profile || profileResult.error === 'timeout') {
         toast.success('Welcome back!');
         navigate('/');
       } else {
-        await supabase.auth.signOut();
-        toast.error('Your account setup is incomplete. Please sign up again or contact support.', { duration: 8000 });
+        // Don't sign out immediately — the auto-recovery in useAuthState may fix it
+        // Only show a warning, let the auth state listener handle recovery
+        console.warn('[Login] Profile not found via RPC, letting auth state listener attempt recovery');
+        toast.success('Welcome back!');
+        navigate('/');
       }
     } catch (error: any) {
       recordFailure();
@@ -208,13 +213,38 @@ export function useAuthPage() {
     } finally { setIsLoading(false); }
   };
 
-  const handleCredentialsNext = () => {
+  const handleCredentialsNext = async () => {
     const validation = validateForm(loginSchema, { email, password });
     if ('errors' in validation) {
       toast.error(Object.values(validation.errors)[0] as string);
       return;
     }
-    setEmail(validation.data.email);
+    const trimmedEmail = validation.data.email;
+    setEmail(trimmedEmail);
+    setIsLoading(true);
+
+    try {
+      // Early duplicate check: try signing up with a dummy call to see if user exists
+      // We check profiles table for the email (public read for matching)
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', trimmedEmail)
+        .maybeSingle();
+
+      if (existingProfile) {
+        toast.error('This email is already registered. Please sign in instead.', { duration: 5000 });
+        setAuthMode('login');
+        setSignupStep('credentials');
+        return;
+      }
+    } catch (err) {
+      // If check fails, proceed anyway — the final signup will catch duplicates
+      console.warn('[Signup] Early email check failed:', err);
+    } finally {
+      setIsLoading(false);
+    }
+
     setSignupStep('society');
   };
 

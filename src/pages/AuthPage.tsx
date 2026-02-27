@@ -162,7 +162,7 @@ export default function AuthPage() {
                       <p className="text-[10px] text-muted-foreground/60 mt-0.5">Required to comply with marketplace regulations</p>
                     </div>
                   </div>
-                  <Button onClick={auth.handleCredentialsNext} disabled={!auth.email || auth.password.length < 6 || !auth.ageConfirmed} className="w-full h-12 rounded-xl text-base font-semibold"><ArrowRight className="mr-2" size={18} /> Continue</Button>
+                  <Button onClick={auth.handleCredentialsNext} disabled={!auth.email || auth.password.length < 6 || !auth.ageConfirmed || auth.isLoading} className="w-full h-12 rounded-xl text-base font-semibold">{auth.isLoading ? <Loader2 className="animate-spin mr-2" size={18} /> : <ArrowRight className="mr-2" size={18} />} Continue</Button>
                   <div className="text-center pt-1">
                     <button type="button" onClick={() => auth.setAuthMode('login')} className="text-sm text-primary font-medium hover:underline">Already have an account? Sign in</button>
                   </div>
