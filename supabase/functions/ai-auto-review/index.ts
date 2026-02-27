@@ -4,13 +4,14 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const BATCH_SELLERS = 10;
 const BATCH_PRODUCTS = 20;
 const CONFIDENCE_APPROVE = 0.85;
 const CONFIDENCE_REJECT = 0.30;
+const AI_TIMEOUT_MS = 15000; // 15s timeout for AI calls
 
 const PROHIBITED_CATEGORIES = [
   "alcohol",
@@ -79,7 +80,7 @@ function evaluateProductRules(product: any): RuleResult {
   return { decision: null, confidence: 0, reason: "", ruleHits: hits };
 }
 
-/* ── AI evaluation via Lovable AI ── */
+/* ── AI evaluation via Lovable AI with timeout ── */
 async function aiEvaluate(
   type: "seller" | "product",
   snapshot: any
@@ -107,92 +108,108 @@ Use the review_decision tool to return your structured decision.`;
 
   const userPrompt = `Review this ${type}:\n${JSON.stringify(snapshot, null, 2)}`;
 
-  const response = await fetch(
-    "https://ai.gateway.lovable.dev/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "review_decision",
-              description:
-                "Submit the review decision for this seller or product.",
-              parameters: {
-                type: "object",
-                properties: {
-                  decision: {
-                    type: "string",
-                    enum: ["approved", "rejected", "flagged"],
-                    description: "The review decision",
+  // AbortController for timeout safety
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "review_decision",
+                description:
+                  "Submit the review decision for this seller or product.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    decision: {
+                      type: "string",
+                      enum: ["approved", "rejected", "flagged"],
+                      description: "The review decision",
+                    },
+                    confidence: {
+                      type: "number",
+                      description:
+                        "Confidence score between 0 and 1",
+                    },
+                    reason: {
+                      type: "string",
+                      description:
+                        "Human-readable explanation for the decision",
+                    },
                   },
-                  confidence: {
-                    type: "number",
-                    description:
-                      "Confidence score between 0 and 1",
-                  },
-                  reason: {
-                    type: "string",
-                    description:
-                      "Human-readable explanation for the decision",
-                  },
+                  required: ["decision", "confidence", "reason"],
+                  additionalProperties: false,
                 },
-                required: ["decision", "confidence", "reason"],
-                additionalProperties: false,
               },
             },
+          ],
+          tool_choice: {
+            type: "function",
+            function: { name: "review_decision" },
           },
-        ],
-        tool_choice: {
-          type: "function",
-          function: { name: "review_decision" },
-        },
-      }),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("AI gateway error:", response.status, text);
+      throw new Error(`AI gateway error: ${response.status}`);
     }
-  );
 
-  if (!response.ok) {
-    const text = await response.text();
-    console.error("AI gateway error:", response.status, text);
-    throw new Error(`AI gateway error: ${response.status}`);
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      throw new Error("No tool call in AI response");
+    }
+
+    const args =
+      typeof toolCall.function.arguments === "string"
+        ? JSON.parse(toolCall.function.arguments)
+        : toolCall.function.arguments;
+
+    // Validate AI response fields
+    if (!args.decision || !["approved", "rejected", "flagged"].includes(args.decision)) {
+      throw new Error(`Invalid AI decision: ${args.decision}`);
+    }
+    if (typeof args.confidence !== "number" || isNaN(args.confidence)) {
+      throw new Error(`Invalid AI confidence: ${args.confidence}`);
+    }
+
+    return {
+      decision: args.decision,
+      confidence: Math.min(1, Math.max(0, Number(args.confidence))),
+      reason: args.reason || "No reason provided",
+    };
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const data = await response.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) {
-    throw new Error("No tool call in AI response");
-  }
-
-  const args =
-    typeof toolCall.function.arguments === "string"
-      ? JSON.parse(toolCall.function.arguments)
-      : toolCall.function.arguments;
-
-  return {
-    decision: args.decision,
-    confidence: Math.min(1, Math.max(0, Number(args.confidence))),
-    reason: args.reason,
-  };
 }
 
-/* ── Log + update status ── */
+/* ── Log + update status with optimistic locking ── */
 async function processItem(
   db: ReturnType<typeof createClient>,
   type: "seller" | "product",
   item: any,
   societyId: string | null
-) {
-  // Build snapshot
+): Promise<boolean> {
   const snapshot = { ...item };
 
   // 1) Deterministic rules
@@ -208,7 +225,6 @@ async function processItem(
   const ruleHits = ruleResult.ruleHits;
 
   if (ruleResult.decision) {
-    // Hard rule decision
     finalDecision = ruleResult.decision;
     finalConfidence = ruleResult.confidence;
     finalReason = ruleResult.reason;
@@ -227,7 +243,6 @@ async function processItem(
       } else if (aiResult.decision === "rejected" && aiResult.confidence >= CONFIDENCE_APPROVE) {
         finalDecision = "rejected";
       } else {
-        // Not confident enough — leave as pending (flagged in log)
         finalDecision = "flagged";
       }
       finalConfidence = aiResult.confidence;
@@ -235,12 +250,12 @@ async function processItem(
     } catch (err) {
       // AI failed — do NOT log, so item will be retried next cron run
       console.error(`AI evaluation failed for ${type} ${item.id}:`, err);
-      return;
+      return false;
     }
   }
 
-  // 4) Log decision
-  await db.from("ai_review_log").insert({
+  // 4) Log decision (UNIQUE index prevents duplicates — ON CONFLICT skip)
+  const { error: logError } = await db.from("ai_review_log").insert({
     target_type: type,
     target_id: item.id,
     decision: finalDecision,
@@ -252,13 +267,34 @@ async function processItem(
     society_id: societyId,
   });
 
-  // 5) Update status (only for approve/reject, not flagged)
+  // If duplicate (unique constraint violation), skip — already reviewed
+  if (logError) {
+    if (logError.code === "23505") {
+      console.log(`Skipping duplicate review for ${type} ${item.id}`);
+      return false;
+    }
+    console.error(`Log insert error for ${type} ${item.id}:`, logError);
+    return false;
+  }
+
+  // 5) Optimistic lock: re-verify status is still "pending" before updating
+  // This prevents overwriting admin decisions made between fetch and now
   if (finalDecision === "approved") {
     if (type === "seller") {
+      const { data: current } = await db
+        .from("seller_profiles")
+        .select("verification_status")
+        .eq("id", item.id)
+        .single();
+      if (current?.verification_status !== "pending") {
+        console.log(`Seller ${item.id} status changed to ${current?.verification_status}, skipping AI update`);
+        return true; // logged but not updated — safe
+      }
       await db
         .from("seller_profiles")
         .update({ verification_status: "approved" })
-        .eq("id", item.id);
+        .eq("id", item.id)
+        .eq("verification_status", "pending"); // double-check in WHERE
       // Cascade: approve all pending/draft products for this seller
       await db
         .from("products")
@@ -269,22 +305,27 @@ async function processItem(
       await db
         .from("products")
         .update({ approval_status: "approved" })
-        .eq("id", item.id);
+        .eq("id", item.id)
+        .in("approval_status", ["pending", "draft"]); // only if still pending/draft
     }
   } else if (finalDecision === "rejected") {
     if (type === "seller") {
       await db
         .from("seller_profiles")
         .update({ verification_status: "rejected" })
-        .eq("id", item.id);
+        .eq("id", item.id)
+        .eq("verification_status", "pending"); // only if still pending
     } else {
       await db
         .from("products")
         .update({ approval_status: "rejected" })
-        .eq("id", item.id);
+        .eq("id", item.id)
+        .in("approval_status", ["pending", "draft"]); // only if still pending/draft
     }
   }
-  // flagged → leave status as-is (pending/draft), admin can review
+  // flagged → leave status as-is, admin can review
+
+  return true;
 }
 
 /* ── Main handler ── */
@@ -296,9 +337,7 @@ serve(async (req) => {
   try {
     const db = serviceClient();
 
-    // Fetch pending sellers — status-based filtering is sufficient.
-    // Once AI approves/rejects, status changes so they won't be re-fetched.
-    // For "flagged" items (status stays pending), use LEFT JOIN exclusion.
+    // Fetch pending sellers
     const { data: pendingSellers } = await db
       .from("seller_profiles")
       .select("*")
@@ -342,16 +381,17 @@ serve(async (req) => {
     );
 
     let processed = 0;
+    let skipped = 0;
 
     // Process sellers
     for (const seller of unreviewed_sellers) {
-      await processItem(db, "seller", seller, seller.society_id);
-      processed++;
+      const ok = await processItem(db, "seller", seller, seller.society_id);
+      if (ok) processed++;
+      else skipped++;
     }
 
     // Process products
     for (const product of unreviewed_products) {
-      // Get seller's society_id for logging
       let societyId = null;
       const { data: sellerData } = await db
         .from("seller_profiles")
@@ -360,14 +400,16 @@ serve(async (req) => {
         .single();
       if (sellerData) societyId = sellerData.society_id;
 
-      await processItem(db, "product", product, societyId);
-      processed++;
+      const ok = await processItem(db, "product", product, societyId);
+      if (ok) processed++;
+      else skipped++;
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         processed,
+        skipped,
         sellers: unreviewed_sellers.length,
         products: unreviewed_products.length,
       }),
