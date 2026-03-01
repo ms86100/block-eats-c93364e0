@@ -12,6 +12,18 @@ type RegistrationState = 'idle' | 'registering' | 'registered' | 'permission_den
 const MAX_RETRIES = 3;
 const WATCHDOG_TIMEOUT_MS = 5000;
 
+/**
+ * Reject 64-char hex strings on iOS — these are raw APNs tokens, not FCM.
+ * FCM tokens are typically 100-200+ chars and contain colons or mixed case.
+ */
+function isValidFcmToken(token: string, platform: string): boolean {
+  if (platform === 'ios' && /^[A-Fa-f0-9]{64}$/.test(token)) {
+    return false;
+  }
+  // Basic sanity: FCM tokens are long strings
+  return token.length > 20;
+}
+
 export function usePushNotifications() {
   const [token, setToken] = useState<string | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'prompt'>('prompt');
@@ -204,7 +216,14 @@ export function usePushNotifications() {
 
           console.log('[Push] registration event — token:', tokenValue.substring(0, 20) + '…', 'length:', tokenValue.length);
 
-          // Clear watchdog — we got the token
+          // Reject APNs hex tokens on iOS — wait for FCM token instead
+          const currentPlatform = Capacitor.getPlatform();
+          if (!isValidFcmToken(tokenValue, currentPlatform)) {
+            console.warn(`[Push] Rejected non-FCM token (platform=${currentPlatform}, len=${tokenValue.length}) — waiting for FCM token`);
+            return;
+          }
+
+          // Clear watchdog — we got a valid FCM token
           clearWatchdog();
           registrationStateRef.current = 'registered';
           retryCountRef.current = 0;

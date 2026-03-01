@@ -55,9 +55,8 @@ workflows:
               '' \
               '    func application(_ application: UIApplication,' \
               '                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {' \
-              '        NotificationCenter.default.post(' \
-              '            name: .capacitorDidRegisterForRemoteNotifications,' \
-              '            object: deviceToken)' \
+              '        // Pass APNs token to Firebase so it can exchange for an FCM token' \
+              '        Messaging.messaging().apnsToken = deviceToken' \
               '    }' \
               '' \
               '    func application(_ application: UIApplication,' \
@@ -173,9 +172,9 @@ workflows:
           else
             echo "ℹ️ FirebaseApp.configure() already present — skipping"
           fi
-          # Add MessagingDelegate conformance and token forwarding
+          # Add MessagingDelegate conformance — post FCM token to Capacitor's notification name
           if ! grep -q "MessagingDelegate" "$APPDELEGATE"; then
-            printf '\n// MARK: - Firebase Messaging\nextension AppDelegate: MessagingDelegate {\n    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {\n        guard let token = fcmToken else { return }\n        print("[Firebase] FCM token: \\(token.prefix(20))…")\n        NotificationCenter.default.post(\n            name: Notification.Name("FCMToken"),\n            object: nil,\n            userInfo: ["token": token]\n        )\n    }\n}\n' >> "$APPDELEGATE"
+            printf '\n// MARK: - Firebase Messaging\nextension AppDelegate: MessagingDelegate {\n    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {\n        guard let token = fcmToken else { return }\n        print("[Firebase] FCM token: \\(token.prefix(20))…")\n        // Post FCM token using Capacitor notification name so the JS plugin receives it\n        NotificationCenter.default.post(\n            name: .capacitorDidRegisterForRemoteNotifications,\n            object: token\n        )\n    }\n}\n' >> "$APPDELEGATE"
             echo "✅ Added MessagingDelegate extension to AppDelegate"
           fi
           # Disable swizzling so Capacitor plugin receives APNs token and we forward to FCM
@@ -391,9 +390,8 @@ workflows:
               '' \
               '    func application(_ application: UIApplication,' \
               '                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {' \
-              '        NotificationCenter.default.post(' \
-              '            name: .capacitorDidRegisterForRemoteNotifications,' \
-              '            object: deviceToken)' \
+              '        // Pass APNs token to Firebase so it can exchange for an FCM token' \
+              '        Messaging.messaging().apnsToken = deviceToken' \
               '    }' \
               '' \
               '    func application(_ application: UIApplication,' \
@@ -509,9 +507,9 @@ workflows:
           else
             echo "ℹ️ FirebaseApp.configure() already present — skipping"
           fi
-          # Add MessagingDelegate conformance and token forwarding
+          # Add MessagingDelegate conformance — post FCM token to Capacitor's notification name
           if ! grep -q "MessagingDelegate" "$APPDELEGATE"; then
-            printf '\n// MARK: - Firebase Messaging\nextension AppDelegate: MessagingDelegate {\n    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {\n        guard let token = fcmToken else { return }\n        print("[Firebase] FCM token: \\(token.prefix(20))…")\n        NotificationCenter.default.post(\n            name: Notification.Name("FCMToken"),\n            object: nil,\n            userInfo: ["token": token]\n        )\n    }\n}\n' >> "$APPDELEGATE"
+            printf '\n// MARK: - Firebase Messaging\nextension AppDelegate: MessagingDelegate {\n    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {\n        guard let token = fcmToken else { return }\n        print("[Firebase] FCM token: \\(token.prefix(20))…")\n        // Post FCM token using Capacitor notification name so the JS plugin receives it\n        NotificationCenter.default.post(\n            name: .capacitorDidRegisterForRemoteNotifications,\n            object: token\n        )\n    }\n}\n' >> "$APPDELEGATE"
             echo "✅ Added MessagingDelegate extension to AppDelegate"
           fi
           # Disable swizzling so Capacitor plugin receives APNs token and we forward to FCM

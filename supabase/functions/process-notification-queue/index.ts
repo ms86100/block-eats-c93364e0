@@ -65,6 +65,8 @@ Deno.serve(async (req) => {
         }
 
         // Try to send push notification and verify delivery
+        let pushFailed = false;
+        let pushErrorMsg = "";
         try {
           const { data: pushResult, error: pushError } = await supabase.functions.invoke("send-push-notification", {
             body: {
@@ -76,19 +78,28 @@ Deno.serve(async (req) => {
           });
 
           if (pushError) {
-            console.warn(`[Queue][${item.id}] Push invoke error:`, pushError);
+            pushFailed = true;
+            pushErrorMsg = `Push invoke error: ${pushError.message || String(pushError)}`;
+            console.warn(`[Queue][${item.id}] ${pushErrorMsg}`);
           } else if (pushResult?.sent === 0) {
-            console.warn(`[Queue][${item.id}] Push sent=0, failed=${pushResult?.failed ?? '?'}`, 
-              JSON.stringify(pushResult?.results ?? []));
+            pushFailed = true;
+            pushErrorMsg = `Push sent=0, failed=${pushResult?.failed ?? '?'}: ${JSON.stringify(pushResult?.results ?? [])}`;
+            console.warn(`[Queue][${item.id}] ${pushErrorMsg}`);
           } else {
             console.log(`[Queue][${item.id}] Push delivered: sent=${pushResult?.sent}`);
           }
-        } catch (pushErr) {
-          // Push failure is non-critical; notification is already in DB
-          console.warn(`[Queue][${item.id}] Push exception:`, pushErr);
+        } catch (pushErr: any) {
+          pushFailed = true;
+          pushErrorMsg = `Push exception: ${pushErr?.message || String(pushErr)}`;
+          console.warn(`[Queue][${item.id}] ${pushErrorMsg}`);
         }
 
-        // Mark as processed
+        if (pushFailed) {
+          // Push delivery failed — treat as retryable error (in-app notification already saved)
+          throw new Error(pushErrorMsg);
+        }
+
+        // Mark as processed only when push actually delivered
         await supabase
           .from("notification_queue")
           .update({ status: "processed", processed_at: new Date().toISOString() })
