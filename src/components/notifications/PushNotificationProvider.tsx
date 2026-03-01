@@ -12,6 +12,8 @@ export function PushNotificationProvider({ children }: PushNotificationProviderP
   const { removeTokenFromDatabase } = usePushNotifications();
   const prevUserRef = useRef(user);
 
+  console.log('[Push][Provider] PushNotificationProvider render — userId:', user?.id ?? 'null');
+
   // DEFECT 10 FIX: Only remove token on explicit logout (user transitions non-null → null)
   useEffect(() => {
     if (prevUserRef.current && !user) {

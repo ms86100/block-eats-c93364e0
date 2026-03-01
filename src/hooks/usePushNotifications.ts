@@ -45,6 +45,9 @@ export function usePushNotifications() {
   const user = identity?.user ?? null;
   const navigate = useNavigate();
 
+  // Log on every render so we can trace in native Console.app
+  console.log('[Push][INIT] usePushNotifications render — platform:', Capacitor.getPlatform(), 'isNative:', Capacitor.isNativePlatform(), 'userId:', user?.id ?? 'null');
+
   const userRef = useRef(user);
   userRef.current = user;
 
