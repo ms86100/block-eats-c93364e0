@@ -31,7 +31,17 @@ async function hashOTP(otp: string): Promise<string> {
 
 async function verifyOTP(otp: string, hash: string): Promise<boolean> {
   const computed = await hashOTP(otp);
-  return computed === hash;
+  // Constant-time comparison to prevent timing attacks (matches verifyHMAC pattern)
+  const aDecoded = atob(computed);
+  const bDecoded = atob(hash);
+  const aBytes = new Uint8Array(aDecoded.length);
+  const bBytes = new Uint8Array(bDecoded.length);
+  for (let i = 0; i < aDecoded.length; i++) aBytes[i] = aDecoded.charCodeAt(i);
+  for (let i = 0; i < bDecoded.length; i++) bBytes[i] = bDecoded.charCodeAt(i);
+  if (aBytes.length !== bBytes.length) return false;
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
+  return diff === 0;
 }
 
 // C3: HMAC-SHA256 verification with constant-time comparison

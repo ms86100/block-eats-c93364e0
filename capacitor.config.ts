@@ -77,6 +77,7 @@ const config: CapacitorConfig = {
       NSLocationWhenInUseUsageDescription: 'Sociva uses your location to verify your residential society membership and show nearby sellers.',
       NSCameraUsageDescription: 'Sociva needs camera access to let you photograph products for listing and upload profile pictures.',
       NSPhotoLibraryUsageDescription: 'Sociva needs photo library access to let you select images for product listings and your profile.',
+      NSLocationAlwaysAndWhenInUseUsageDescription: 'Sociva uses your location to verify your residential society membership and show nearby sellers, even in the background.',
     },
   },
 

@@ -116,6 +116,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } as CartItem & { product: Product }];
     });
 
+    const prevCount = queryClient.getQueryData(['cart-count', user?.id]);
     try {
       const { data: existing } = await supabase
         .from('cart_items')
@@ -138,14 +139,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
       }
       if (!silent) toast.success('Added to cart');
-      // Optimistically update cart-count to stay in sync with badge
       queryClient.setQueryData(['cart-count', user?.id], (old: number | undefined) => (old || 0) + quantity);
-      invalidate(); // Sync with server for real IDs
+      invalidate();
     } catch (error) {
+      queryClient.setQueryData(['cart-count', user?.id], prevCount);
       invalidate(); // Rollback
       handleApiError(error, 'Failed to add item');
     }
-  }, [user, setOptimistic, invalidate]);
+  }, [user, setOptimistic, invalidate, queryClient]);
 
   // #24: Capture prev from queryClient to avoid stale closure
   const removeItem = useCallback(async (productId: string) => {

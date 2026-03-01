@@ -262,7 +262,7 @@ export function useCartPage() {
     // RPC already clears cart atomically — only refresh client state
     await refresh();
     // C7: Always navigate to order detail (which has realtime) so buyer can see verification progress
-    navigate(pendingOrderIds.length === 1 ? `/orders/${pendingOrderIds[0]}` : `/orders/${pendingOrderIds[0]}`);
+    navigate(pendingOrderIds.length === 1 ? `/orders/${pendingOrderIds[0]}` : '/orders');
     setPendingOrderIds([]);
   };
 

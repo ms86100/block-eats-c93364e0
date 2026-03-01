@@ -204,6 +204,20 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" App/Info.plist 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:1 string fetch" App/Info.plist 2>/dev/null || true
 
+      - name: Inject iOS privacy usage strings
+        script: |
+          cd ios/App
+          # ITMS-90683: Guarantee all required NSUsageDescription keys exist
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'Sociva needs photo library access to let you select images for product listings and your profile.'" App/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'Sociva needs photo library access to let you select images for product listings and your profile.'" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Sociva needs camera access to let you photograph products for listing and upload profile pictures.'" App/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Sociva needs camera access to let you photograph products for listing and upload profile pictures.'" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription 'Sociva uses your location to verify your residential society membership and show nearby sellers.'" App/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'Sociva uses your location to verify your residential society membership and show nearby sellers.'" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :NSLocationAlwaysAndWhenInUseUsageDescription 'Sociva uses your location to verify your residential society membership and show nearby sellers, even in the background.'" App/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string 'Sociva uses your location to verify your residential society membership and show nearby sellers, even in the background.'" App/Info.plist
+          echo "=== Privacy strings injected ==="
+
       - name: Copy GoogleService-Info.plist
         script: |
           # If you have GoogleService-Info.plist in your repo root or ios-config folder
@@ -492,6 +506,19 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" App/Info.plist 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" App/Info.plist 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:1 string fetch" App/Info.plist 2>/dev/null || true
+
+      - name: Inject iOS privacy usage strings
+        script: |
+          cd ios/App
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'Sociva needs photo library access to let you select images for product listings and your profile.'" App/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'Sociva needs photo library access to let you select images for product listings and your profile.'" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Sociva needs camera access to let you photograph products for listing and upload profile pictures.'" App/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Sociva needs camera access to let you photograph products for listing and upload profile pictures.'" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription 'Sociva uses your location to verify your residential society membership and show nearby sellers.'" App/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'Sociva uses your location to verify your residential society membership and show nearby sellers.'" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :NSLocationAlwaysAndWhenInUseUsageDescription 'Sociva uses your location to verify your residential society membership and show nearby sellers, even in the background.'" App/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string 'Sociva uses your location to verify your residential society membership and show nearby sellers, even in the background.'" App/Info.plist
+          echo "=== Privacy strings injected ==="
 
       - name: Copy GoogleService-Info.plist
         script: |
