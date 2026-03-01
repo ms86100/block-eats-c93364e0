@@ -177,15 +177,7 @@ workflows:
           # Link to Xcode project if it exists
           if [ -f "ios/App/App/GoogleService-Info.plist" ]; then
             cd ios/App
-            ruby - << 'RUBY'
-            require 'xcodeproj'
-            project = Xcodeproj::Project.open('App.xcodeproj')
-            target = project.targets.find { |t| t.name == 'App' }
-            group = project.main_group.find_subpath('App', false)
-            ref = group.new_file('GoogleService-Info.plist')
-            target.resources_build_phase.add_file_reference(ref)
-            project.save
-            RUBY
+            ruby -e "require 'xcodeproj'; project = Xcodeproj::Project.open('App.xcodeproj'); target = project.targets.find { |t| t.name == 'App' }; abort('App target not found') unless target; group = project.main_group.find_subpath('App', true); ref = group.files.find { |f| f.path == 'GoogleService-Info.plist' } || group.new_file('GoogleService-Info.plist'); unless target.resources_build_phase.files_references.any? { |f| f.path == 'GoogleService-Info.plist' }; target.resources_build_phase.add_file_reference(ref, true); end; project.save"
           fi
 
       - name: Update iOS project settings
@@ -437,15 +429,7 @@ workflows:
 
           if [ -f "ios/App/App/GoogleService-Info.plist" ]; then
             cd ios/App
-            ruby - << 'RUBY'
-            require 'xcodeproj'
-            project = Xcodeproj::Project.open('App.xcodeproj')
-            target = project.targets.find { |t| t.name == 'App' }
-            group = project.main_group.find_subpath('App', false)
-            ref = group.new_file('GoogleService-Info.plist')
-            target.resources_build_phase.add_file_reference(ref)
-            project.save
-            RUBY
+            ruby -e "require 'xcodeproj'; project = Xcodeproj::Project.open('App.xcodeproj'); target = project.targets.find { |t| t.name == 'App' }; abort('App target not found') unless target; group = project.main_group.find_subpath('App', true); ref = group.files.find { |f| f.path == 'GoogleService-Info.plist' } || group.new_file('GoogleService-Info.plist'); unless target.resources_build_phase.files_references.any? { |f| f.path == 'GoogleService-Info.plist' }; target.resources_build_phase.add_file_reference(ref, true); end; project.save"
           fi
 
       - name: Update iOS project settings
