@@ -119,8 +119,13 @@ export function useOrderDetail(id: string | undefined) {
         .single();
       if (error) throw error;
       setOrder(data as any);
-      const { data: reviewData } = await supabase.from('reviews').select('id').eq('order_id', id).single();
-      setHasReview(!!reviewData);
+      // C8: Only fetch review status for terminal statuses where reviews are possible
+      if (data?.status === 'completed' || data?.status === 'delivered') {
+        const { data: reviewData } = await supabase.from('reviews').select('id').eq('order_id', id).single();
+        setHasReview(!!reviewData);
+      } else {
+        setHasReview(false);
+      }
     } catch (error) {
       console.error('Error fetching order:', error);
     } finally {

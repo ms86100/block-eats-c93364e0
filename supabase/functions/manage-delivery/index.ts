@@ -14,9 +14,11 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
-// Simple OTP generation (4-digit)
+// C2: Cryptographically secure 4-digit OTP
 function generateOTP(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
+  const arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  return String(1000 + (arr[0] % 9000));
 }
 
 // Hash OTP with SHA-256
@@ -32,7 +34,7 @@ async function verifyOTP(otp: string, hash: string): Promise<boolean> {
   return computed === hash;
 }
 
-// HMAC-SHA256 verification for 3PL webhook signatures
+// C3: HMAC-SHA256 verification with constant-time comparison
 async function verifyHMAC(body: string, signature: string, secret: string): Promise<boolean> {
   try {
     const encoder = new TextEncoder();
@@ -41,8 +43,20 @@ async function verifyHMAC(body: string, signature: string, secret: string): Prom
       { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
     );
     const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
-    const expected = btoa(String.fromCharCode(...new Uint8Array(sig)));
-    return expected === signature;
+    const expectedBytes = new Uint8Array(sig);
+    // Decode incoming base64 signature to bytes
+    const sigDecoded = atob(signature);
+    const sigBytes = new Uint8Array(sigDecoded.length);
+    for (let i = 0; i < sigDecoded.length; i++) {
+      sigBytes[i] = sigDecoded.charCodeAt(i);
+    }
+    if (expectedBytes.length !== sigBytes.length) return false;
+    // Constant-time comparison to prevent timing attacks
+    let diff = 0;
+    for (let i = 0; i < expectedBytes.length; i++) {
+      diff |= expectedBytes[i] ^ sigBytes[i];
+    }
+    return diff === 0;
   } catch {
     return false;
   }

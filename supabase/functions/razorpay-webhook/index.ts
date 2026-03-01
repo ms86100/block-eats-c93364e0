@@ -156,14 +156,20 @@ serve(async (req) => {
 
       console.log(`Payment captured for order ${orderId}`);
 
-      // Update order status
-      const { error: orderError } = await supabase
+      // Update order status — C1: never resurrect a cancelled order as paid
+      const { error: orderError, data: updatedOrder } = await supabase
         .from('orders')
         .update({
           payment_status: 'paid',
           razorpay_payment_id: razorpayPaymentId,
         })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .neq('status', 'cancelled')
+        .select('id');
+
+      if (!updatedOrder || updatedOrder.length === 0) {
+        console.warn(`Order ${orderId} is cancelled — skipping payment.captured update`);
+      }
 
       if (orderError) {
         console.error('Error updating order:', orderError);

@@ -60,24 +60,11 @@ serve(async (req) => {
       );
     }
 
-    // Auth check
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // C7: Use anon-key client for auth validation (service role bypasses JWT verification)
+    const { withAuth } = await import("../_shared/auth.ts");
+    const authResult = await withAuth(req, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const user = { id: authResult.userId };
 
     // Phase 2: Rate limit — 10/min
     const { allowed } = await checkRateLimit(`order:${user.id}`, 10, 60);

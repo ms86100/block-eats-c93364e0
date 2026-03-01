@@ -6257,6 +6257,7 @@ export type Database = {
           created_at: string
           id: string
           is_read: boolean
+          queue_item_id: string | null
           reference_id: string | null
           reference_path: string | null
           society_id: string | null
@@ -6269,6 +6270,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          queue_item_id?: string | null
           reference_id?: string | null
           reference_path?: string | null
           society_id?: string | null
@@ -6281,6 +6283,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          queue_item_id?: string | null
           reference_id?: string | null
           reference_path?: string | null
           society_id?: string | null

@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
     for (const item of pending) {
       try {
-        // Insert into user_notifications
+        // C5: Insert into user_notifications with queue_item_id to deduplicate on retry
         const { error: insertError } = await supabase
           .from("user_notifications")
           .insert({
@@ -58,10 +58,16 @@ Deno.serve(async (req) => {
             body: item.body,
             type: item.type,
             reference_path: item.reference_path,
+            queue_item_id: item.id,
           });
 
         if (insertError) {
-          throw new Error(`DB insert failed: ${insertError.message}`);
+          // C5: If duplicate (queue_item_id unique violation), skip — notification already exists
+          if (insertError.code === '23505') {
+            console.log(`[Queue][${item.id}] In-app notification already exists, skipping insert`);
+          } else {
+            throw new Error(`DB insert failed: ${insertError.message}`);
+          }
         }
 
         // Try to send push notification and verify delivery

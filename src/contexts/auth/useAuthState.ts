@@ -139,10 +139,11 @@ export function useAuthState() {
     // P0-3: Clear React Query cache directly to prevent cross-user data leakage
     // Also dispatch event as a backup for any other listeners
     window.dispatchEvent(new CustomEvent('app:clear-cache'));
-    // Clear localStorage search filters to prevent cross-user leakage (C8 complement)
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('app_search_filters')) localStorage.removeItem(key);
-    });
+    // C9: Only clear current user's search filters, not all users'
+    const currentUserId = state.user?.id;
+    if (currentUserId) {
+      localStorage.removeItem(`app_search_filters_${currentUserId}`);
+    }
   }, [clearAuthState]);
 
   // Fix #8: Guard against double fetchProfile on mount

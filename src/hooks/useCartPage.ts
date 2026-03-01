@@ -287,6 +287,21 @@ export function useCartPage() {
         console.error('Failed to cancel unpaid orders:', err);
       }
     }
+    // C4: Re-check order status — webhook may have marked it paid during the race window
+    if (pendingOrderIds.length > 0) {
+      const { data: recheckOrder } = await supabase
+        .from('orders')
+        .select('payment_status')
+        .eq('id', pendingOrderIds[0])
+        .single();
+      if (recheckOrder?.payment_status === 'paid') {
+        toast.success('Payment verified! Your order is confirmed.');
+        await refresh();
+        navigate(`/orders/${pendingOrderIds[0]}`);
+        setPendingOrderIds([]);
+        return;
+      }
+    }
     setPendingOrderIds([]);
     toast.error('Payment was not completed. Your order has been cancelled.');
   };

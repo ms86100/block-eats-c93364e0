@@ -15,10 +15,12 @@ export function useCartCount() {
     queryKey: ['cart-count', user?.id],
     queryFn: async () => {
       if (!user) return 0;
+      // C6: Filter out unavailable products to stay consistent with useCart
       const { data, error } = await supabase
         .from('cart_items')
-        .select('quantity')
-        .eq('user_id', user.id);
+        .select('quantity, product:products!inner(is_available)')
+        .eq('user_id', user.id)
+        .eq('product.is_available', true);
       if (error) return 0;
       return (data || []).reduce((sum, row) => sum + (row.quantity || 0), 0);
     },
