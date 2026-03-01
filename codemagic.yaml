@@ -35,17 +35,16 @@ workflows:
           
       - name: Add iOS platform
         script: |
-          npx cap add ios 2>/dev/null || echo "iOS platform already exists"
+          rm -rf ios
+          npx cap add ios --packagemanager cocoapods
           npx cap sync ios
-          # Capacitor 8 uses SPM by default; our config forces CocoaPods
-          # Verify Podfile was generated
+          # Verify Podfile was generated (required for Firebase pod injection)
           if [ ! -f ios/App/Podfile ]; then
-            echo "❌ FATAL: Podfile not found. Check capacitor.config.ts has packageManager: 'cocoapods'"
-            echo "Directory contents:"
-            ls -la ios/App/
+            echo "❌ FATAL: Podfile not found after iOS platform setup"
+            ls -la ios/App/ || echo "ios/App directory does not exist"
             exit 1
           fi
-          echo "✅ iOS platform ready, Podfile exists"
+          echo "✅ iOS platform ready with CocoaPods (Podfile exists)"
 
       - name: Patch AppDelegate for Push Notifications
         script: |
@@ -352,16 +351,15 @@ workflows:
           
       - name: Add iOS platform
         script: |
-          npx cap add ios 2>/dev/null || echo "iOS platform already exists"
+          rm -rf ios
+          npx cap add ios --packagemanager cocoapods
           npx cap sync ios
-          # Capacitor 8 uses SPM by default; our config forces CocoaPods
           if [ ! -f ios/App/Podfile ]; then
-            echo "❌ FATAL: Podfile not found. Check capacitor.config.ts has packageManager: 'cocoapods'"
-            echo "Directory contents:"
-            ls -la ios/App/
+            echo "❌ FATAL: Podfile not found after iOS platform setup"
+            ls -la ios/App/ || echo "ios/App directory does not exist"
             exit 1
           fi
-          echo "✅ iOS platform ready, Podfile exists"
+          echo "✅ iOS platform ready with CocoaPods (Podfile exists)"
 
       - name: Patch AppDelegate for Push Notifications
         script: |
