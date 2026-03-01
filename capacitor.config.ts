@@ -69,6 +69,8 @@ const config: CapacitorConfig = {
   ios: {
     scheme: 'sociva',
     contentInset: 'never',
+    // Force CocoaPods so Firebase pod injection scripts work
+    packageManager: 'cocoapods' as any,
     preferredContentMode: 'mobile',
     plistOverrides: {
       ITSAppUsesNonExemptEncryption: false,

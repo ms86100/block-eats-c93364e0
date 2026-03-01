@@ -37,10 +37,12 @@ workflows:
         script: |
           npx cap add ios 2>/dev/null || echo "iOS platform already exists"
           npx cap sync ios
+          # Capacitor 8 uses SPM by default; our config forces CocoaPods
           # Verify Podfile was generated
           if [ ! -f ios/App/Podfile ]; then
-            echo "❌ FATAL: cap sync did not generate ios/App/Podfile"
-            ls -la ios/App/ || echo "ios/App directory does not exist"
+            echo "❌ FATAL: Podfile not found. Check capacitor.config.ts has packageManager: 'cocoapods'"
+            echo "Directory contents:"
+            ls -la ios/App/
             exit 1
           fi
           echo "✅ iOS platform ready, Podfile exists"
@@ -352,10 +354,11 @@ workflows:
         script: |
           npx cap add ios 2>/dev/null || echo "iOS platform already exists"
           npx cap sync ios
-          # Verify Podfile was generated
+          # Capacitor 8 uses SPM by default; our config forces CocoaPods
           if [ ! -f ios/App/Podfile ]; then
-            echo "❌ FATAL: cap sync did not generate ios/App/Podfile"
-            ls -la ios/App/ || echo "ios/App directory does not exist"
+            echo "❌ FATAL: Podfile not found. Check capacitor.config.ts has packageManager: 'cocoapods'"
+            echo "Directory contents:"
+            ls -la ios/App/
             exit 1
           fi
           echo "✅ iOS platform ready, Podfile exists"
