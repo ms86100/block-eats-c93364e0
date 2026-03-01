@@ -62,15 +62,14 @@ export function useOrderDetail(id: string | undefined) {
   }, [sellerPrimaryGroup, order?.id]);
 
   const effectiveParentGroup = sellerPrimaryGroup || derivedParentGroup;
-  const { flow } = useCategoryStatusFlow(effectiveParentGroup, orderType);
+  const isEnquiryOrder = (order as any)?.order_type === 'enquiry';
+  const orderFulfillmentType = (order as any)?.fulfillment_type || 'self_pickup';
+  const { flow } = useCategoryStatusFlow(effectiveParentGroup, orderType, orderFulfillmentType);
 
   // Derive timeline and next status from flow
   const timelineSteps = useMemo(() => getTimelineSteps(flow), [flow]);
   const statusOrder = useMemo(() => flow.map(s => s.status_key as OrderStatus), [flow]);
   const currentStatusIndex = order ? statusOrder.indexOf(order.status) : -1;
-
-  const isEnquiryOrder = (order as any)?.order_type === 'enquiry';
-  const orderFulfillmentType = (order as any)?.fulfillment_type || 'self_pickup';
 
   const getNextStatus = (): OrderStatus | null => {
     if (!order || order.status === 'cancelled' || order.status === 'completed') return null;

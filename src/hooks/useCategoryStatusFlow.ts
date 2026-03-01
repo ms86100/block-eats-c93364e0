@@ -14,7 +14,8 @@ export interface StatusFlowStep {
  */
 export function useCategoryStatusFlow(
   sellerPrimaryGroup: string | null | undefined,
-  orderType: string | null | undefined
+  orderType: string | null | undefined,
+  fulfillmentType?: string | null
 ) {
   const [flow, setFlow] = useState<StatusFlowStep[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +26,7 @@ export function useCategoryStatusFlow(
       return;
     }
 
-    const transactionType = resolveTransactionType(sellerPrimaryGroup, orderType);
+    const transactionType = resolveTransactionType(sellerPrimaryGroup, orderType, fulfillmentType);
 
     (async () => {
       const { data, error } = await supabase
@@ -41,15 +42,23 @@ export function useCategoryStatusFlow(
       }
       setIsLoading(false);
     })();
-  }, [sellerPrimaryGroup, orderType]);
+  }, [sellerPrimaryGroup, orderType, fulfillmentType]);
 
   return { flow, isLoading };
 }
 
-function resolveTransactionType(parentGroup: string, orderType: string | null | undefined): string {
+function resolveTransactionType(
+  parentGroup: string,
+  orderType: string | null | undefined,
+  fulfillmentType?: string | null
+): string {
   if (orderType === 'enquiry') {
     if (['classes', 'events'].includes(parentGroup)) return 'book_slot';
     return 'request_service';
+  }
+  // Self-pickup or seller-delivery → self_fulfillment (no delivery partner steps)
+  if (fulfillmentType && ['self_pickup', 'seller_delivery'].includes(fulfillmentType)) {
+    return 'self_fulfillment';
   }
   return 'cart_purchase';
 }
