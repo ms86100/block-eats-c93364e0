@@ -35,24 +35,38 @@ workflows:
         script: npm run build
 
       - name: Add iOS platform (force CocoaPods)
+      - name: Add iOS platform and set up CocoaPods
         script: |
           npx cap add ios || true
-          # Force CocoaPods package manager for Capacitor 8
-          npx cap sync ios --packagemanager cocoapods
-
-      - name: Add Firebase pods to Capacitor Podfile
-        script: |
+          npx cap sync ios
           cd ios/App
-          # Verify Podfile exists after cap sync
-          if [ ! -f Podfile ]; then
-            echo "❌ Podfile not found — cap sync may have used SPM. Generating fallback Podfile."
-            cat > Podfile << 'PODFILE'
+          # Capacitor 8 defaults to SPM — remove SPM artifacts and create Podfile
+          rm -f Package.swift .package.resolved
+          rm -rf .build
+          # Generate Podfile with all Capacitor plugins + Firebase
+          cat > Podfile << 'PODFILE'
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
           platform :ios, '14.0'
           use_frameworks!
+
+          # workaround to avoid Xcode caching of Pods that requires
+          # temporary clearing of the project's build directory
+          install! 'cocoapods', :disable_input_output_paths => true
 
           def capacitor_pods
             pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
             pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+            pod 'CapacitorFirebaseMessaging', :path => '../../node_modules/@capacitor-firebase/messaging'
+            pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+            pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
+            pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'
+            pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
+            pod 'CapacitorKeyboard', :path => '../../node_modules/@capacitor/keyboard'
+            pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
+            pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
+            pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
+            pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
           end
 
           target 'App' do
@@ -61,18 +75,6 @@ workflows:
             pod 'FirebaseMessaging'
           end
           PODFILE
-          else
-            ruby - << 'RUBY'
-            podfile = File.read('Podfile')
-            unless podfile.include?('FirebaseCore')
-              podfile.sub!(/^(\s*end\s*)$/m, "  pod 'FirebaseCore'\n  pod 'FirebaseMessaging'\n\\1")
-              File.write('Podfile', podfile)
-              puts "✅ Firebase pods injected into Podfile"
-            else
-              puts "ℹ️  Firebase pods already present"
-            end
-          RUBY
-          fi
           echo "=== Final Podfile ==="
           cat Podfile
           pod install
@@ -302,23 +304,34 @@ workflows:
       - name: Build web app
         script: npm run build
 
-      - name: Add iOS platform (force CocoaPods)
+      - name: Add iOS platform and set up CocoaPods
         script: |
           npx cap add ios || true
-          npx cap sync ios --packagemanager cocoapods
-
-      - name: Add Firebase pods to Capacitor Podfile
-        script: |
+          npx cap sync ios
           cd ios/App
-          if [ ! -f Podfile ]; then
-            echo "❌ Podfile not found — generating fallback Podfile."
-            cat > Podfile << 'PODFILE'
+          rm -f Package.swift .package.resolved
+          rm -rf .build
+          cat > Podfile << 'PODFILE'
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
           platform :ios, '14.0'
           use_frameworks!
+
+          install! 'cocoapods', :disable_input_output_paths => true
 
           def capacitor_pods
             pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
             pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+            pod 'CapacitorFirebaseMessaging', :path => '../../node_modules/@capacitor-firebase/messaging'
+            pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+            pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
+            pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'
+            pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
+            pod 'CapacitorKeyboard', :path => '../../node_modules/@capacitor/keyboard'
+            pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
+            pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
+            pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
+            pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
           end
 
           target 'App' do
@@ -327,18 +340,6 @@ workflows:
             pod 'FirebaseMessaging'
           end
           PODFILE
-          else
-            ruby - << 'RUBY'
-            podfile = File.read('Podfile')
-            unless podfile.include?('FirebaseCore')
-              podfile.sub!(/^(\s*end\s*)$/m, "  pod 'FirebaseCore'\n  pod 'FirebaseMessaging'\n\\1")
-              File.write('Podfile', podfile)
-              puts "✅ Firebase pods injected into Podfile"
-            else
-              puts "ℹ️  Firebase pods already present"
-            end
-          RUBY
-          fi
           echo "=== Final Podfile ==="
           cat Podfile
           pod install
