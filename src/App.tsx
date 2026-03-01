@@ -30,6 +30,8 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const HomePage = lazy(() => import("./pages/HomePage"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const WelcomeCarousel = lazy(() => import("./pages/WelcomeCarousel"));
+const RefundPolicyPage = lazy(() => import("./pages/RefundPolicyPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 
 const SellerDetailPage = lazy(() => import("./pages/SellerDetailPage"));
@@ -322,10 +324,11 @@ function AppRoutes() {
     <Suspense fallback={<PageLoadingFallback />}>
       <Routes>
         {/* Landing page for unauthenticated users */}
-        <Route path="/welcome" element={user && profile ? <Navigate to="/" replace /> : <LandingPage />} />
+        <Route path="/welcome" element={user && profile ? <Navigate to="/" replace /> : <WelcomeCarousel />} />
+        <Route path="/landing" element={user && profile ? <Navigate to="/" replace /> : <LandingPage />} />
         <Route path="/auth" element={user && profile ? <Navigate to="/" replace /> : <RouteErrorBoundary sectionName="Authentication"><AuthPage /></RouteErrorBoundary>} />
         <Route path="/reset-password" element={<RouteErrorBoundary sectionName="Reset Password"><ResetPasswordPage /></RouteErrorBoundary>} />
-        <Route path="/" element={user ? <ProtectedRoute><HomePage /></ProtectedRoute> : <Navigate to="/welcome" replace />} />
+        <Route path="/" element={user ? <ProtectedRoute><HomePage /></ProtectedRoute> : <Navigate to="/landing" replace />} />
         <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
         <Route path="/community" element={<ProtectedRoute><BulletinPage /></ProtectedRoute>} />
         <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
@@ -386,6 +389,7 @@ function AppRoutes() {
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/refund-policy" element={<RefundPolicyPage />} />
         <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
         <Route path="/community-rules" element={<CommunityRulesPage />} />
