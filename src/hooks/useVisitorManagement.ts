@@ -51,8 +51,11 @@ export const statusColors: Record<VisitorStatus, string> = {
   expired: 'bg-muted text-muted-foreground',
 };
 
+// P2-3: Use crypto.getRandomValues() for secure OTP generation
 function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  const arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  return (100000 + (arr[0] % 900000)).toString();
 }
 
 export function useVisitorManagement() {

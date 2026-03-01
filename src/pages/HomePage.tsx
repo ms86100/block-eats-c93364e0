@@ -9,7 +9,7 @@ import { SocietyQuickLinks } from '@/components/home/SocietyQuickLinks';
 // FeaturedBanners rendered inside MarketplaceSection
 import { CommunityTeaser } from '@/components/home/CommunityTeaser';
 import { useAuth } from '@/contexts/AuthContext';
-import { PartyPopper, X, ArrowRight } from 'lucide-react';
+import { PartyPopper, X, ArrowRight, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getString, setString, restoreKeyIfMissing } from '@/lib/persistent-kv';
 
@@ -111,6 +111,17 @@ export default function HomePage() {
               </div>
             </div>
           </motion.div>
+        )}
+
+        {/* ═══ C9: INCOMPLETE PROFILE BANNER ═══ */}
+        {profile && !profile.flat_number && (
+          <div className="mx-4 mt-3 flex items-center gap-3 rounded-xl bg-muted border border-border p-3">
+            <AlertCircle size={18} className="text-destructive shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-foreground">Complete your profile to enable delivery orders.</p>
+            </div>
+            <Link to="/profile" className="text-xs font-bold text-primary shrink-0 hover:underline">Update</Link>
+          </div>
         )}
 
         {/* FeaturedBanners rendered inside MarketplaceSection — removed here to avoid duplicates (#5) */}
