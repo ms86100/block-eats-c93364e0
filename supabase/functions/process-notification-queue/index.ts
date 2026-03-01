@@ -64,9 +64,9 @@ Deno.serve(async (req) => {
           throw new Error(`DB insert failed: ${insertError.message}`);
         }
 
-        // Try to send push notification
+        // Try to send push notification and verify delivery
         try {
-          await supabase.functions.invoke("send-push-notification", {
+          const { data: pushResult, error: pushError } = await supabase.functions.invoke("send-push-notification", {
             body: {
               userId: item.user_id,
               title: item.title,
@@ -74,9 +74,18 @@ Deno.serve(async (req) => {
               data: item.payload || {},
             },
           });
+
+          if (pushError) {
+            console.warn(`[Queue][${item.id}] Push invoke error:`, pushError);
+          } else if (pushResult?.sent === 0) {
+            console.warn(`[Queue][${item.id}] Push sent=0, failed=${pushResult?.failed ?? '?'}`, 
+              JSON.stringify(pushResult?.results ?? []));
+          } else {
+            console.log(`[Queue][${item.id}] Push delivered: sent=${pushResult?.sent}`);
+          }
         } catch (pushErr) {
           // Push failure is non-critical; notification is already in DB
-          console.warn(`Push notification failed for ${item.id}:`, pushErr);
+          console.warn(`[Queue][${item.id}] Push exception:`, pushErr);
         }
 
         // Mark as processed

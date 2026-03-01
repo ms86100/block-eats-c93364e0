@@ -59,10 +59,10 @@ export function usePushNotifications() {
     emitDiagnostic();
   }, [clearWatchdog, emitDiagnostic]);
 
-  // ── Token persistence (unchanged) ──
+  // ── Token persistence ──
   const saveTokenToDatabase = useCallback(async (pushToken: string) => {
     const currentUser = userRef.current;
-    console.log('[Push] saveTokenToDatabase called, user:', currentUser?.id ?? 'null', 'token:', pushToken.slice(0, 20) + '…');
+    console.log('[Push] saveTokenToDatabase called, user:', currentUser?.id ?? 'null', 'token:', pushToken.substring(0, 20) + '…');
 
     if (!currentUser) {
       console.warn('[Push] No user at token-save time — will retry when user is ready');
@@ -191,23 +191,34 @@ export function usePushNotifications() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
-    // Registration success listener
+    // Registration success listener — wrapped in try/catch for crash safety
     const registrationListener = PushNotifications.addListener(
       'registration',
       async (registrationToken) => {
-        console.log('[Push] registration event — token:', registrationToken.value.slice(0, 20) + '…');
+        try {
+          const tokenValue = registrationToken?.value;
+          if (!tokenValue || typeof tokenValue !== 'string' || tokenValue.length === 0) {
+            console.error('[Push] registration event — invalid token:', registrationToken);
+            return;
+          }
 
-        // Clear watchdog — we got the token
-        clearWatchdog();
-        registrationStateRef.current = 'registered';
-        retryCountRef.current = 0;
+          console.log('[Push] registration event — token:', tokenValue.substring(0, 20) + '…', 'length:', tokenValue.length);
 
-        setToken(registrationToken.value);
-        tokenRef.current = registrationToken.value;
+          // Clear watchdog — we got the token
+          clearWatchdog();
+          registrationStateRef.current = 'registered';
+          retryCountRef.current = 0;
 
-        const saved = await saveTokenToDatabase(registrationToken.value);
-        if (!saved) {
-          console.log('[Push] Token save deferred — will retry when user becomes available');
+          setToken(tokenValue);
+          tokenRef.current = tokenValue;
+
+          const saved = await saveTokenToDatabase(tokenValue);
+          if (!saved) {
+            console.log('[Push] Token save deferred — will retry when user becomes available');
+          }
+        } catch (err) {
+          console.error('[Push] registration listener exception:', err);
+          // Don't crash — just log
         }
       }
     );
@@ -216,67 +227,79 @@ export function usePushNotifications() {
     const registrationErrorListener = PushNotifications.addListener(
       'registrationError',
       (error) => {
-        console.error('[Push] registrationError:', JSON.stringify(error));
-        lastErrorRef.current = error;
-        markFailed();
+        try {
+          console.error('[Push] registrationError:', JSON.stringify(error));
+          lastErrorRef.current = error;
+          markFailed();
+        } catch (err) {
+          console.error('[Push] registrationError listener exception:', err);
+        }
       }
     );
 
-    // ── Foreground notification: show toast + sound + haptic (unchanged) ──
+    // ── Foreground notification: show toast + sound + haptic ──
     const notificationReceivedListener = PushNotifications.addListener(
       'pushNotificationReceived',
       (notification) => {
-        console.log('[Push] Foreground notification received:', JSON.stringify(notification));
-
-        hapticNotification('warning');
-
         try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          for (let i = 0; i < 3; i++) {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.value = i % 2 === 0 ? 880 : 660;
-            osc.type = 'square';
-            const start = ctx.currentTime + i * 0.2;
-            gain.gain.setValueAtTime(0.25, start);
-            gain.gain.exponentialRampToValueAtTime(0.01, start + 0.18);
-            osc.start(start);
-            osc.stop(start + 0.2);
+          console.log('[Push] Foreground notification received:', JSON.stringify(notification));
+
+          hapticNotification('warning');
+
+          try {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            for (let i = 0; i < 3; i++) {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.value = i % 2 === 0 ? 880 : 660;
+              osc.type = 'square';
+              const start = ctx.currentTime + i * 0.2;
+              gain.gain.setValueAtTime(0.25, start);
+              gain.gain.exponentialRampToValueAtTime(0.01, start + 0.18);
+              osc.start(start);
+              osc.stop(start + 0.2);
+            }
+            setTimeout(() => ctx.close().catch(() => {}), 1000);
+          } catch (e) {
+            console.warn('[Push] Sound failed:', e);
           }
-          setTimeout(() => ctx.close().catch(() => {}), 1000);
-        } catch (e) {
-          console.warn('[Push] Sound failed:', e);
+
+          const title = notification.title || 'New Notification';
+          const body = notification.body || '';
+          const data = notification.data as Record<string, string> | undefined;
+
+          toast(title, {
+            description: body,
+            duration: 10000,
+            action: data?.orderId
+              ? {
+                  label: 'View',
+                  onClick: () => navigate(`/orders/${data.orderId}`),
+                }
+              : undefined,
+          });
+        } catch (err) {
+          console.error('[Push] pushNotificationReceived listener exception:', err);
         }
-
-        const title = notification.title || 'New Notification';
-        const body = notification.body || '';
-        const data = notification.data as Record<string, string> | undefined;
-
-        toast(title, {
-          description: body,
-          duration: 10000,
-          action: data?.orderId
-            ? {
-                label: 'View',
-                onClick: () => navigate(`/orders/${data.orderId}`),
-              }
-            : undefined,
-        });
       }
     );
 
-    // Action performed (unchanged)
+    // Action performed
     const notificationActionListener = PushNotifications.addListener(
       'pushNotificationActionPerformed',
       (notification) => {
-        console.log('[Push] Action performed:', JSON.stringify(notification));
-        const data = notification.notification.data;
-        if (data?.orderId) {
-          navigate(`/orders/${data.orderId}`);
-        } else if (data?.type === 'order') {
-          navigate('/orders');
+        try {
+          console.log('[Push] Action performed:', JSON.stringify(notification));
+          const data = notification.notification.data;
+          if (data?.orderId) {
+            navigate(`/orders/${data.orderId}`);
+          } else if (data?.type === 'order') {
+            navigate('/orders');
+          }
+        } catch (err) {
+          console.error('[Push] pushNotificationActionPerformed listener exception:', err);
         }
       }
     );
@@ -288,37 +311,36 @@ export function usePushNotifications() {
       try {
         const { App } = await import('@capacitor/app');
         const listener = await App.addListener('appStateChange', async ({ isActive }) => {
-          if (!isActive) return;
+          try {
+            if (!isActive) return;
 
-          const state = registrationStateRef.current;
-          console.log(`[Push] App resumed — regState: ${state}, token: ${tokenRef.current ? 'yes' : 'null'}, user: ${userRef.current?.id ?? 'null'}`);
+            const state = registrationStateRef.current;
+            console.log(`[Push] App resumed — regState: ${state}, token: ${tokenRef.current ? 'yes' : 'null'}, user: ${userRef.current?.id ?? 'null'}`);
 
-          if (state === 'failed') {
-            // Hard stop respected
-            return;
-          }
+            if (state === 'failed') return;
 
-          if (state === 'permission_denied') {
-            // User may have toggled in Settings
-            try {
-              const permStatus = await PushNotifications.checkPermissions();
-              if (permStatus.receive === 'granted') {
-                console.log('[Push] Permission now granted after resume — resetting state');
-                setPermissionStatus('granted');
-                registrationStateRef.current = 'idle';
-                retryCountRef.current = 0;
-                attemptRegistration();
+            if (state === 'permission_denied') {
+              try {
+                const permStatus = await PushNotifications.checkPermissions();
+                if (permStatus.receive === 'granted') {
+                  console.log('[Push] Permission now granted after resume — resetting state');
+                  setPermissionStatus('granted');
+                  registrationStateRef.current = 'idle';
+                  retryCountRef.current = 0;
+                  attemptRegistration();
+                }
+              } catch (e) {
+                console.warn('[Push] Permission re-check failed:', e);
               }
-            } catch (e) {
-              console.warn('[Push] Permission re-check failed:', e);
+              return;
             }
-            return;
-          }
 
-          // For idle/registering with no token and user available
-          if ((state === 'idle' || state === 'registering') && !tokenRef.current && userRef.current) {
-            registrationStateRef.current = 'idle'; // ensure clean state for retry
-            attemptRegistration();
+            if ((state === 'idle' || state === 'registering') && !tokenRef.current && userRef.current) {
+              registrationStateRef.current = 'idle';
+              attemptRegistration();
+            }
+          } catch (err) {
+            console.error('[Push] appStateChange listener exception:', err);
           }
         });
         appListenerCleanup = () => listener.remove();
@@ -329,20 +351,23 @@ export function usePushNotifications() {
 
     // ── Trigger registration if user is ready ──
     if (user) {
-      attemptRegistration();
+      // Small delay to ensure native bridge is fully ready after app launch
+      setTimeout(() => {
+        attemptRegistration();
+      }, 500);
     }
 
     return () => {
       clearWatchdog();
-      registrationListener.then(l => l.remove());
-      registrationErrorListener.then(l => l.remove());
-      notificationReceivedListener.then(l => l.remove());
-      notificationActionListener.then(l => l.remove());
+      registrationListener.then(l => l.remove()).catch(() => {});
+      registrationErrorListener.then(l => l.remove()).catch(() => {});
+      notificationReceivedListener.then(l => l.remove()).catch(() => {});
+      notificationActionListener.then(l => l.remove()).catch(() => {});
       appListenerCleanup?.();
     };
   }, [user, attemptRegistration, saveTokenToDatabase, navigate, clearWatchdog, markFailed]);
 
-  // ── Retry token save when user becomes available and we already have a token (unchanged) ──
+  // ── Retry token save when user becomes available ──
   useEffect(() => {
     if (user && token) {
       console.log('[Push] User now available — retrying token save');
@@ -350,7 +375,7 @@ export function usePushNotifications() {
     }
   }, [user, token, saveTokenToDatabase]);
 
-  // ── Diagnostic: check if current user has any saved tokens (unchanged) ──
+  // ── Diagnostic: check if current user has any saved tokens ──
   useEffect(() => {
     if (!user) return;
     (async () => {
