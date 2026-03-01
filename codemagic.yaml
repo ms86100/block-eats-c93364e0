@@ -54,7 +54,7 @@ workflows:
           require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
           platform :ios, '16.0'
-          use_frameworks!
+          use_frameworks! :linkage => :static
 
           # workaround to avoid Xcode caching of Pods that requires
           # temporary clearing of the project's build directory
@@ -80,10 +80,22 @@ workflows:
             pod 'FirebaseCore'
             pod 'FirebaseMessaging'
           end
+
+          post_install do |installer|
+            assertDeploymentTarget(installer)
+            installer.pods_project.targets.each do |target|
+              target.build_configurations.each do |config|
+                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+                # Xcode 16 + CocoaPods explicit-module scan can produce
+                # false "missing dependency" chains that end in linker failures.
+                config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+              end
+            end
+          end
           PODFILE
           echo "=== Final Podfile ==="
-          cat Podfile
-          pod install
+          # deterministic resolver on clean CI nodes
+          pod install --repo-update
 
       - name: Patch AppDelegate for Firebase + Capacitor
         script: |
@@ -321,7 +333,7 @@ workflows:
           require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
           platform :ios, '16.0'
-          use_frameworks!
+          use_frameworks! :linkage => :static
 
           install! 'cocoapods', :disable_input_output_paths => true
 
@@ -345,10 +357,20 @@ workflows:
             pod 'FirebaseCore'
             pod 'FirebaseMessaging'
           end
+
+          post_install do |installer|
+            assertDeploymentTarget(installer)
+            installer.pods_project.targets.each do |target|
+              target.build_configurations.each do |config|
+                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+                config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+              end
+            end
+          end
           PODFILE
           echo "=== Final Podfile ==="
           cat Podfile
-          pod install
+          pod install --repo-update
 
       - name: Patch AppDelegate for Firebase + Capacitor
         script: |
