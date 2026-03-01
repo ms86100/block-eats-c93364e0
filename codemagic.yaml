@@ -152,9 +152,11 @@ workflows:
       - name: Inject FirebaseApp.configure() into AppDelegate
         script: |
           APPDELEGATE="ios/App/App/AppDelegate.swift"
-          if ! grep -q "import Firebase" "$APPDELEGATE"; then
-            sed -i '' '1s/^/import Firebase\n/' "$APPDELEGATE"
-            echo "✅ Added 'import Firebase' to AppDelegate"
+          # Normalize import for CocoaPods module naming
+          sed -i '' 's/^import Firebase$/import FirebaseCore/' "$APPDELEGATE"
+          if ! grep -q "import FirebaseCore" "$APPDELEGATE"; then
+            sed -i '' '1s/^/import FirebaseCore\n/' "$APPDELEGATE"
+            echo "✅ Added 'import FirebaseCore' to AppDelegate"
           fi
           if ! grep -q "FirebaseApp.configure" "$APPDELEGATE"; then
             sed -i '' '/func application.*didFinishLaunchingWithOptions/,/{/ {
@@ -467,9 +469,11 @@ workflows:
       - name: Inject FirebaseApp.configure() into AppDelegate
         script: |
           APPDELEGATE="ios/App/App/AppDelegate.swift"
-          if ! grep -q "import Firebase" "$APPDELEGATE"; then
-            sed -i '' '1s/^/import Firebase\n/' "$APPDELEGATE"
-            echo "✅ Added 'import Firebase' to AppDelegate"
+          # Normalize import for CocoaPods module naming
+          sed -i '' 's/^import Firebase$/import FirebaseCore/' "$APPDELEGATE"
+          if ! grep -q "import FirebaseCore" "$APPDELEGATE"; then
+            sed -i '' '1s/^/import FirebaseCore\n/' "$APPDELEGATE"
+            echo "✅ Added 'import FirebaseCore' to AppDelegate"
           fi
           if ! grep -q "FirebaseApp.configure" "$APPDELEGATE"; then
             sed -i '' '/func application.*didFinishLaunchingWithOptions/,/{/ {
