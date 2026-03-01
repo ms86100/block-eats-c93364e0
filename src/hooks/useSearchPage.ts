@@ -37,14 +37,17 @@ export interface ProductSearchResult {
   is_same_society: boolean;
 }
 
-const FILTER_STORAGE_KEY = 'app_search_filters';
+// C8: Scope filter storage to user to prevent cross-account leakage
+const FILTER_STORAGE_KEY_BASE = 'app_search_filters';
 
-const loadSavedFilters = (): FilterState => {
+const getFilterStorageKey = (userId?: string) => userId ? `${FILTER_STORAGE_KEY_BASE}_${userId}` : FILTER_STORAGE_KEY_BASE;
+
+const loadSavedFilters = (userId?: string): FilterState => {
   try {
-    const saved = localStorage.getItem(FILTER_STORAGE_KEY);
+    const saved = localStorage.getItem(getFilterStorageKey(userId));
     if (saved) return { ...defaultFilters, ...JSON.parse(saved) };
   } catch {
-    localStorage.removeItem(FILTER_STORAGE_KEY);
+    localStorage.removeItem(getFilterStorageKey(userId));
   }
   return defaultFilters;
 };
@@ -109,7 +112,7 @@ export function useSearchPage() {
   // Search state
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 300);
-  const [filters, setFilters] = useState<FilterState>(loadSavedFilters);
+  const [filters, setFilters] = useState<FilterState>(() => loadSavedFilters(user?.id));
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [results, setResults] = useState<ProductSearchResult[]>([]);
@@ -212,7 +215,7 @@ export function useSearchPage() {
   useEffect(() => {
     if (isSearchActive) {
       runSearch(debouncedQuery);
-      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters));
+      localStorage.setItem(getFilterStorageKey(user?.id), JSON.stringify(filters));
     } else {
       setResults([]);
       setHasSearched(false);
@@ -370,7 +373,7 @@ export function useSearchPage() {
   const clearFilters = () => {
     setQuery(''); setFilters(defaultFilters); setActivePreset(null);
     setSelectedCategory(null); setResults([]); setHasSearched(false);
-    localStorage.removeItem(FILTER_STORAGE_KEY);
+    localStorage.removeItem(getFilterStorageKey(user?.id));
   };
 
   const handleFiltersChange = (f: FilterState) => { setFilters(f); setActivePreset(null); };

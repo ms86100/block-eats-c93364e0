@@ -120,23 +120,33 @@ export function usePushNotifications() {
     }
   }, []);
 
+  // C2: Use refs to capture userId/token before logout nullifies them
+  const userIdForCleanupRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (user?.id) userIdForCleanupRef.current = user.id;
+  }, [user?.id]);
+
   const removeTokenFromDatabase = useCallback(async () => {
-    if (!user || !token) return;
+    const uid = userIdForCleanupRef.current;
+    const tok = tokenRef.current;
+    if (!uid || !tok) return;
 
     try {
       const { error } = await supabase
         .from('device_tokens')
         .delete()
-        .eq('user_id', user.id)
-        .eq('token', token);
+        .eq('user_id', uid)
+        .eq('token', tok);
 
       if (error) {
         console.error('[Push] Error removing push token:', error);
+      } else {
+        console.log('[Push] Token removed for user:', uid);
       }
     } catch (err) {
       console.error('[Push] Failed to remove push token:', err);
     }
-  }, [user, token]);
+  }, []);
 
   // ── Handle a valid token (shared by iOS Firebase path and Android path) ──
   const handleValidToken = useCallback(async (tokenValue: string) => {

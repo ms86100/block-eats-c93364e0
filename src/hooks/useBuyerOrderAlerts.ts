@@ -45,7 +45,8 @@ export function useBuyerOrderAlerts() {
           const newStatus = (payload.new as any)?.status;
           const oldStatus = (payload.old as any)?.status;
 
-          if (!newStatus || newStatus === oldStatus) return;
+          // C4: If old status is undefined (REPLICA IDENTITY not FULL), skip to avoid spam toasts
+          if (!newStatus || oldStatus === undefined || newStatus === oldStatus) return;
 
           const msg = STATUS_MESSAGES[newStatus];
           if (!msg) return;

@@ -241,7 +241,8 @@ export function useCartPage() {
     }
   };
 
-  const handlePlaceOrder = useSubmitGuard(handlePlaceOrderInner);
+  // C6: Increase cooldown to 3s to prevent double-orders on slow networks
+  const handlePlaceOrder = useSubmitGuard(handlePlaceOrderInner, 3000);
 
   const handleRazorpaySuccess = async (_paymentId: string) => {
     setShowRazorpayCheckout(false);
@@ -260,7 +261,8 @@ export function useCartPage() {
     supabase.functions.invoke('process-notification-queue').catch(() => {});
     // RPC already clears cart atomically — only refresh client state
     await refresh();
-    navigate(pendingOrderIds.length === 1 ? `/orders/${pendingOrderIds[0]}` : '/orders');
+    // C7: Always navigate to order detail (which has realtime) so buyer can see verification progress
+    navigate(pendingOrderIds.length === 1 ? `/orders/${pendingOrderIds[0]}` : `/orders/${pendingOrderIds[0]}`);
     setPendingOrderIds([]);
   };
 

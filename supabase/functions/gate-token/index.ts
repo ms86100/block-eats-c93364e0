@@ -53,9 +53,18 @@ async function signToken(payload: string, secret: string): Promise<string> {
   return btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
 
+// C5: Timing-safe signature comparison to prevent timing attacks
 async function verifySignature(payload: string, signature: string, secret: string): Promise<boolean> {
   const expected = await signToken(payload, secret);
-  return expected === signature;
+  if (expected.length !== signature.length) return false;
+  const encoder = new TextEncoder();
+  const a = encoder.encode(expected);
+  const b = encoder.encode(signature);
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff === 0;
 }
 
 Deno.serve(async (req) => {

@@ -177,15 +177,18 @@ serve(async (req) => {
       if (orderId) {
         console.log(`Payment failed for order ${orderId}`);
         
+        // C1: Guard — never overwrite a 'paid' status with 'failed'
         await supabase
           .from('orders')
           .update({ payment_status: 'failed' })
-          .eq('id', orderId);
+          .eq('id', orderId)
+          .neq('payment_status', 'paid');
 
         await supabase
           .from('payment_records')
           .update({ payment_status: 'failed' })
-          .eq('order_id', orderId);
+          .eq('order_id', orderId)
+          .neq('payment_status', 'paid');
       }
     } else if (event === 'refund.created') {
       const orderId = paymentEntity.notes?.order_id;
@@ -193,15 +196,18 @@ serve(async (req) => {
       if (orderId) {
         console.log(`Refund created for order ${orderId}`);
         
+        // C1: Guard — only refund orders that were actually paid
         await supabase
           .from('orders')
           .update({ payment_status: 'refunded' })
-          .eq('id', orderId);
+          .eq('id', orderId)
+          .eq('payment_status', 'paid');
 
         await supabase
           .from('payment_records')
           .update({ payment_status: 'refunded' })
-          .eq('order_id', orderId);
+          .eq('order_id', orderId)
+          .eq('payment_status', 'paid');
       }
     }
 
