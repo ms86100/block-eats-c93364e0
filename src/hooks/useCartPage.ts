@@ -268,6 +268,12 @@ export function useCartPage() {
 
   const handleRazorpayFailed = async () => {
     setShowRazorpayCheckout(false);
+    // C2: Guard — user?.id may be null if session expired during payment
+    if (!user?.id) {
+      toast.error('Session expired. Please sign in again.');
+      setPendingOrderIds([]);
+      return;
+    }
     // #12: Cancel orphaned orders on payment failure
     if (pendingOrderIds.length > 0) {
       try {
@@ -276,7 +282,7 @@ export function useCartPage() {
           .update({ status: 'cancelled' } as any)
           .in('id', pendingOrderIds)
           .eq('payment_status', 'pending')
-          .eq('buyer_id', user?.id);
+          .eq('buyer_id', user.id);
       } catch (err) {
         console.error('Failed to cancel unpaid orders:', err);
       }

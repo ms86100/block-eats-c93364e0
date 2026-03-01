@@ -19,6 +19,8 @@ interface DeliveryTrackingState {
   riderPhotoUrl: string | null;
   lastLocationAt: string | null;
   isLoading: boolean;
+  /** C5: True when last GPS update is older than 2 minutes */
+  isLocationStale: boolean;
 }
 
 export function useDeliveryTracking(assignmentId: string | null | undefined): DeliveryTrackingState {
@@ -32,7 +34,21 @@ export function useDeliveryTracking(assignmentId: string | null | undefined): De
     riderPhotoUrl: null,
     lastLocationAt: null,
     isLoading: true,
+    isLocationStale: false,
   });
+
+  // C5: Periodic staleness check — every 30s, mark stale if last update > 2 min ago
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setState(prev => {
+        if (!prev.lastLocationAt) return prev;
+        const stale = Date.now() - new Date(prev.lastLocationAt).getTime() > 2 * 60 * 1000;
+        if (stale !== prev.isLocationStale) return { ...prev, isLocationStale: stale };
+        return prev;
+      });
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!assignmentId) {

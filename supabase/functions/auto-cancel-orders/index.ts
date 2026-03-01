@@ -60,33 +60,37 @@ app.post("/", async (c) => {
 
     console.log(`Found ${expiredOrders.length} expired orders to cancel`);
 
-    // Cancel each expired order
-    const results = [];
-    for (const order of expiredOrders) {
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update({
-          status: "cancelled",
-          rejection_reason: "Order automatically cancelled - seller did not respond within the time limit",
-          updated_at: now,
-        })
-        .eq("id", order.id);
+    // C9: Cancel all expired orders in parallel with Promise.allSettled
+    const results = await Promise.allSettled(
+      expiredOrders.map(async (order) => {
+        const { error: updateError } = await supabase
+          .from("orders")
+          .update({
+            status: "cancelled",
+            rejection_reason: "Order automatically cancelled - seller did not respond within the time limit",
+            updated_at: now,
+          })
+          .eq("id", order.id);
 
-      if (updateError) {
-        console.error(`Error cancelling order ${order.id}:`, updateError);
-        results.push({ id: order.id, success: false, error: updateError.message });
-      } else {
+        if (updateError) {
+          console.error(`Error cancelling order ${order.id}:`, updateError);
+          throw { id: order.id, error: updateError.message };
+        }
         console.log(`Order ${order.id} auto-cancelled`);
-        results.push({ id: order.id, success: true });
-      }
-    }
+        return { id: order.id, success: true };
+      })
+    );
 
-    const successCount = results.filter((r) => r.success).length;
+    const mapped = results.map((r) =>
+      r.status === 'fulfilled' ? r.value : { id: (r.reason as any)?.id, success: false, error: (r.reason as any)?.error }
+    );
+
+    const successCount = mapped.filter((r) => r.success).length;
     return c.json(
       {
         message: `Processed ${expiredOrders.length} orders`,
         cancelled: successCount,
-        results,
+        results: mapped,
       },
       200,
       corsHeaders

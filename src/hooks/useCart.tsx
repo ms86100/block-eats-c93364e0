@@ -106,7 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         );
       }
       return [...prev, {
-        id: `temp-${Date.now()}`,
+        id: `temp-${crypto.randomUUID()}`,
         user_id: user.id,
         product_id: product.id,
         quantity,

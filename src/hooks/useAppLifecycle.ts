@@ -31,6 +31,8 @@ export function useAppLifecycle() {
             queryClient.invalidateQueries({ queryKey: ['products-by-category'] });
             queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
             queryClient.invalidateQueries({ queryKey: ['seller-dashboard-stats'] });
+            // C8: Invalidate buyer orders on resume to catch status changes while backgrounded
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
           }
         });
         cleanup = () => listener.remove();

@@ -171,6 +171,10 @@ export function useNewOrderAlert(sellerId: string | null) {
 
         if (lastSeenAtRef.current) {
           query = query.gt('created_at', lastSeenAtRef.current);
+        } else {
+          // C4: Cap initial poll to last 24h to prevent flooding sellers with ancient orders
+          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          query = query.gt('created_at', twentyFourHoursAgo);
         }
 
         const { data } = await query;

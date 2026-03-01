@@ -101,7 +101,10 @@ export function useOrderDetail(id: string | undefined) {
     const channel = supabase
       .channel(`order-${id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
-        (payload) => { setOrder((prev) => prev ? { ...prev, ...payload.new } as Order : null); }
+        () => {
+          // C3: Full re-fetch instead of partial merge — ensures seller, items, buyer stay in sync
+          fetchOrder();
+        }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };

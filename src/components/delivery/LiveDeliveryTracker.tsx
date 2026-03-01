@@ -78,7 +78,10 @@ export function LiveDeliveryTracker({ assignmentId, isBuyerView }: LiveDeliveryT
               {formatDistance(tracking.distance)}
             </p>
           )}
-          {lastSeen && (
+          {tracking.isLocationStale && (
+            <p className="text-[10px] text-destructive mt-1">⚠️ Location may be outdated — rider GPS not updating</p>
+          )}
+          {!tracking.isLocationStale && lastSeen && (
             <p className="text-[10px] text-muted-foreground mt-1">⚠️ {lastSeen}</p>
           )}
         </div>

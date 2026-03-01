@@ -108,6 +108,12 @@ export function useSocietyAdmin() {
 
   const removeAdmin = async (adminId: string) => {
     if (!societyId) return;
+    // C6: Prevent removing the last active admin — would orphan the society
+    const activeAdmins = societyAdmins.filter(a => !a.deactivated_at);
+    if (activeAdmins.length <= 1) {
+      toast.error('Cannot remove the last admin. Appoint another admin first.');
+      return;
+    }
     try {
       await supabase.from('society_admins').update({ deactivated_at: new Date().toISOString() }).eq('id', adminId);
       await logAudit('admin_removed', 'society_admin', adminId, societyId);
