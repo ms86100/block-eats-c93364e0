@@ -7045,6 +7045,30 @@ export type Database = {
         Args: { _society_id: string; _user_id: string }
         Returns: boolean
       }
+      claim_notification_queue: {
+        Args: { batch_size?: number }
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          payload: Json | null
+          processed_at: string | null
+          reference_path: string | null
+          retry_count: number
+          status: string
+          title: string
+          type: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       complete_worker_job: {
         Args: { _job_id: string; _worker_id: string }
         Returns: Json

@@ -23,14 +23,9 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch pending + retryable notifications (batch of 50)
-    const now = new Date().toISOString();
+    // Atomically claim pending notifications (prevents duplicate processing)
     const { data: pending, error: fetchError } = await supabase
-      .from("notification_queue")
-      .select("*")
-      .or(`status.eq.pending,and(status.eq.retrying,next_retry_at.lte.${now})`)
-      .order("created_at", { ascending: true })
-      .limit(50);
+      .rpc("claim_notification_queue", { batch_size: 50 });
 
     if (fetchError) {
       console.error("Error fetching queue:", fetchError);
