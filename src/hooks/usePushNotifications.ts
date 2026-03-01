@@ -43,7 +43,14 @@ async function getFirebaseMessaging() {
   }
 }
 
-export function usePushNotifications() {
+// Module-level singleton guard — prevents duplicate registration effects
+let activeInstanceId = 0;
+
+/**
+ * INTERNAL: Full hook with all side effects. Only called by PushNotificationProvider.
+ * All other consumers should use usePushNotifications() from PushNotificationContext.
+ */
+export function usePushNotificationsInternal() {
   const [token, setToken] = useState<string | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const identity = useContext(IdentityContext);
@@ -320,6 +327,14 @@ export function usePushNotifications() {
 
   // ── Listeners + lifecycle ──
   useEffect(() => {
+    // Module-level singleton guard — only one instance may run effects
+    const myId = ++activeInstanceId;
+    if (myId !== activeInstanceId) {
+      console.warn('[Push] Duplicate instance detected — skipping effects');
+      return;
+    }
+    console.log('[Push] Effect owner instance:', myId);
+
     if (!Capacitor.isNativePlatform()) return;
 
     const platform = Capacitor.getPlatform();

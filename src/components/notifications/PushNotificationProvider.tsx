@@ -1,20 +1,26 @@
 import { useEffect, useContext, useRef } from 'react';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { usePushNotificationsInternal } from '@/hooks/usePushNotifications';
+import { PushNotificationContext } from '@/contexts/PushNotificationContext';
 import { IdentityContext } from '@/contexts/auth/contexts';
 
 interface PushNotificationProviderProps {
   children: React.ReactNode;
 }
 
+/**
+ * Single provider that owns ALL push notification side effects.
+ * Must be mounted exactly once in the component tree (App.tsx).
+ */
 export function PushNotificationProvider({ children }: PushNotificationProviderProps) {
   const identity = useContext(IdentityContext);
   const user = identity?.user ?? null;
-  const { removeTokenFromDatabase } = usePushNotifications();
+
+  // This is the ONLY place the full hook (with listeners + effects) runs
+  const pushState = usePushNotificationsInternal();
+  const { removeTokenFromDatabase } = pushState;
   const prevUserRef = useRef(user);
 
-  console.log('[Push][Provider] PushNotificationProvider render — userId:', user?.id ?? 'null');
-
-  // DEFECT 10 FIX: Only remove token on explicit logout (user transitions non-null → null)
+  // Remove token on explicit logout (user transitions non-null → null)
   useEffect(() => {
     if (prevUserRef.current && !user) {
       removeTokenFromDatabase();
@@ -22,5 +28,9 @@ export function PushNotificationProvider({ children }: PushNotificationProviderP
     prevUserRef.current = user;
   }, [user, removeTokenFromDatabase]);
 
-  return <>{children}</>;
+  return (
+    <PushNotificationContext.Provider value={pushState}>
+      {children}
+    </PushNotificationContext.Provider>
+  );
 }
