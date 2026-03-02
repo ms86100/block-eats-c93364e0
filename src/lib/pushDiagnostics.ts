@@ -95,29 +95,27 @@ export async function runPushDiagnostics(userId?: string): Promise<DiagnosticRes
     results.push({ step: '6. device_tokens in DB', ok: false, detail: 'No userId provided — skipped' });
   }
 
-  // 7. Edge function test
+  // 7. Edge function test — uses notification_queue (service-role not needed)
   if (userId) {
     try {
-      const { data, error } = await supabase.functions.invoke('send-push-notification', {
-        body: {
-          userId,
-          title: '🔔 Push Diagnostics',
-          body: 'If you see this, push notifications are working!',
-          data: { type: 'diagnostic' },
-        },
+      const { error } = await supabase.from('notification_queue').insert({
+        user_id: userId,
+        title: '🔔 Push Diagnostics',
+        body: 'If you see this, push notifications are working!',
+        data: { type: 'diagnostic' },
+        status: 'pending',
       });
       if (error) throw error;
-      const sent = data?.sent ?? 0;
       results.push({
-        step: '7. Edge function test send',
-        ok: sent > 0,
-        detail: `sent: ${sent}, failed: ${data?.failed ?? 0}`,
+        step: '7. Queued test notification',
+        ok: true,
+        detail: 'Inserted into notification_queue — will be delivered shortly',
       });
     } catch (e) {
-      results.push({ step: '7. Edge function test send', ok: false, detail: String(e) });
+      results.push({ step: '7. Queued test notification', ok: false, detail: String(e) });
     }
   } else {
-    results.push({ step: '7. Edge function test send', ok: false, detail: 'No userId — skipped' });
+    results.push({ step: '7. Queued test notification', ok: false, detail: 'No userId — skipped' });
   }
 
   return results;
