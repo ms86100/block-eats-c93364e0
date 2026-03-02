@@ -1,37 +1,39 @@
 
 
-## Push Notification Fix — Implementation Plan
+## Push Notification v2 Hardening — Implementation Plan
 
-Three files to update with targeted fixes across 6 areas.
+The app currently crashes on load (`Failed to fetch dynamically imported module`), which is a transient HMR issue — it will resolve after the next successful build. The push notification fixes below are the substantive changes.
 
-### File 1: `src/hooks/usePushNotifications.ts` — 3 changes
+Your current code already has the v1 fixes (auto-prompt, tap routing, token cleanup, retry logic). The v2 hardening adds three reliability improvements to `usePushNotifications.ts` and a new diagnostic utility file.
 
-**A. `removeTokenFromDatabase` (lines 173-193)**
-Replace single-token delete (`.eq('user_id', uid).eq('token', tok)`) with user-wide delete (`.eq('user_id', uid)`). Removes guard requiring `tok` to be non-null. Prevents orphaned tokens after FCM rotation.
+### Changes
 
-**B. `handleNotificationAction` (lines 320-326)**
-Expand from 2 conditions (orderId, type=order) to full routing: check `path`/`reference_path` first, then orderId, then type-specific routes (chat, order, visitor, dispute, maintenance, bulletin/notice), with `/notifications` as fallback.
+**File 1: `src/hooks/usePushNotifications.ts`** — 3 targeted edits
 
-**C. Login auto-prompt (lines 524-526)**
-Replace the passive `else` branch that logs "waiting for user to tap Enable banner" with an active branch: when stage is `'none'` or `'deferred'`, set stage to `'full'` and call `attemptRegistration()`. This triggers the iOS permission dialog on first login instead of requiring users to find the banner.
+**A. Listener gate (race condition fix)**
+Add a `listenersReadyRef` Promise that is created before the async IIFE sets up listeners, and resolved after all 4 listeners are attached. In `attemptRegistration()`, await this promise (with 5s timeout) before calling `PN.register()`. This prevents the token event from firing before the listener is ready on cold starts.
 
-### File 2: `src/lib/notifications.ts` — full replacement
+**B. iOS FCM.getToken() retry**
+In the `'registration'` listener's iOS branch (currently line 395), replace the single `fcm.getToken()` call with a loop of up to 3 attempts with 1s/2s/3s backoff. If Firebase is still initializing on cold start, the first call can fail — retrying gives it time.
 
-- Import titles from `order-notification-titles.ts` instead of duplicating them in switch statements
-- Replace buyer switch (10 statuses) with `BUYER_BODIES` lookup map covering all 13 statuses (adds `on_the_way`, `arrived`, `assigned`, `in_progress`)
-- Replace seller switch (2 statuses) with `SELLER_BODIES` lookup map covering 3 statuses (adds `enquired`)
-- Add retry logic to `sendPushNotification`: up to 3 attempts with exponential backoff (1s, 2s delays)
-- Remove emoji from `sendChatNotification` title (matches uploaded file)
+**C. iOS watchdog fallback**
+In the watchdog timeout handler (currently line 261-274), add an iOS-specific branch: before retrying `register()`, attempt `FCM.getToken()` directly. If Firebase has a cached token from a prior session, this can succeed even when the registration event never fired.
 
-### File 3: `src/lib/pushPermissionStage.ts` — full replacement
+**File 2: `src/lib/notifications.ts`** — minor alignment
 
-- Return `'none'` on web instead of `'full'` (prevents unnecessary plugin import attempts)
-- Switch from static `import { Preferences }` to dynamic `await import('@capacitor/preferences')` via helper function
-- Add web guard to `setPushStage` (early return on non-native)
+Replace `getOrderNotifTitle(status, role)` with direct `ORDER_NOTIF_TITLES_BUYER[status]` / `ORDER_NOTIF_TITLES_SELLER[status]` lookups to match the uploaded file's pattern. Add `orderId` short-ID to seller cancelled body.
 
-### Files unchanged
-- `PushNotificationProvider.tsx` — no changes needed
-- `EnableNotificationsBanner.tsx` — remains as fallback CTA
-- `send-push-notification/index.ts` — already correct
-- `codemagic.yaml` — already has swizzling disabled + AppDelegate forwarding
+**File 3: `src/lib/pushDiagnostics.ts`** — new file
+
+Create a diagnostic utility with `runPushDiagnostics(userId)` that tests each step of the chain: platform check, plugin loading, permission status, FCM plugin (iOS), FCM.getToken() (iOS), device_tokens query, and edge function test send. Returns structured results. Include `printDiagnostics()` helper for console output. Can be called from settings/debug page or browser console.
+
+**File 4: Fix visitor route**
+
+The uploaded file routes visitor notifications to `/visitor-management`, but your actual route is `/visitors`. The current code already has `/visitors` — no change needed here.
+
+### Not changing
+- `pushPermissionStage.ts` — already matches v2
+- `EnableNotificationsBanner.tsx` — unchanged
+- `PushNotificationProvider.tsx` — unchanged
+- Edge function / Codemagic — already correct
 
