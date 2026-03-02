@@ -94,6 +94,12 @@ export default function PushDebugPage() {
         return;
       }
 
+      await supabase
+        .from('device_tokens')
+        .delete()
+        .eq('token', fcmToken)
+        .neq('user_id', user.id);
+
       const { error } = await supabase.from('device_tokens').upsert(
         { user_id: user.id, token: fcmToken, platform, updated_at: new Date().toISOString() },
         { onConflict: 'user_id,token' }

@@ -138,6 +138,18 @@ export function usePushNotificationsInternal() {
     const platform = Capacitor.getPlatform() as 'ios' | 'android' | 'web';
 
     try {
+      // Ensure this physical device token belongs to exactly one user.
+      // If the same token exists under another account, re-assign it.
+      const { error: cleanupError } = await supabase
+        .from('device_tokens')
+        .delete()
+        .eq('token', pushToken)
+        .neq('user_id', currentUser.id);
+
+      if (cleanupError) {
+        console.warn('[Push] Cross-user token cleanup warning:', cleanupError.message);
+      }
+
       const { error } = await supabase
         .from('device_tokens')
         .upsert(
@@ -187,21 +199,30 @@ export function usePushNotificationsInternal() {
 
   const removeTokenFromDatabase = useCallback(async () => {
     const uid = userIdForCleanupRef.current;
+    const currentToken = tokenRef.current;
     if (!uid) return;
+
+    // Important: never wipe all tokens for a user on a single-device logout.
+    // Only remove the token of this app instance when available.
+    if (!currentToken) {
+      console.warn('[Push] Logout cleanup skipped: no local token in memory');
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from('device_tokens')
         .delete()
-        .eq('user_id', uid);
+        .eq('user_id', uid)
+        .eq('token', currentToken);
 
       if (error) {
-        console.error('[Push] Error removing push tokens:', error);
+        console.error('[Push] Error removing push token:', error);
       } else {
-        console.log('[Push] All tokens removed for user:', uid);
+        console.log('[Push] Token removed for user/device:', uid, currentToken.substring(0, 20) + '…');
       }
     } catch (err) {
-      console.error('[Push] Failed to remove push tokens:', err);
+      console.error('[Push] Failed to remove push token:', err);
     }
   }, []);
 
