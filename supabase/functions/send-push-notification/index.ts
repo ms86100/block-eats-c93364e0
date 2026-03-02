@@ -159,8 +159,10 @@ async function sendFCMNotification(
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("FCM error:", errorData);
+      const errorText = await response.text();
+      console.error(`[DIAG] FCM error (${response.status}): ${errorText}`);
+      let errorData: any;
+      try { errorData = JSON.parse(errorText); } catch { errorData = { raw: errorText }; }
       
       // Check if token is invalid/expired
       if (
