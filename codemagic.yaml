@@ -78,7 +78,7 @@ workflows:
           def capacitor_pods
             pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
             pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-            pod 'CapacitorFirebaseMessaging', :path => '../../node_modules/@capacitor-firebase/messaging'
+            pod 'CapacitorCommunityFcm', :path => '../../node_modules/@capacitor-community/fcm'
             pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
             pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
             pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'
@@ -430,7 +430,7 @@ workflows:
           def capacitor_pods
             pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
             pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-            pod 'CapacitorFirebaseMessaging', :path => '../../node_modules/@capacitor-firebase/messaging'
+            pod 'CapacitorCommunityFcm', :path => '../../node_modules/@capacitor-community/fcm'
             pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
             pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
             pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'

@@ -556,7 +556,7 @@ export function usePushNotificationsInternal() {
    * Uses PushNotifications for the OS prompt (both platforms).
    */
   const requestFullPermission = useCallback(async () => {
-    console.log('[Push] ▶ requestFullPermission called — upgrading to full stage');
+    console.log('[Push] ▶▶▶ requestFullPermission called — upgrading to full stage');
 
     if (!Capacitor.isNativePlatform()) {
       console.log('[Push] Not native — skipping');
@@ -572,26 +572,43 @@ export function usePushNotificationsInternal() {
     const doRegister = async () => {
       const PN = await getPushNotificationsPlugin();
       if (!PN) {
-        console.error('[Push] PushNotifications plugin not available');
+        console.error('[Push] ✗ PushNotifications plugin not available');
+        setPermissionStatus('denied');
         return;
       }
 
+      // Step 1: Check current permission before requesting
       let permStatus = await PN.checkPermissions();
-      console.log(`[Push] requestFullPermission (${platform}) checkPermissions:`, permStatus.receive);
+      console.log(`[Push] requestFullPermission (${platform}) BEFORE checkPermissions:`, permStatus.receive);
 
       if (permStatus.receive === 'prompt') {
+        console.log(`[Push] requestFullPermission (${platform}) ▶ Calling requestPermissions() NOW — OS prompt should appear`);
         permStatus = await PN.requestPermissions();
-        console.log(`[Push] requestFullPermission (${platform}) requestPermissions:`, permStatus.receive);
+        console.log(`[Push] requestFullPermission (${platform}) AFTER requestPermissions:`, permStatus.receive);
       }
 
-      if (permStatus.receive !== 'granted') {
-        setPermissionStatus(permStatus.receive === 'denied' ? 'denied' : 'prompt');
-        console.log('[Push] Permission not granted — aborting');
+      // Step 2: Re-check to confirm (guards against silent no-op)
+      const recheck = await PN.checkPermissions();
+      console.log(`[Push] requestFullPermission (${platform}) RE-CHECK:`, recheck.receive);
+
+      const finalStatus = recheck.receive;
+
+      if (finalStatus !== 'granted') {
+        // Permission was NOT granted — either denied or still prompt (silent fail)
+        const isDenied = finalStatus === 'denied';
+        setPermissionStatus(isDenied ? 'denied' : 'prompt');
+        console.log(`[Push] ✗ Permission not granted after request. Final: ${finalStatus}`);
+        
+        if (!isDenied) {
+          // Still 'prompt' after requesting = OS prompt never appeared (plugin conflict)
+          console.error('[Push] ✗✗✗ CRITICAL: Permission still "prompt" after requestPermissions() — OS prompt likely suppressed');
+        }
         return;
       }
 
       setPermissionStatus('granted');
       await setPushStage('full');
+      console.log(`[Push] ✓ Permission granted — triggering register()`);
 
       // Trigger registration — token will arrive via the 'registration' listener
       registrationStateRef.current = 'idle';
@@ -604,6 +621,19 @@ export function usePushNotificationsInternal() {
     } catch (err) {
       console.error('[Push] requestFullPermission error/timeout:', err);
       registrationStateRef.current = 'idle';
+      // On timeout, check if permission was actually granted but token just didn't arrive
+      try {
+        const PN = await getPushNotificationsPlugin();
+        if (PN) {
+          const p = await PN.checkPermissions();
+          console.log(`[Push] Post-timeout permission check:`, p.receive);
+          if (p.receive === 'granted') {
+            setPermissionStatus('granted');
+          } else if (p.receive === 'denied') {
+            setPermissionStatus('denied');
+          }
+        }
+      } catch {}
     }
   }, [attemptRegistration]);
 
