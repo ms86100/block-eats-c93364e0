@@ -39,13 +39,29 @@ export async function runPushDiagnostics(userId?: string): Promise<DiagnosticRes
   try {
     const perm = await PN.checkPermissions();
     const granted = perm.receive === 'granted';
+    
+    // Gather extra context for debugging
+    let extraDetail = `receive: ${perm.receive}`;
+    if (!granted) {
+      // Check if this is a fresh install (prompt) or previously denied
+      const isDenied = perm.receive === 'denied';
+      extraDetail += ` | ${isDenied ? 'User previously denied — must enable in Settings' : 'OS prompt never shown or was suppressed'}`;
+      
+      try {
+        const reqResult = await PN.requestPermissions();
+        extraDetail += ` | requestPermissions() → ${reqResult.receive}`;
+      } catch (reqErr: any) {
+        extraDetail += ` | requestPermissions() threw: ${reqErr?.message ?? String(reqErr)}`;
+      }
+    }
+    
     results.push({
       step: '3. Permission',
       ok: granted,
-      detail: `receive: ${perm.receive}`,
+      detail: extraDetail,
     });
-  } catch (e) {
-    results.push({ step: '3. Permission', ok: false, detail: String(e) });
+  } catch (e: any) {
+    results.push({ step: '3. Permission', ok: false, detail: `checkPermissions() threw: ${e?.message ?? String(e)}` });
   }
 
   // 4. FCM plugin (iOS only)
@@ -98,22 +114,44 @@ export async function runPushDiagnostics(userId?: string): Promise<DiagnosticRes
   // 7. Edge function test — uses notification_queue (service-role not needed)
   if (userId) {
     try {
-      const { error } = await supabase.from('notification_queue').insert({
-        user_id: userId,
-        title: '🔔 Push Diagnostics',
-        body: 'If you see this, push notifications are working!',
-        data: { type: 'diagnostic' },
-        status: 'pending',
-      });
-      if (error) throw error;
-      results.push({
-        step: '7. Queued test notification',
-        ok: true,
-        detail: 'Inserted into notification_queue — will be delivered shortly',
-      });
+      // First verify the table is accessible
+      const { count, error: countErr } = await supabase
+        .from('notification_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      if (countErr) {
+        results.push({
+          step: '7. Queued test notification',
+          ok: false,
+          detail: `Table access error: ${countErr.message} (code: ${countErr.code}, hint: ${countErr.hint ?? 'none'})`,
+        });
+      } else {
+        const { data: insertData, error } = await supabase.from('notification_queue').insert({
+          user_id: userId,
+          title: '🔔 Push Diagnostics',
+          body: 'If you see this, push notifications are working!',
+          data: { type: 'diagnostic' },
+          status: 'pending',
+        }).select('id').single();
+        
+        if (error) {
+          results.push({
+            step: '7. Queued test notification',
+            ok: false,
+            detail: `Insert failed: ${error.message} (code: ${error.code}, hint: ${error.hint ?? 'none'}, details: ${error.details ?? 'none'})`,
+          });
+        } else {
+          results.push({
+            step: '7. Queued test notification',
+            ok: true,
+            detail: `Queued (id: ${insertData?.id?.substring(0, 8)}…) — existing queue items: ${count ?? '?'}`,
+          });
+        }
+      }
     } catch (e: any) {
       const msg = e?.message ?? JSON.stringify(e);
-      results.push({ step: '7. Queued test notification', ok: false, detail: msg });
+      results.push({ step: '7. Queued test notification', ok: false, detail: `Exception: ${msg}` });
     }
   } else {
     results.push({ step: '7. Queued test notification', ok: false, detail: 'No userId — skipped' });
