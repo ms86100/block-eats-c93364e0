@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { OrderStatus } from '@/types/database';
+import { getOrderNotifTitle } from '@/lib/order-notification-titles';
 
 interface NotificationPayload {
   userId: string;
@@ -9,107 +10,82 @@ interface NotificationPayload {
 }
 
 /**
- * Send a push notification to a user via the send-push-notification edge function
+ * Send a push notification with retry + exponential backoff (max 3 attempts).
  */
 export async function sendPushNotification(payload: NotificationPayload): Promise<boolean> {
-  try {
-    const { data, error } = await supabase.functions.invoke('send-push-notification', {
-      body: payload,
-    });
+  const MAX_ATTEMPTS = 3;
 
-    if (error) {
-      console.error('Failed to send push notification:', error);
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-push-notification', {
+        body: payload,
+      });
+
+      if (error) {
+        console.error(`[Push] Attempt ${attempt}/${MAX_ATTEMPTS} failed:`, error);
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, attempt * 1000));
+          continue;
+        }
+        return false;
+      }
+
+      console.log('Push notification sent:', data);
+      return data?.sent > 0;
+    } catch (err) {
+      console.error(`[Push] Attempt ${attempt}/${MAX_ATTEMPTS} exception:`, err);
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, attempt * 1000));
+        continue;
+      }
       return false;
     }
-
-    console.log('Push notification sent:', data);
-    return data?.sent > 0;
-  } catch (err) {
-    console.error('Error sending push notification:', err);
-    return false;
   }
+  return false;
 }
 
-/**
- * Get notification content based on order status change
- */
+// ── Body lookup maps (titles come from order-notification-titles.ts) ──
+
+const BUYER_BODIES: Record<string, (seller: string) => string> = {
+  accepted: (s) => `${s} accepted your order and will start preparing it.`,
+  preparing: (s) => `${s} is now preparing your order.`,
+  ready: (s) => `Your order from ${s} is ready for pickup!`,
+  picked_up: (s) => `Your order from ${s} has been picked up.`,
+  on_the_way: (s) => `Your order from ${s} is on the way!`,
+  arrived: (s) => `The service provider from ${s} has arrived.`,
+  assigned: (s) => `A delivery partner has been assigned for your ${s} order.`,
+  delivered: (s) => `Your order from ${s} has been delivered!`,
+  completed: (s) => `Your order from ${s} is complete. Leave a review!`,
+  cancelled: (s) => `Your order from ${s} was cancelled.`,
+  quoted: (s) => `${s} sent you a price quote for your enquiry.`,
+  scheduled: (s) => `${s} confirmed your booking.`,
+  in_progress: (s) => `${s} has started working on your service request.`,
+};
+
+const SELLER_BODIES: Record<string, (buyer: string) => string> = {
+  placed: (b) => `${b} placed an order. Tap to view and accept.`,
+  enquired: (b) => `${b} sent a new booking request. Tap to review.`,
+  cancelled: (b) => `Order from ${b} was cancelled.`,
+};
+
 function getOrderNotificationContent(
   status: OrderStatus,
   sellerName: string,
   buyerName: string,
-  orderId: string,
+  _orderId: string,
   isForSeller: boolean
 ): { title: string; body: string } | null {
-  const shortOrderId = orderId.slice(0, 8);
+  const role = isForSeller ? 'seller' : 'buyer';
+  const title = getOrderNotifTitle(status, role);
+  if (!title) return null;
 
   if (isForSeller) {
-    // Notifications for sellers
-    switch (status) {
-      case 'placed':
-        return {
-          title: '🆕 New Order Received!',
-          body: `${buyerName} placed an order. Tap to view and accept.`,
-        };
-      case 'cancelled':
-        return {
-          title: '❌ Order Cancelled',
-          body: `Order #${shortOrderId} from ${buyerName} was cancelled.`,
-        };
-      default:
-        return null;
-    }
-  } else {
-    // Notifications for buyers
-    switch (status) {
-      case 'accepted':
-        return {
-          title: '✅ Order Accepted!',
-          body: `${sellerName} accepted your order and will start preparing it.`,
-        };
-      case 'preparing':
-        return {
-          title: '👨‍🍳 Order Being Prepared',
-          body: `${sellerName} is now preparing your order.`,
-        };
-      case 'ready':
-        return {
-          title: '🎉 Order Ready!',
-          body: `Your order from ${sellerName} is ready for pickup!`,
-        };
-      case 'picked_up':
-        return {
-          title: '📦 Order Picked Up',
-          body: `Your order from ${sellerName} has been picked up.`,
-        };
-      case 'delivered':
-        return {
-          title: '🚚 Order Delivered',
-          body: `Your order from ${sellerName} has been delivered!`,
-        };
-      case 'completed':
-        return {
-          title: '⭐ Order Completed',
-          body: `Your order from ${sellerName} is complete. Leave a review!`,
-        };
-      case 'cancelled':
-        return {
-          title: '❌ Order Cancelled',
-          body: `Your order from ${sellerName} was cancelled.`,
-        };
-      case 'quoted':
-        return {
-          title: '💰 Quote Received',
-          body: `${sellerName} sent you a price quote for your enquiry.`,
-        };
-      case 'scheduled':
-        return {
-          title: '📅 Booking Confirmed',
-          body: `${sellerName} confirmed your booking.`,
-        };
-      default:
-        return null;
-    }
+    const bodyFn = SELLER_BODIES[status];
+    return bodyFn ? { title, body: bodyFn(buyerName) } : null;
   }
+
+  const bodyFn = BUYER_BODIES[status];
+  return bodyFn ? { title, body: bodyFn(sellerName) } : null;
 }
 
 /**
@@ -124,25 +100,8 @@ export async function sendOrderStatusNotification(
   sellerName: string,
   buyerName: string
 ): Promise<void> {
-  // Determine who should receive the notification
-  // - Seller receives: placed (new order)
-  // - Buyer receives: accepted, preparing, ready, completed, cancelled, etc.
-  
-  const sellerNotification = getOrderNotificationContent(
-    newStatus,
-    sellerName,
-    buyerName,
-    orderId,
-    true
-  );
-  
-  const buyerNotification = getOrderNotificationContent(
-    newStatus,
-    sellerName,
-    buyerName,
-    orderId,
-    false
-  );
+  const sellerNotification = getOrderNotificationContent(newStatus, sellerName, buyerName, orderId, true);
+  const buyerNotification = getOrderNotificationContent(newStatus, sellerName, buyerName, orderId, false);
 
   const notificationData = {
     orderId,
@@ -150,7 +109,6 @@ export async function sendOrderStatusNotification(
     status: newStatus,
   };
 
-  // Send to seller if applicable
   if (sellerNotification) {
     await sendPushNotification({
       userId: sellerUserId,
@@ -160,7 +118,6 @@ export async function sendOrderStatusNotification(
     });
   }
 
-  // Send to buyer if applicable
   if (buyerNotification) {
     await sendPushNotification({
       userId: buyerId,
@@ -180,13 +137,12 @@ export async function sendChatNotification(
   orderId: string,
   messagePreview: string
 ): Promise<void> {
-  const truncatedMessage = messagePreview.length > 50 
-    ? messagePreview.substring(0, 50) + '...' 
-    : messagePreview;
+  const truncatedMessage =
+    messagePreview.length > 50 ? messagePreview.substring(0, 50) + '...' : messagePreview;
 
   await sendPushNotification({
     userId: recipientId,
-    title: `💬 Message from ${senderName}`,
+    title: `Message from ${senderName}`,
     body: truncatedMessage,
     data: {
       orderId,

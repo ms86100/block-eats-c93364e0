@@ -172,23 +172,21 @@ export function usePushNotificationsInternal() {
 
   const removeTokenFromDatabase = useCallback(async () => {
     const uid = userIdForCleanupRef.current;
-    const tok = tokenRef.current;
-    if (!uid || !tok) return;
+    if (!uid) return;
 
     try {
       const { error } = await supabase
         .from('device_tokens')
         .delete()
-        .eq('user_id', uid)
-        .eq('token', tok);
+        .eq('user_id', uid);
 
       if (error) {
-        console.error('[Push] Error removing push token:', error);
+        console.error('[Push] Error removing push tokens:', error);
       } else {
-        console.log('[Push] Token removed for user:', uid);
+        console.log('[Push] All tokens removed for user:', uid);
       }
     } catch (err) {
-      console.error('[Push] Failed to remove push token:', err);
+      console.error('[Push] Failed to remove push tokens:', err);
     }
   }, []);
 
@@ -318,10 +316,38 @@ export function usePushNotificationsInternal() {
 
   // ── Handle notification tap (shared logic) ──
   const handleNotificationAction = useCallback((data?: Record<string, string>) => {
+    // Priority 1: explicit path or reference_path
+    if (data?.path) {
+      navigate(data.path);
+      return;
+    }
+    if (data?.reference_path) {
+      navigate(data.reference_path);
+      return;
+    }
+
+    // Priority 2: orderId → order detail
     if (data?.orderId) {
       navigate(`/orders/${data.orderId}`);
-    } else if (data?.type === 'order') {
+      return;
+    }
+
+    // Priority 3: type-specific routing
+    const type = data?.type;
+    if (type === 'chat' && data?.orderId) {
+      navigate(`/orders/${data.orderId}`);
+    } else if (type === 'order') {
       navigate('/orders');
+    } else if (type === 'visitor') {
+      navigate('/visitors');
+    } else if (type === 'dispute') {
+      navigate('/disputes');
+    } else if (type === 'maintenance') {
+      navigate('/maintenance');
+    } else if (type === 'bulletin' || type === 'notice') {
+      navigate('/bulletin');
+    } else {
+      navigate('/notifications');
     }
   }, [navigate]);
 
@@ -487,7 +513,7 @@ export function usePushNotificationsInternal() {
       }
     })();
 
-    // ── Do NOT auto-prompt on login. Only set up listeners. ──
+    // ── Auto-prompt on first login; silent re-register if already granted ──
     if (user) {
       setTimeout(async () => {
         const stage = await getPushStage();
@@ -509,8 +535,13 @@ export function usePushNotificationsInternal() {
             console.log(`[Push] Stage full but permission ${loginPerm} — waiting for user action`);
             setPermissionStatus(loginPerm === 'denied' ? 'denied' : 'prompt');
           }
-        } else {
-          console.log(`[Push] Stage '${stage}' — waiting for user to tap Enable banner`);
+        } else if (stage === 'none' || stage === 'deferred') {
+          // AUTO-PROMPT: Request permission on first login
+          console.log('[Push] First login — auto-requesting notification permission');
+          await setPushStage('full');
+          registrationStateRef.current = 'idle';
+          retryCountRef.current = 0;
+          await attemptRegistration();
         }
       }, 500);
     }
