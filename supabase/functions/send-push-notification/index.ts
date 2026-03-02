@@ -52,11 +52,14 @@ async function generateAccessToken(serviceAccount: FirebaseServiceAccount): Prom
   const unsignedToken = `${headerB64}.${payloadB64}`;
 
   // Import private key and sign
-  const privateKeyPem = serviceAccount.private_key;
+  // Handle both real newlines and escaped \n from JSON secret storage
+  const privateKeyPem = serviceAccount.private_key.replace(/\\n/g, "\n");
   const pemContents = privateKeyPem
     .replace("-----BEGIN PRIVATE KEY-----", "")
     .replace("-----END PRIVATE KEY-----", "")
-    .replace(/\n/g, "");
+    .replace(/\n/g, "")
+    .replace(/\r/g, "")
+    .trim();
   
   const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
   
@@ -90,8 +93,10 @@ async function generateAccessToken(serviceAccount: FirebaseServiceAccount): Prom
 
   if (!tokenResponse.ok) {
     const error = await tokenResponse.text();
+    console.error(`[DIAG] Token exchange failed (${tokenResponse.status}): ${error}`);
     throw new Error(`Failed to get access token: ${error}`);
   }
+  console.log("[DIAG] OAuth token exchange succeeded");
 
   const tokenData = await tokenResponse.json();
   return tokenData.access_token;
