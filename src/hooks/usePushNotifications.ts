@@ -242,6 +242,73 @@ export function usePushNotificationsInternal() {
     }
   }, [clearWatchdog, saveTokenToDatabase]);
 
+  const reconcileRuntimeToken = useCallback(async (reason: string): Promise<boolean> => {
+    const platform = Capacitor.getPlatform();
+    const currentUser = userRef.current;
+
+    if (!Capacitor.isNativePlatform() || !currentUser) {
+      return false;
+    }
+
+    if (platform !== 'ios') {
+      return false;
+    }
+
+    try {
+      const fcm = await getFcmPlugin();
+      if (!fcm) {
+        pushLog('warn', 'reconcileRuntimeToken skipped — FCM plugin missing', { reason, platform });
+        return false;
+      }
+
+      const result = await fcm.getToken();
+      const candidate = result.token;
+
+      if (!candidate || !isValidFcmToken(candidate, platform)) {
+        pushLog('warn', 'reconcileRuntimeToken returned invalid token', {
+          reason,
+          platform,
+          tokenPrefix: candidate?.substring(0, 20) ?? null,
+        });
+        return false;
+      }
+
+      const changed = tokenRef.current !== candidate;
+      if (changed) {
+        setToken(candidate);
+        tokenRef.current = candidate;
+      }
+
+      const saved = await saveTokenToDatabase(candidate);
+      if (!saved) {
+        pushLog('error', 'reconcileRuntimeToken failed to persist token', {
+          reason,
+          platform,
+          tokenPrefix: candidate.substring(0, 20),
+        });
+        return false;
+      }
+
+      registrationStateRef.current = 'registered';
+      retryCountRef.current = 0;
+
+      pushLog('info', 'reconcileRuntimeToken success', {
+        reason,
+        platform,
+        tokenPrefix: candidate.substring(0, 20),
+        changed,
+      });
+      return true;
+    } catch (err) {
+      pushLog('error', 'reconcileRuntimeToken exception', {
+        reason,
+        platform,
+        error: String(err),
+      });
+      return false;
+    }
+  }, [saveTokenToDatabase]);
+
   // ── Unified registration (both platforms use PushNotifications) ──
   const attemptRegistration = useCallback(async () => {
     const state = registrationStateRef.current;
@@ -625,6 +692,15 @@ export function usePushNotificationsInternal() {
 
             if (resumePermission === 'granted' && userRef.current) {
               setPermissionStatus('granted');
+
+              if (!tokenRef.current) {
+                const reconciled = await reconcileRuntimeToken('app_resume_missing_runtime_token');
+                if (reconciled) {
+                  console.log('[Push] Runtime token reconciled on resume');
+                  return;
+                }
+              }
+
               registrationStateRef.current = 'idle';
               retryCountRef.current = 0;
               console.log('[Push] Permission granted on resume — attempting registration');
@@ -657,10 +733,14 @@ export function usePushNotificationsInternal() {
             loginPerm = p.receive;
           }
           if (loginPerm === 'granted') {
-            pushLog('info', 'Stage full + permission granted — silent re-registration');
-            registrationStateRef.current = 'idle';
-            retryCountRef.current = 0;
-            attemptRegistration();
+            pushLog('info', 'Stage full + permission granted — reconciling runtime token');
+            const reconciled = await reconcileRuntimeToken('login_stage_full');
+            if (!reconciled) {
+              pushLog('warn', 'Runtime token reconciliation failed on login — falling back to register()');
+              registrationStateRef.current = 'idle';
+              retryCountRef.current = 0;
+              attemptRegistration();
+            }
           } else {
             pushLog('warn', `Stage full but permission ${loginPerm} — waiting for user action`);
             setPermissionStatus(loginPerm === 'denied' ? 'denied' : 'prompt');
@@ -680,7 +760,7 @@ export function usePushNotificationsInternal() {
       cleanups.forEach(fn => fn());
       appListenerCleanup?.();
     };
-  }, [user, attemptRegistration, handleValidToken, handleForegroundNotification, handleNotificationAction, navigate, clearWatchdog, markFailed]);
+  }, [user, attemptRegistration, handleValidToken, handleForegroundNotification, handleNotificationAction, navigate, clearWatchdog, markFailed, reconcileRuntimeToken]);
 
   // ── Retry token save when user becomes available ──
   useEffect(() => {
@@ -768,9 +848,15 @@ export function usePushNotificationsInternal() {
 
       setPermissionStatus('granted');
       await setPushStage('full');
-      console.log(`[Push] ✓ Permission granted — triggering register()`);
+      console.log(`[Push] ✓ Permission granted — reconciling runtime token`);
 
-      // Trigger registration — token will arrive via the 'registration' listener
+      const reconciled = await reconcileRuntimeToken('request_full_permission');
+      if (reconciled) {
+        console.log('[Push] Runtime token reconciled after permission grant');
+        return;
+      }
+
+      // Fallback: trigger registration — token will arrive via the 'registration' listener
       registrationStateRef.current = 'idle';
       retryCountRef.current = 0;
       await attemptRegistration();
@@ -795,7 +881,7 @@ export function usePushNotificationsInternal() {
         }
       } catch {}
     }
-  }, [attemptRegistration]);
+  }, [attemptRegistration, reconcileRuntimeToken]);
 
   return {
     token,
