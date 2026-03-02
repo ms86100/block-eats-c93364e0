@@ -2,13 +2,15 @@ import { useState, useContext } from 'react';
 import { IdentityContext } from '@/contexts/auth/contexts';
 import { runPushDiagnostics, printDiagnostics, DiagnosticResult } from '@/lib/pushDiagnostics';
 import { supabase } from '@/integrations/supabase/client';
+import { usePushNotifications } from '@/contexts/PushNotificationContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
+import { Loader2, RefreshCw, CheckCircle2, XCircle, Trash2, Bell, Save } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { flushPushLogs } from '@/lib/pushLogger';
+import { Capacitor } from '@capacitor/core';
 
 interface LogRow {
   id: string;
@@ -21,10 +23,70 @@ interface LogRow {
 export default function PushDebugPage() {
   const identity = useContext(IdentityContext);
   const user = identity?.user ?? null;
+  const { requestFullPermission, registerPushNotifications, token, permissionStatus } = usePushNotifications();
   const [results, setResults] = useState<DiagnosticResult[] | null>(null);
   const [running, setRunning] = useState(false);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [savingToken, setSavingToken] = useState(false);
+
+  const handleRequestPermission = async () => {
+    try {
+      await requestFullPermission();
+      toast.success('Permission requested — check status above');
+    } catch (e) {
+      toast.error('Permission request failed: ' + String(e));
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      await registerPushNotifications();
+      toast.success('Registration triggered');
+    } catch (e) {
+      toast.error('Registration failed: ' + String(e));
+    }
+  };
+
+  const handleSaveTokenManually = async () => {
+    if (!user) return toast.error('Not logged in');
+    setSavingToken(true);
+    try {
+      // Try to get FCM token directly
+      let fcmToken: string | null = null;
+      const platform = Capacitor.getPlatform();
+      
+      if (platform === 'ios') {
+        const { FCM } = await import('@capacitor-community/fcm');
+        const result = await FCM.getToken();
+        fcmToken = result.token;
+      } else if (platform === 'android') {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        // On Android, register triggers the token event — but let's try to get existing
+        await PushNotifications.register();
+        toast.info('Android register triggered — token will be saved by the hook');
+        setSavingToken(false);
+        return;
+      }
+
+      if (!fcmToken) {
+        toast.error('Could not retrieve FCM token');
+        setSavingToken(false);
+        return;
+      }
+
+      const { error } = await supabase.from('device_tokens').upsert(
+        { user_id: user.id, token: fcmToken, platform, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,token' }
+      );
+      if (error) throw error;
+      toast.success(`Token saved! (${fcmToken.substring(0, 20)}…)`);
+    } catch (e) {
+      toast.error('Save failed: ' + String(e));
+    } finally {
+      setSavingToken(false);
+    }
+  };
 
   const handleRun = async () => {
     setRunning(true);
@@ -86,7 +148,28 @@ export default function PushDebugPage() {
       <h1 className="text-xl font-bold">🔔 Push Notification Debug</h1>
       <p className="text-sm text-muted-foreground">
         User: {user?.id?.substring(0, 8) ?? 'not logged in'}…
+        <br />
+        Hook token: {token ? `${token.substring(0, 20)}…` : 'null'} | Permission: {permissionStatus}
       </p>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Button onClick={handleRequestPermission} variant="outline" className="w-full">
+            <Bell className="mr-2" size={16} /> Request Permission
+          </Button>
+          <Button onClick={handleRegister} variant="outline" className="w-full">
+            <RefreshCw className="mr-2" size={16} /> Trigger Registration
+          </Button>
+          <Button onClick={handleSaveTokenManually} disabled={savingToken} variant="outline" className="w-full">
+            {savingToken ? <Loader2 className="animate-spin mr-2" size={16} /> : <Save className="mr-2" size={16} />}
+            Save FCM Token to DB Manually
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Diagnostics */}
       <Card>
