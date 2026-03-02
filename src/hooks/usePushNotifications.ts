@@ -520,23 +520,29 @@ export function usePushNotificationsInternal() {
 
     // ── FIX B: Do NOT auto-prompt on login. Only set up listeners. ──
     // The OS permission prompt is triggered ONLY from:
-    //   1. NotificationsPage CTA (user taps "Enable push notifications")
+    //   1. EnableNotificationsBanner CTA (user taps "Turn On")
     //   2. requestFullPermission() called after first order
     // This avoids iOS timing suppression during early app lifecycle.
-      if (user) {
+    if (user) {
       setTimeout(async () => {
         const stage = await getPushStage();
         console.log(`[Push] Push stage on login: ${stage}`);
 
-        // Always upgrade to 'full' and attempt registration on login
-        // This ensures the iOS permission popup appears on first install
-        if (stage !== 'full') {
-          await setPushStage('full');
-          console.log(`[Push] Upgraded stage from '${stage}' to 'full' — requesting permission`);
+        // Only silently re-register if user previously granted permission
+        if (stage === 'full') {
+          const permCheck = await PushNotifications.checkPermissions();
+          if (permCheck.receive === 'granted') {
+            console.log('[Push] Stage full + permission granted — silent re-registration');
+            registrationStateRef.current = 'idle';
+            retryCountRef.current = 0;
+            attemptRegistration();
+          } else {
+            console.log(`[Push] Stage full but permission ${permCheck.receive} — waiting for user action`);
+            setPermissionStatus(permCheck.receive === 'denied' ? 'denied' : 'prompt');
+          }
         } else {
-          console.log('[Push] Stage is full — attempting silent re-registration');
+          console.log(`[Push] Stage '${stage}' — waiting for user to tap Enable banner`);
         }
-        attemptRegistration();
       }, 500);
     }
 
@@ -582,10 +588,50 @@ export function usePushNotificationsInternal() {
    */
   const requestFullPermission = useCallback(async () => {
     console.log('[Push] ▶ requestFullPermission called — upgrading to full stage');
-    await setPushStage('full');
-    registrationStateRef.current = 'idle';
-    retryCountRef.current = 0;
-    await attemptRegistration();
+
+    // Call OS prompt IMMEDIATELY to preserve user-gesture context (iOS requirement)
+    if (!Capacitor.isNativePlatform()) {
+      console.log('[Push] Not native — skipping');
+      return;
+    }
+
+    // Watchdog: if the entire flow takes >10s, bail out so UI doesn't hang
+    const timeout = new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error('requestFullPermission timed out after 10s')), 10000)
+    );
+
+    const doRegister = async () => {
+      // Step 1: Request permission from OS right away (preserves gesture context)
+      let permStatus = await PushNotifications.checkPermissions();
+      console.log('[Push] requestFullPermission checkPermissions:', permStatus.receive);
+
+      if (permStatus.receive === 'prompt') {
+        permStatus = await PushNotifications.requestPermissions();
+        console.log('[Push] requestFullPermission requestPermissions result:', permStatus.receive);
+      }
+
+      if (permStatus.receive !== 'granted') {
+        setPermissionStatus(permStatus.receive === 'denied' ? 'denied' : 'prompt');
+        console.log('[Push] Permission not granted — aborting');
+        return;
+      }
+
+      setPermissionStatus('granted');
+
+      // Step 2: Now persist stage and do full registration
+      await setPushStage('full');
+      registrationStateRef.current = 'idle';
+      retryCountRef.current = 0;
+      await attemptRegistration();
+    };
+
+    try {
+      await Promise.race([doRegister(), timeout]);
+    } catch (err) {
+      console.error('[Push] requestFullPermission error/timeout:', err);
+      // Reset state so button becomes clickable again
+      registrationStateRef.current = 'idle';
+    }
   }, [attemptRegistration]);
 
   return {
