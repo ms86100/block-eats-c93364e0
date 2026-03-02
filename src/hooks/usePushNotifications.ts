@@ -78,6 +78,14 @@ export function usePushNotificationsInternal() {
   const lastErrorRef = useRef<unknown>(null);
   const tokenRef = useRef<string | null>(null);
 
+  // ── Listener gate: Promise that resolves when all 4 listeners are attached ──
+  const listenersReadyResolveRef = useRef<(() => void) | null>(null);
+  const listenersReadyRef = useRef<Promise<void>>(
+    new Promise<void>((resolve) => {
+      listenersReadyResolveRef.current = resolve;
+    })
+  );
+
   useEffect(() => {
     tokenRef.current = token;
   }, [token]);
@@ -253,17 +261,51 @@ export function usePushNotificationsInternal() {
       setPermissionStatus('granted');
       clearWatchdog();
 
+      // ── LISTENER GATE: wait for listeners to be ready before register() ──
+      console.log(`[Push][${platform}] ▶ Waiting for listeners to be ready…`);
+      try {
+        await Promise.race([
+          listenersReadyRef.current,
+          new Promise<void>((_, reject) =>
+            setTimeout(() => reject(new Error('Listener gate timeout')), 5000)
+          ),
+        ]);
+        console.log(`[Push][${platform}] ✓ Listeners ready`);
+      } catch (gateErr) {
+        console.warn(`[Push][${platform}] Listener gate timed out — proceeding anyway:`, gateErr);
+      }
+
       console.log(`[Push][${platform}] ▶ Calling PushNotifications.register()…`);
       await PN.register();
       console.log(`[Push][${platform}] ✓ register() completed — starting watchdog`);
 
       // Start watchdog for token arrival
-      watchdogTimerRef.current = setTimeout(() => {
+      watchdogTimerRef.current = setTimeout(async () => {
         watchdogTimerRef.current = null;
         if (registrationStateRef.current === 'registered') return;
 
         retryCountRef.current += 1;
         console.warn(`[Push][${platform}] Watchdog expired — no token (attempt ${retryCountRef.current}/${MAX_RETRIES})`);
+
+        // ── iOS WATCHDOG FALLBACK: try FCM.getToken() directly ──
+        if (platform === 'ios') {
+          console.log('[Push][iOS] Watchdog fallback — trying FCM.getToken() directly…');
+          try {
+            const fcm = await getFcmPlugin();
+            if (fcm) {
+              const result = await fcm.getToken();
+              const directToken = result.token;
+              if (directToken && isValidFcmToken(directToken, 'ios')) {
+                console.log('[Push][iOS] ✓ Watchdog fallback got valid FCM token:', directToken.substring(0, 20) + '…');
+                await handleValidToken(directToken);
+                return;
+              }
+              console.warn('[Push][iOS] Watchdog fallback — token invalid or missing');
+            }
+          } catch (fcmErr) {
+            console.warn('[Push][iOS] Watchdog fallback FCM.getToken() failed:', fcmErr);
+          }
+        }
 
         if (retryCountRef.current >= MAX_RETRIES) {
           markFailed();
@@ -277,7 +319,7 @@ export function usePushNotificationsInternal() {
       lastErrorRef.current = err;
       markFailed();
     }
-  }, [clearWatchdog, markFailed]);
+  }, [clearWatchdog, markFailed, handleValidToken]);
 
   // ── Foreground notification handler (shared logic) ──
   const handleForegroundNotification = useCallback((title: string, body: string, data?: Record<string, string>) => {
@@ -392,12 +434,30 @@ export function usePushNotificationsInternal() {
               markFailed();
               return;
             }
-            const fcmResult = await fcm.getToken();
-            const fcmToken = fcmResult.token;
-            console.log('[Push][iOS] ✓ FCM token:', fcmToken.substring(0, 20) + '…', 'length:', fcmToken.length);
 
-            if (!isValidFcmToken(fcmToken, 'ios')) {
-              console.warn('[Push][iOS] FCM token failed validation — rejecting');
+            // ── iOS FCM.getToken() RETRY LOOP (up to 3 attempts with backoff) ──
+            let fcmToken: string | null = null;
+            for (let fcmAttempt = 1; fcmAttempt <= 3; fcmAttempt++) {
+              try {
+                console.log(`[Push][iOS] FCM.getToken() attempt ${fcmAttempt}/3…`);
+                const fcmResult = await fcm.getToken();
+                const candidate = fcmResult.token;
+                if (candidate && isValidFcmToken(candidate, 'ios')) {
+                  fcmToken = candidate;
+                  console.log(`[Push][iOS] ✓ FCM token (attempt ${fcmAttempt}):`, fcmToken.substring(0, 20) + '…', 'length:', fcmToken.length);
+                  break;
+                }
+                console.warn(`[Push][iOS] FCM.getToken() attempt ${fcmAttempt} — invalid token:`, candidate?.substring(0, 20));
+              } catch (fcmErr) {
+                console.warn(`[Push][iOS] FCM.getToken() attempt ${fcmAttempt}/3 exception:`, fcmErr);
+              }
+              if (fcmAttempt < 3) {
+                await new Promise((r) => setTimeout(r, fcmAttempt * 1000));
+              }
+            }
+
+            if (!fcmToken) {
+              console.error('[Push][iOS] FCM token conversion failed after 3 attempts');
               markFailed();
               return;
             }
@@ -452,6 +512,13 @@ export function usePushNotificationsInternal() {
         }
       });
       cleanups.push(() => { actionListener.then(l => l.remove()).catch(() => {}); });
+
+      // ── Resolve the listener gate ──
+      console.log(`[Push][${platform}] All 4 listeners attached — resolving listener gate`);
+      if (listenersReadyResolveRef.current) {
+        listenersReadyResolveRef.current();
+        listenersReadyResolveRef.current = null;
+      }
     })();
 
     // ── iOS: also listen for FCM token refresh ──

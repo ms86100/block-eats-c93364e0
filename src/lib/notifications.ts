@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { OrderStatus } from '@/types/database';
-import { getOrderNotifTitle } from '@/lib/order-notification-titles';
+import { ORDER_NOTIF_TITLES_BUYER, ORDER_NOTIF_TITLES_SELLER } from '@/lib/order-notification-titles';
 
 interface NotificationPayload {
   userId: string;
@@ -72,18 +72,18 @@ function getOrderNotificationContent(
   status: OrderStatus,
   sellerName: string,
   buyerName: string,
-  _orderId: string,
+  orderId: string,
   isForSeller: boolean
 ): { title: string; body: string } | null {
-  const role = isForSeller ? 'seller' : 'buyer';
-  const title = getOrderNotifTitle(status, role);
-  if (!title) return null;
-
   if (isForSeller) {
+    const title = ORDER_NOTIF_TITLES_SELLER[status];
+    if (!title) return null;
     const bodyFn = SELLER_BODIES[status];
     return bodyFn ? { title, body: bodyFn(buyerName) } : null;
   }
 
+  const title = ORDER_NOTIF_TITLES_BUYER[status];
+  if (!title) return null;
   const bodyFn = BUYER_BODIES[status];
   return bodyFn ? { title, body: bodyFn(sellerName) } : null;
 }
