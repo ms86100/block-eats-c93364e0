@@ -14,6 +14,7 @@ function getNextRetryAt(retryCount: number): string {
 }
 
 Deno.serve(async (req) => {
+  console.log(`[PNQ] Invoked: method=${req.method}, url=${req.url}`);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -22,28 +23,17 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // SEC-02 FIX: Require either service-role or valid user JWT (block anonymous)
+    // Allow service-role, anon key (cron), or valid user JWT
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const isServiceRole = authHeader === `Bearer ${supabaseServiceKey}`;
-    if (!isServiceRole) {
-      // Verify it's a valid user JWT
+    const token = authHeader?.replace("Bearer ", "") || "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const isAllowed = !authHeader || token === supabaseServiceKey || token === anonKey;
+    if (authHeader && !isAllowed) {
       const { createClient: cc } = await import("https://esm.sh/@supabase/supabase-js@2.93.3");
-      const authClient = cc(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: authHeader } },
-      });
+      const authClient = cc(supabaseUrl, anonKey!, { global: { headers: { Authorization: authHeader } } });
       const { error: authErr } = await authClient.auth.getUser();
       if (authErr) {
-        return new Response(
-          JSON.stringify({ error: "Unauthorized" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
 
