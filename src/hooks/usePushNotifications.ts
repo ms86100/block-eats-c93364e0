@@ -693,10 +693,19 @@ export function usePushNotificationsInternal() {
 
             // Attempt an early runtime reconciliation before logging, to avoid stale "hasToken:false" snapshots.
             if (!hasRuntimeToken && userRef.current) {
-              const reconciledEarly = await reconcileRuntimeToken('app_resume_prelog');
-              hasRuntimeToken = Boolean(tokenRef.current);
-              if (reconciledEarly) {
-                state = registrationStateRef.current;
+              try {
+                const reconciledEarly = await reconcileRuntimeToken('app_resume_prelog');
+                hasRuntimeToken = Boolean(tokenRef.current);
+                if (reconciledEarly) {
+                  state = registrationStateRef.current;
+                }
+              } catch (err) {
+                pushLog('error', 'Resume prelog reconcile crashed', {
+                  platform,
+                  error: String(err),
+                  userId: userRef.current?.id ?? null,
+                  at: new Date().toISOString(),
+                });
               }
             }
 
@@ -772,8 +781,37 @@ export function usePushNotificationsInternal() {
                 }, 5000);
               }
             }
+
+            // HARD RECOVERY: never stay in idle+no-token after resume.
+            if (userRef.current && !tokenRef.current && registrationStateRef.current === 'idle') {
+              pushLog('warn', 'Resume hard-recovery: forcing attemptRegistration from idle+no-token', {
+                platform,
+                userId: userRef.current.id,
+                at: new Date().toISOString(),
+              });
+              retryCountRef.current = 0;
+              attemptRegistration();
+            }
           } catch (err) {
             console.error('[Push] appStateChange listener exception:', err);
+            pushLog('error', 'appStateChange handler exception', {
+              platform,
+              error: String(err),
+              regState: registrationStateRef.current,
+              hasToken: Boolean(tokenRef.current),
+              userId: userRef.current?.id ?? null,
+              at: new Date().toISOString(),
+            });
+
+            if (userRef.current && !tokenRef.current && registrationStateRef.current === 'idle') {
+              pushLog('warn', 'appStateChange exception recovery: forcing attemptRegistration', {
+                platform,
+                userId: userRef.current.id,
+                at: new Date().toISOString(),
+              });
+              retryCountRef.current = 0;
+              attemptRegistration();
+            }
           }
         });
         appListenerCleanup = () => listener.remove();
