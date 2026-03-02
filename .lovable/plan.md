@@ -1,73 +1,25 @@
 
 
-## Root Cause: Multiple Hook Instances Causing iOS Permission Suppression
+## Plan: Add "Enable Notifications" In-App Banner (Like Claude's iOS App)
 
-After thorough audit of every file involved, I found the real issue. It is **not** in your CI pipeline, AppDelegate, entitlements, or Firebase config. Those are all correct.
+Inspired by the Claude app screenshot you shared -- a card with a bell icon, title, description, and a "Turn On" button that triggers the iOS system popup when tapped.
 
-### The Problem
+### New File: `src/components/notifications/EnableNotificationsBanner.tsx`
 
-`usePushNotifications()` is a **full hook with side effects** (listeners, registration logic, permission requests). It is called in **three separate places**, each creating an independent instance:
+A card-style banner component that:
+- Only renders on native platforms (iOS/Android) when permission is still `'prompt'`
+- Shows a bell icon, heading ("Turn On Notifications"), description ("Stay updated on your orders and community activity"), and a "Turn On" button
+- On button tap: calls `requestFullPermission()` from context (singleton -- single OS popup)
+- Dismissible via X button (stored in `sessionStorage` so it reappears next app launch)
+- Auto-hides once `permissionStatus` becomes `'granted'`
+- Styled as a rounded card with border, matching the reference screenshot
 
-1. `PushNotificationProvider.tsx` (always mounted, wraps entire app)
-2. `NotificationsPage.tsx` (when user visits notifications settings)
-3. `useCartPage.ts` (when user opens cart)
+### Edit: `src/components/layout/AppLayout.tsx`
 
-Each instance runs its own `useEffect` on login, each calling `attemptRegistration()` independently with a 500ms delay. This means **multiple simultaneous calls** to `PushNotifications.requestPermissions()` hit iOS at the same time.
+- Import and render `<EnableNotificationsBanner />` inside `<main>` before `{children}` (line 39)
+- This ensures the banner appears at the top of every authenticated page
 
-**iOS behavior**: When `UNUserNotificationCenter.requestAuthorization()` is called multiple times rapidly, iOS silently suppresses the duplicate prompts. The first call may resolve before the UI can show the popup, or the system simply drops it. Since the popup never appears, the user never grants permission, `PushNotifications.register()` (which calls `UIApplication.shared.registerForRemoteNotifications()`) is never reached, and iOS never creates the "Notifications" section in Settings.
+### No other files change
 
-This also explains why it "worked before" -- timing changes in the code (like adding/removing the deferred strategy) shifted when these calls fired, sometimes allowing one through and sometimes not.
-
-### Evidence
-
-```text
-Instance 1: PushNotificationProvider (App.tsx line 461)
-  └─ usePushNotifications() → useEffect fires on user login
-     └─ attemptRegistration() at T+500ms
-
-Instance 2: NotificationsPage (line 32)  
-  └─ usePushNotifications() → useEffect fires on user login
-     └─ attemptRegistration() at T+500ms  (RACE!)
-
-Instance 3: useCartPage (line 18)
-  └─ usePushNotifications() → useEffect fires on user login  
-     └─ attemptRegistration() at T+500ms  (RACE!)
-
-Each instance has its own registrationStateRef — they cannot coordinate.
-iOS sees 2-3 rapid requestAuthorization() calls → suppresses popup.
-```
-
-### Fix Plan
-
-**A. Make push registration a singleton** (primary fix)
-
-Convert the hook into a Context + Provider pattern so the registration logic runs exactly once:
-
-1. Create `PushNotificationContext` with the hook's return values
-2. Move ALL side effects (listeners, login registration, resume handler) into the existing `PushNotificationProvider` component only
-3. Convert `usePushNotifications()` into a context consumer that just reads shared state
-4. `NotificationsPage` and `useCartPage` consume via context instead of running their own effects
-
-**B. Module-level guard as safety net**
-
-Add a module-level `let activeInstance = false` flag. The `useEffect` that sets up listeners and triggers registration checks this flag and only proceeds if no other instance is active. This prevents duplicate `requestPermissions()` calls even if the context pattern is bypassed.
-
-**C. No changes needed to:**
-- `codemagic.yaml` (AppDelegate, entitlements, background modes all verified correct)
-- `capacitor.config.ts` (PushNotifications presentationOptions correct)
-- `pushPermissionStage.ts` (stage logic is fine)
-- Native plugin code (working correctly when called once)
-
-### Files to Change
-
-| File | Change |
-|------|--------|
-| `src/hooks/usePushNotifications.ts` | Extract state + effects into a provider-only version; export a lightweight context consumer hook |
-| `src/components/notifications/PushNotificationProvider.tsx` | Run the full hook here (single instance); provide values via context |
-| `src/pages/NotificationsPage.tsx` | Switch from `usePushNotifications()` to context consumer |
-| `src/hooks/useCartPage.ts` | Switch from `usePushNotifications()` to context consumer |
-
-### Why This Will Work
-
-With a single instance, exactly one `requestPermissions()` call reaches iOS on login. The system popup appears, user taps Allow, `registerForRemoteNotifications()` fires, APNs registers the app, and iOS creates the Notifications section in Settings. This matches how MyGate and Zomato work -- they use a singleton notification manager, never multiple competing instances.
+The banner consumes `usePushNotifications()` from context -- no new hook instances, no race conditions. The singleton `PushNotificationProvider` handles all registration logic.
 
