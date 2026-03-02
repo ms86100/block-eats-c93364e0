@@ -21,7 +21,7 @@ import { getPushStage, setPushStage } from '@/lib/pushPermissionStage';
 type RegistrationState = 'idle' | 'registering' | 'registered' | 'failed';
 
 const MAX_RETRIES = 3;
-const WATCHDOG_TIMEOUT_MS = 8000;
+const WATCHDOG_TIMEOUT_MS = 20000;
 
 /**
  * Reject 64-char hex strings on iOS — these are raw APNs tokens, not FCM.
@@ -200,7 +200,9 @@ export function usePushNotificationsInternal() {
     }
   }, [clearWatchdog, saveTokenToDatabase]);
 
-  // ── iOS registration via @capacitor-firebase/messaging ──
+  // ── iOS registration via @capacitor-firebase/messaging (unified) ──
+  // Per the article: use ONLY FirebaseMessaging for permissions + token on iOS.
+  // Do NOT mix with @capacitor/push-notifications (legacy APNs plugin).
   const attemptIosRegistration = useCallback(async () => {
     const FirebaseMessaging = await getFirebaseMessaging();
     if (!FirebaseMessaging) {
@@ -210,38 +212,28 @@ export function usePushNotificationsInternal() {
     }
 
     try {
-      // Step 1: check native OS permission
-      let nativePerm = await PushNotifications.checkPermissions();
-      console.log('[Push][iOS] ▶ checkPermissions result:', nativePerm.receive);
+      // Step 1: check permission via FirebaseMessaging (NOT PushNotifications)
+      let permResult = await FirebaseMessaging.checkPermissions();
+      console.log('[Push][iOS] ▶ FirebaseMessaging.checkPermissions:', permResult.receive);
 
-      if (nativePerm.receive === 'prompt') {
-        console.log('[Push][iOS] ▶ Calling requestPermissions()…');
-        nativePerm = await PushNotifications.requestPermissions();
-        console.log('[Push][iOS] ▶ requestPermissions result:', nativePerm.receive);
+      if (permResult.receive === 'prompt') {
+        console.log('[Push][iOS] ▶ Calling FirebaseMessaging.requestPermissions()…');
+        permResult = await FirebaseMessaging.requestPermissions();
+        console.log('[Push][iOS] ▶ FirebaseMessaging.requestPermissions result:', permResult.receive);
       }
 
-      // FIX A: Do NOT set terminal state on non-granted.
-      // If user explicitly denied, update UI status but stay 'idle' so CTA/resume can retry.
-      if (nativePerm.receive !== 'granted') {
-        const isDenied = nativePerm.receive === 'denied';
+      if (permResult.receive !== 'granted') {
+        const isDenied = permResult.receive === 'denied';
         setPermissionStatus(isDenied ? 'denied' : 'prompt');
-        registrationStateRef.current = 'idle'; // NOT terminal — allows retry
-        console.log(`[Push][iOS] Permission not granted (${nativePerm.receive}) — staying idle for retry`);
+        registrationStateRef.current = 'idle';
+        console.log(`[Push][iOS] Permission not granted (${permResult.receive}) — staying idle for retry`);
         return;
       }
 
       setPermissionStatus('granted');
 
-      // Step 2: register with APNs
-      try {
-        console.log('[Push][iOS] ▶ Calling PushNotifications.register()…');
-        await PushNotifications.register();
-        console.log('[Push][iOS] ✓ PushNotifications.register() completed');
-      } catch (registerErr) {
-        console.warn('[Push][iOS] PushNotifications.register() warning:', registerErr);
-      }
-
-      // Step 3: get FCM token
+      // Step 2: get FCM token directly (FirebaseMessaging handles APNs swizzling internally)
+      // No need for PushNotifications.register() — that's the legacy APNs path
       console.log('[Push][iOS] ▶ Calling FirebaseMessaging.getToken()…');
       const result = await FirebaseMessaging.getToken();
       const fcmToken = result.token;
@@ -516,16 +508,30 @@ export function usePushNotificationsInternal() {
             if (state === 'registered') return;
 
             // On resume, always re-check permission — user may have toggled in Settings
-            const permStatus = await PushNotifications.checkPermissions();
-            console.log(`[Push] Resume permission check: ${permStatus.receive}`);
+            // Use FirebaseMessaging on iOS, PushNotifications on Android
+            const platform = Capacitor.getPlatform();
+            let resumePermission: string;
+            if (platform === 'ios') {
+              const FM = await getFirebaseMessaging();
+              if (FM) {
+                const p = await FM.checkPermissions();
+                resumePermission = p.receive;
+              } else {
+                resumePermission = 'prompt';
+              }
+            } else {
+              const p = await PushNotifications.checkPermissions();
+              resumePermission = p.receive;
+            }
+            console.log(`[Push] Resume permission check: ${resumePermission}`);
 
-            if (permStatus.receive === 'granted' && userRef.current) {
+            if (resumePermission === 'granted' && userRef.current) {
               setPermissionStatus('granted');
               registrationStateRef.current = 'idle';
               retryCountRef.current = 0;
               console.log('[Push] Permission granted on resume — attempting registration');
               attemptRegistration();
-            } else if (permStatus.receive === 'denied') {
+            } else if (resumePermission === 'denied') {
               setPermissionStatus('denied');
             }
           } catch (err) {
@@ -550,15 +556,29 @@ export function usePushNotificationsInternal() {
 
         // Only silently re-register if user previously granted permission
         if (stage === 'full') {
-          const permCheck = await PushNotifications.checkPermissions();
-          if (permCheck.receive === 'granted') {
+          // Use FirebaseMessaging on iOS for permission check
+          const loginPlatform = Capacitor.getPlatform();
+          let loginPerm: string;
+          if (loginPlatform === 'ios') {
+            const FM = await getFirebaseMessaging();
+            if (FM) {
+              const p = await FM.checkPermissions();
+              loginPerm = p.receive;
+            } else {
+              loginPerm = 'prompt';
+            }
+          } else {
+            const p = await PushNotifications.checkPermissions();
+            loginPerm = p.receive;
+          }
+          if (loginPerm === 'granted') {
             console.log('[Push] Stage full + permission granted — silent re-registration');
             registrationStateRef.current = 'idle';
             retryCountRef.current = 0;
             attemptRegistration();
           } else {
-            console.log(`[Push] Stage full but permission ${permCheck.receive} — waiting for user action`);
-            setPermissionStatus(permCheck.receive === 'denied' ? 'denied' : 'prompt');
+            console.log(`[Push] Stage full but permission ${loginPerm} — waiting for user action`);
+            setPermissionStatus(loginPerm === 'denied' ? 'denied' : 'prompt');
           }
         } else {
           console.log(`[Push] Stage '${stage}' — waiting for user to tap Enable banner`);
@@ -609,53 +629,85 @@ export function usePushNotificationsInternal() {
   const requestFullPermission = useCallback(async () => {
     console.log('[Push] ▶ requestFullPermission called — upgrading to full stage');
 
-    // Call OS prompt IMMEDIATELY to preserve user-gesture context (iOS requirement)
     if (!Capacitor.isNativePlatform()) {
       console.log('[Push] Not native — skipping');
       return;
     }
 
-    // Watchdog: if the entire flow takes >10s, bail out so UI doesn't hang
+    const platform = Capacitor.getPlatform();
+
+    // Watchdog: 20s timeout (first-launch FCM token fetch can be slow)
     const timeout = new Promise<void>((_, reject) =>
-      setTimeout(() => reject(new Error('requestFullPermission timed out after 10s')), 10000)
+      setTimeout(() => reject(new Error('requestFullPermission timed out after 20s')), 20000)
     );
 
     const doRegister = async () => {
-      // Step 1: Request permission from OS right away (preserves gesture context)
-      let permStatus = await PushNotifications.checkPermissions();
-      console.log('[Push] requestFullPermission checkPermissions:', permStatus.receive);
+      if (platform === 'ios') {
+        // ── iOS: Use ONLY FirebaseMessaging (per article) ──
+        const FirebaseMessaging = await getFirebaseMessaging();
+        if (!FirebaseMessaging) {
+          console.error('[Push] FirebaseMessaging not available on iOS');
+          return;
+        }
 
-      if (permStatus.receive === 'prompt') {
-        permStatus = await PushNotifications.requestPermissions();
-        console.log('[Push] requestFullPermission requestPermissions result:', permStatus.receive);
+        // Single permission request via FirebaseMessaging (handles OS prompt + Firebase swizzling)
+        const permResult = await FirebaseMessaging.requestPermissions();
+        console.log('[Push] requestFullPermission (iOS) FirebaseMessaging.requestPermissions:', permResult.receive);
+
+        if (permResult.receive !== 'granted') {
+          setPermissionStatus(permResult.receive === 'denied' ? 'denied' : 'prompt');
+          console.log('[Push] Permission not granted — aborting');
+          return;
+        }
+
+        setPermissionStatus('granted');
+        await setPushStage('full');
+
+        // Get FCM token directly — no PushNotifications.register() needed
+        console.log('[Push] requestFullPermission (iOS) ▶ FirebaseMessaging.getToken()…');
+        const result = await FirebaseMessaging.getToken();
+        const fcmToken = result.token;
+        console.log('[Push] requestFullPermission (iOS) ✓ FCM token:', fcmToken.substring(0, 20) + '…');
+
+        if (!isValidFcmToken(fcmToken, 'ios')) {
+          console.warn('[Push] Token failed FCM validation');
+          return;
+        }
+
+        await handleValidToken(fcmToken);
+      } else {
+        // ── Android: Use PushNotifications (works fine per article) ──
+        let permStatus = await PushNotifications.checkPermissions();
+        console.log('[Push] requestFullPermission (Android) checkPermissions:', permStatus.receive);
+
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+          console.log('[Push] requestFullPermission (Android) requestPermissions:', permStatus.receive);
+        }
+
+        if (permStatus.receive !== 'granted') {
+          setPermissionStatus(permStatus.receive === 'denied' ? 'denied' : 'prompt');
+          console.log('[Push] Permission not granted — aborting');
+          return;
+        }
+
+        setPermissionStatus('granted');
+        await setPushStage('full');
+
+        // Delegate to attemptRegistration for Android (uses listener-based token flow)
+        registrationStateRef.current = 'idle';
+        retryCountRef.current = 0;
+        await attemptRegistration();
       }
-
-      if (permStatus.receive !== 'granted') {
-        setPermissionStatus(permStatus.receive === 'denied' ? 'denied' : 'prompt');
-        console.log('[Push] Permission not granted — aborting');
-        return;
-      }
-
-      setPermissionStatus('granted');
-
-      // Step 2: Now persist stage and do full registration
-      await setPushStage('full');
-      console.log('[Push] Stage set to full — resetting state for attemptRegistration');
-      registrationStateRef.current = 'idle';
-      retryCountRef.current = 0;
-      console.log('[Push] Calling attemptRegistration from requestFullPermission, state:', registrationStateRef.current);
-      await attemptRegistration();
-      console.log('[Push] attemptRegistration completed, state:', registrationStateRef.current, 'token:', tokenRef.current?.substring(0, 20) ?? 'null');
     };
 
     try {
       await Promise.race([doRegister(), timeout]);
     } catch (err) {
       console.error('[Push] requestFullPermission error/timeout:', err);
-      // Reset state so button becomes clickable again
       registrationStateRef.current = 'idle';
     }
-  }, [attemptRegistration]);
+  }, [attemptRegistration, handleValidToken]);
 
   return {
     token,
