@@ -124,6 +124,10 @@ async function sendFCMNotification(
       data: data || {},
       // iOS specific configuration
       apns: {
+        headers: {
+          "apns-push-type": "alert",
+          "apns-priority": "10",
+        },
         payload: {
           aps: {
             alert: {

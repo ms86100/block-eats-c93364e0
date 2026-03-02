@@ -664,12 +664,23 @@ export function usePushNotificationsInternal() {
           try {
             if (!isActive) return;
 
-            const state = registrationStateRef.current;
-            console.log(`[Push] App resumed — regState: ${state}, token: ${tokenRef.current ? 'yes' : 'null'}, user: ${userRef.current?.id ?? 'null'}`);
+            let state = registrationStateRef.current;
+            let hasRuntimeToken = Boolean(tokenRef.current);
+
+            // Attempt an early runtime reconciliation before logging, to avoid stale "hasToken:false" snapshots.
+            if (!hasRuntimeToken && userRef.current) {
+              const reconciledEarly = await reconcileRuntimeToken('app_resume_prelog');
+              hasRuntimeToken = Boolean(tokenRef.current);
+              if (reconciledEarly) {
+                state = registrationStateRef.current;
+              }
+            }
+
+            console.log(`[Push] App resumed — regState: ${state}, token: ${hasRuntimeToken ? 'yes' : 'null'}, user: ${userRef.current?.id ?? 'null'}`);
             pushLog('info', 'appStateChange active', {
               platform,
               regState: state,
-              hasToken: Boolean(tokenRef.current),
+              hasToken: hasRuntimeToken,
               userId: userRef.current?.id ?? null,
               at: new Date().toISOString(),
             });
