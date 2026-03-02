@@ -195,7 +195,16 @@ Deno.serve(async (req) => {
       throw new Error("FIREBASE_SERVICE_ACCOUNT not configured");
     }
 
-    const serviceAccount: FirebaseServiceAccount = JSON.parse(serviceAccountJson);
+    // Diagnostic: log first 30 chars to debug secret format issues
+    console.log(`[DIAG] FIREBASE_SERVICE_ACCOUNT starts with: "${serviceAccountJson.substring(0, 30)}..." (length: ${serviceAccountJson.length})`);
+
+    let serviceAccount: FirebaseServiceAccount;
+    try {
+      serviceAccount = JSON.parse(serviceAccountJson);
+    } catch (parseErr) {
+      console.error(`[DIAG] JSON.parse failed. Full value preview: "${serviceAccountJson.substring(0, 100)}"`);
+      throw new Error(`FIREBASE_SERVICE_ACCOUNT is not valid JSON. Starts with: "${serviceAccountJson.substring(0, 30)}"`);
+    }
     
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
