@@ -254,59 +254,83 @@ export function usePushNotificationsInternal() {
       return false;
     }
 
-    try {
-      const fcm = await getFcmPlugin();
-      if (!fcm) {
-        pushLog('warn', 'reconcileRuntimeToken skipped — FCM plugin missing', { reason, platform });
-        return false;
-      }
+    const fcm = await getFcmPlugin();
+    if (!fcm) {
+      pushLog('warn', 'reconcileRuntimeToken skipped — FCM plugin missing', { reason, platform });
+      return false;
+    }
 
-      const result = await fcm.getToken();
-      const candidate = result.token;
+    let candidate: string | null = null;
+    let lastError: unknown = null;
 
-      if (!candidate || !isValidFcmToken(candidate, platform)) {
+    // iOS bridge can be transient right after resume/login; retry a few times.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const result = await fcm.getToken();
+        const tokenValue = result.token;
+
+        if (tokenValue && isValidFcmToken(tokenValue, platform)) {
+          candidate = tokenValue;
+          break;
+        }
+
         pushLog('warn', 'reconcileRuntimeToken returned invalid token', {
           reason,
           platform,
-          tokenPrefix: candidate?.substring(0, 20) ?? null,
+          attempt,
+          tokenPrefix: tokenValue?.substring(0, 20) ?? null,
         });
-        return false;
-      }
-
-      const changed = tokenRef.current !== candidate;
-      if (changed) {
-        setToken(candidate);
-        tokenRef.current = candidate;
-      }
-
-      const saved = await saveTokenToDatabase(candidate);
-      if (!saved) {
-        pushLog('error', 'reconcileRuntimeToken failed to persist token', {
+      } catch (err) {
+        lastError = err;
+        pushLog('warn', 'reconcileRuntimeToken attempt failed', {
           reason,
           platform,
-          tokenPrefix: candidate.substring(0, 20),
+          attempt,
+          error: String(err),
         });
-        return false;
       }
 
-      registrationStateRef.current = 'registered';
-      retryCountRef.current = 0;
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 800));
+      }
+    }
 
-      pushLog('info', 'reconcileRuntimeToken success', {
+    if (!candidate) {
+      pushLog('error', 'reconcileRuntimeToken failed after retries', {
         reason,
         platform,
-        tokenPrefix: candidate.substring(0, 20),
-        changed,
-      });
-      return true;
-    } catch (err) {
-      pushLog('error', 'reconcileRuntimeToken exception', {
-        reason,
-        platform,
-        error: String(err),
+        error: String(lastError),
       });
       return false;
     }
+
+    const changed = tokenRef.current !== candidate;
+    if (changed) {
+      setToken(candidate);
+      tokenRef.current = candidate;
+    }
+
+    const saved = await saveTokenToDatabase(candidate);
+    if (!saved) {
+      pushLog('error', 'reconcileRuntimeToken failed to persist token', {
+        reason,
+        platform,
+        tokenPrefix: candidate.substring(0, 20),
+      });
+      return false;
+    }
+
+    registrationStateRef.current = 'registered';
+    retryCountRef.current = 0;
+
+    pushLog('info', 'reconcileRuntimeToken success', {
+      reason,
+      platform,
+      tokenPrefix: candidate.substring(0, 20),
+      changed,
+    });
+
+    return true;
   }, [saveTokenToDatabase]);
 
   // ── Unified registration (both platforms use PushNotifications) ──
